@@ -3,6 +3,7 @@ import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { C2S2CRemoteFunction } from "engine/shared/event/PERemoteEvent";
 import { PlayerRank } from "engine/shared/PlayerRank";
 
+@injectable
 export class Switches {
 	private readonly setSwitch = new C2S2CRemoteFunction<{ readonly name: string; readonly value: boolean }>(
 		"adm_setsw",
@@ -11,10 +12,10 @@ export class Switches {
 	private readonly _registered: { [k in string]: ObservableValue<boolean> } = {};
 	readonly registered: { readonly [k in string]: ObservableValue<boolean> } = this._registered;
 
-	constructor() {
+	constructor(@inject private readonly gameInfo: GameInfo) {
 		if (RunService.IsServer()) {
 			this.setSwitch.subscribe((player, { name, value }) => {
-				if (!PlayerRank.isAdmin(player)) {
+				if (!PlayerRank.isAdmin(gameInfo.groupId, player)) {
 					return {
 						success: false,
 						message: "Not enough permissions",
@@ -39,7 +40,7 @@ export class Switches {
 	register(name: string, value: ObservableValue<boolean>) {
 		this._registered[name] = value;
 
-		if (RunService.IsClient() && PlayerRank.isAdmin(Players.LocalPlayer)) {
+		if (RunService.IsClient() && PlayerRank.isAdmin(this.gameInfo.groupId, Players.LocalPlayer)) {
 			value.subscribe((value) => this.setSwitch.send({ name, value }));
 		}
 	}

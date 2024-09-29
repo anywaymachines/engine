@@ -1,12 +1,10 @@
 import { Throttler } from "engine/shared/Throttler";
 
 export namespace PlayerRank {
-	const GROUP = 1088368;
-
-	export function isAdmin(player: Player): boolean {
+	export function isAdmin(groupId: number, player: Player): boolean {
 		if (player.Name === "i3ymm" || player.Name === "3QAXM" || player.Name === "samlovebutter") return true;
 
-		const req = Throttler.retryOnFail<boolean>(3, 1, () => player.GetRankInGroup(GROUP) > 250);
+		const req = Throttler.retryOnFail<boolean>(3, 1, () => player.GetRankInGroup(groupId) > 250);
 
 		if (!req.success) {
 			warn(req.error_message);
@@ -15,8 +13,8 @@ export namespace PlayerRank {
 		return req.success ? req.message : false;
 	}
 
-	export function getRank(player: Player): number {
-		const req = Throttler.retryOnFail<number>(3, 1, () => player.GetRankInGroup(GROUP));
+	export function getRank(groupId: number, player: Player): number {
+		const req = Throttler.retryOnFail<number>(3, 1, () => player.GetRankInGroup(groupId));
 
 		if (!req.success) {
 			warn(req.error_message);
