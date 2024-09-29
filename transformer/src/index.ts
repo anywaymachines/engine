@@ -5,14 +5,13 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 	const factory = ts.factory;
 	const typeChecker = program.getTypeChecker();
 
-	const identifierByTypeNode = (typeNode: ts.TypeNode) =>
-		identifierByType(typeChecker.getTypeFromTypeNode(typeNode));
+	const identifierByTypeNode = (typeNode: ts.TypeNode) => identifierByType(typeChecker.getTypeFromTypeNode(typeNode));
 	const identifierByType = (type: ts.Type) => {
-		const declaration=
-			type.symbol?.valueDeclaration
-			?? type.aliasSymbol?.declarations?.[0]
-			?? type.symbol?.declarations?.[0]
-			?? type.aliasSymbol?.valueDeclaration
+		const declaration =
+			type.symbol?.valueDeclaration ??
+			type.aliasSymbol?.declarations?.[0] ??
+			type.symbol?.declarations?.[0] ??
+			type.aliasSymbol?.valueDeclaration;
 		if (!declaration) return;
 
 		const pth = path.relative("src", declaration.getSourceFile().fileName).replaceAll("\\", "/");
@@ -22,8 +21,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 	/** Fix namespace function hoisting by moving any variable and inside namespace declarations to the bottom */
 	const transformNamespaces = (file: ts.SourceFile): ts.SourceFile => {
 		const fixNamespace = (node: ts.ModuleDeclaration): ts.ModuleDeclaration => {
-			if ((node.flags & ts.NodeFlags.Namespace) === 0 || !node.body || !ts.isModuleBlock(node.body))
-				return node;
+			if ((node.flags & ts.NodeFlags.Namespace) === 0 || !node.body || !ts.isModuleBlock(node.body)) return node;
 
 			const functionDeclarations: ts.FunctionDeclaration[] = [];
 			const anyDeclarations: ts.Statement[] = [];
@@ -41,40 +39,43 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 			return ts.factory.createModuleDeclaration(
 				node.modifiers,
 				node.name,
-				ts.factory.createModuleBlock([
-					...functionDeclarations,
-					...anyDeclarations,
-				]),
+				ts.factory.createModuleBlock([...functionDeclarations, ...anyDeclarations]),
 				node.flags,
 			);
-		}
+		};
 
-		return ts.visitEachChild(file, node => {
-			if (ts.isModuleDeclaration(node)) {
-				return fixNamespace(node);
-			}
+		return ts.visitEachChild(
+			file,
+			(node) => {
+				if (ts.isModuleDeclaration(node)) {
+					return fixNamespace(node);
+				}
 
-			return node;
-		}, context);
-	}
+				return node;
+			},
+			context,
+		);
+	};
 	const transformLogs = (file: ts.SourceFile): ts.SourceFile => {
 		let needsImport = false;
-		const scopedBlocks = new Set<(ts.Block | ts.SourceFile)>();
+		const scopedBlocks = new Set<ts.Block | ts.SourceFile>();
 
 		const constructLog = (expression: ts.CallExpression, logType: string): ts.Node => {
 			needsImport = true;
-			const spt = file.fileName.split('/');
+			const spt = file.fileName.split("/");
 			let fileName = spt[spt.length - 1];
-			fileName = fileName.substring(0, fileName.length - '.ts'.length);
+			fileName = fileName.substring(0, fileName.length - ".ts".length);
 
 			return factory.createCallExpression(
 				factory.createPropertyAccessExpression(
-					factory.createIdentifier('__logger'),
+					factory.createIdentifier("__logger"),
 					factory.createIdentifier(`_${logType}`),
 				),
 				expression.typeArguments,
 				[
-					factory.createStringLiteral(`\t - ${fileName}:${file.getLineAndCharacterOfPosition(expression.getStart()).line}`),
+					factory.createStringLiteral(
+						`\t - ${fileName}:${file.getLineAndCharacterOfPosition(expression.getStart()).line}`,
+					),
 					...expression.arguments,
 				],
 			);
@@ -86,14 +87,14 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 			while (parent && !ts.isBlock(parent) && !ts.isSourceFile(parent)) {
 				parent = parent.parent;
 			}
-			if (!parent) throw 'what';
-			if (!ts.isBlock(parent) && !ts.isSourceFile(parent)) throw 'what';
+			if (!parent) throw "what";
+			if (!ts.isBlock(parent) && !ts.isSourceFile(parent)) throw "what";
 
 			scopedBlocks.add(parent);
 
 			return factory.createCallExpression(
 				factory.createPropertyAccessExpression(
-					factory.createIdentifier('__logger'),
+					factory.createIdentifier("__logger"),
 					factory.createIdentifier(`beginScope`),
 				),
 				expression.typeArguments,
@@ -136,7 +137,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					factory.createExpressionStatement(
 						factory.createCallExpression(
 							factory.createPropertyAccessExpression(
-								factory.createIdentifier('__logger'),
+								factory.createIdentifier("__logger"),
 								factory.createIdentifier(`endScope`),
 							),
 							undefined,
@@ -145,20 +146,23 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					),
 				]),
 			);
-		}
+		};
 
 		const addEndScopes = (node: ts.Node): ts.Node => {
 			if (ts.isBlock(node) || ts.isSourceFile(node)) {
 				for (const child of node.statements) {
-					if (ts.isExpressionStatement(child) && ts.isCallExpression(child.expression) && ts.isIdentifier(child.expression.expression) && child.expression.expression.text === '$beginScope') {
+					if (
+						ts.isExpressionStatement(child) &&
+						ts.isCallExpression(child.expression) &&
+						ts.isIdentifier(child.expression.expression) &&
+						child.expression.expression.text === "$beginScope"
+					) {
 						needsImport = true;
 
 						if (ts.isBlock(node)) {
 							return addTryCatch((ts.visitEachChild(node, addEndScopes, context) as ts.Block).statements);
-						}
-						else if (ts.isSourceFile(node)) {
-							if (true as boolean)
-								throw 'Logger scoping outside of blocks is not supported!'
+						} else if (ts.isSourceFile(node)) {
+							if (true as boolean) throw "Logger scoping outside of blocks is not supported!";
 							return factory.updateSourceFile(
 								node,
 								[addTryCatch(ts.visitEachChild(node, addEndScopes, context).statements)],
@@ -208,22 +212,27 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 		}
 
 		return file;
-	}
+	};
 	const transformDI = (file: ts.SourceFile): ts.SourceFile => {
 		const modifyParameters = (clazz: ts.ClassDeclaration): ts.ClassDeclaration => {
 			if (!clazz.name) return clazz;
 
 			const classParentOf = (clazz: ts.ClassDeclaration): ts.ClassDeclaration | undefined => {
-				const extend = clazz.heritageClauses?.find(c => c.token === ts.SyntaxKind.ExtendsKeyword)?.types[0].expression;
+				const extend = clazz.heritageClauses?.find((c) => c.token === ts.SyntaxKind.ExtendsKeyword)?.types[0]
+					.expression;
 				if (!extend) return;
 
 				const t = typeChecker.getSymbolAtLocation(extend)?.declarations?.[0];
 				if (!t || !ts.isClassDeclaration(t)) return;
 
 				return t;
-			}
+			};
 			const isClassInjectable = (clazz: ts.ClassDeclaration): boolean => {
-				if (clazz.modifiers?.find(m => ts.isDecorator(m) && ts.isIdentifier(m.expression) && m.expression.text === 'injectable')) {
+				if (
+					clazz.modifiers?.find(
+						(m) => ts.isDecorator(m) && ts.isIdentifier(m.expression) && m.expression.text === "injectable",
+					)
+				) {
 					return true;
 				}
 
@@ -242,13 +251,13 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 				readonly type: ts.TypeNode;
 				readonly nullable: boolean;
 				readonly isFunc: boolean;
-			}
+			};
 			let ctorAdded: decl[] = [];
 			let propAdded: decl[] = [];
 			let classsymb: ts.Symbol | undefined = undefined;
 			let constr: ts.ConstructorDeclaration | undefined = undefined;
 
-			if (!clazz.modifiers?.find(m => m.kind === ts.SyntaxKind.AbstractKeyword)) {
+			if (!clazz.modifiers?.find((m) => m.kind === ts.SyntaxKind.AbstractKeyword)) {
 				const getCtor = (clazz: ts.ClassDeclaration): ts.ConstructorDeclaration | undefined => {
 					const ctor = clazz.members.find(ts.isConstructorDeclaration);
 					if (ctor) return ctor;
@@ -264,7 +273,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					for (const parameter of constr.parameters) {
 						if (!parameter.modifiers || parameter.modifiers.length === 0) {
 							if (ctorAdded && ctorAdded.length !== 0) {
-								throw 'Can not have @inject declarations before non-inject ones';
+								throw "Can not have @inject declarations before non-inject ones";
 							}
 
 							continue;
@@ -273,7 +282,11 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 						for (const decorator of parameter.modifiers) {
 							if (!ts.isDecorator(decorator)) continue;
 							if (!ts.isIdentifier(decorator.expression)) continue;
-							if (decorator.expression.text !== 'inject' && decorator.expression.text !== 'tryInject' && decorator.expression.text !== 'injectFunc')
+							if (
+								decorator.expression.text !== "inject" &&
+								decorator.expression.text !== "tryInject" &&
+								decorator.expression.text !== "injectFunc"
+							)
 								continue;
 							if (!ts.isIdentifier(parameter.name)) continue;
 
@@ -282,7 +295,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 								throw `Could not find symbol for class ${clazz.name.text}`;
 							}
 
-							if (decorator.expression.text === 'inject' || decorator.expression.text === 'tryInject') {
+							if (decorator.expression.text === "inject" || decorator.expression.text === "tryInject") {
 								if (!parameter.type || !ts.isTypeReferenceNode(parameter.type)) continue;
 								if (!ts.isIdentifier(parameter.type.typeName)) continue;
 
@@ -290,11 +303,10 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 								ctorAdded.push({
 									name: parameter.name,
 									type: parameter.type,
-									nullable: decorator.expression.text === 'tryInject',
+									nullable: decorator.expression.text === "tryInject",
 									isFunc: false,
 								});
-							}
-							else {
+							} else {
 								if (!parameter.type || !ts.isFunctionTypeNode(parameter.type)) continue;
 
 								ctorAdded ??= [];
@@ -317,7 +329,11 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					for (const decorator of parameter.modifiers) {
 						if (!ts.isDecorator(decorator)) continue;
 						if (!ts.isIdentifier(decorator.expression)) continue;
-						if (decorator.expression.text !== 'inject' && decorator.expression.text !== 'tryInject' && decorator.expression.text !== 'injectFunc')
+						if (
+							decorator.expression.text !== "inject" &&
+							decorator.expression.text !== "tryInject" &&
+							decorator.expression.text !== "injectFunc"
+						)
 							continue;
 						if (!ts.isIdentifier(parameter.name)) continue;
 						if (!parameter.type || !ts.isTypeReferenceNode(parameter.type)) continue;
@@ -333,15 +349,15 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 						propAdded.push({
 							name: parameter.name,
 							type: parameter.type,
-							nullable: decorator.expression.text === 'tryInject',
-							isFunc: decorator.expression.text === 'injectFunc',
+							nullable: decorator.expression.text === "tryInject",
+							isFunc: decorator.expression.text === "injectFunc",
 						});
 					}
 				}
 			}
 
 			const methods: ts.MethodDeclaration[] = [];
-			if (ctorAdded.length !== 0 && !ctorAdded.find(a => !identifierByTypeNode(a.type))) {
+			if (ctorAdded.length !== 0 && !ctorAdded.find((a) => !identifierByTypeNode(a.type))) {
 				const method: ts.MethodDeclaration = factory.createMethodDeclaration(
 					[factory.createToken(ts.SyntaxKind.StaticKeyword)],
 					undefined,
@@ -349,24 +365,30 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					undefined,
 					undefined,
 					[
-						...(constr?.parameters.filter(p => !ctorAdded.find(a => a.name.text === (p.name as ts.Identifier).text)) ?? [])
-							.map(p => ts.factory.createParameterDeclaration(
-								p.modifiers?.filter(m => m.kind !== ts.SyntaxKind.PrivateKeyword && m.kind !== ts.SyntaxKind.ReadonlyKeyword),
+						...(
+							constr?.parameters.filter(
+								(p) => !ctorAdded.find((a) => a.name.text === (p.name as ts.Identifier).text),
+							) ?? []
+						).map((p) =>
+							ts.factory.createParameterDeclaration(
+								p.modifiers?.filter(
+									(m) =>
+										m.kind !== ts.SyntaxKind.PrivateKeyword &&
+										m.kind !== ts.SyntaxKind.ReadonlyKeyword,
+								),
 								p.dotDotDotToken,
 								p.name,
 								p.questionToken,
 								p.type,
 								p.initializer,
-							)),
+							),
+						),
 						factory.createParameterDeclaration(
 							undefined,
 							undefined,
 							factory.createIdentifier("di"),
 							undefined,
-							factory.createTypeReferenceNode(
-								factory.createIdentifier("DIContainer"),
-								undefined,
-							),
+							factory.createTypeReferenceNode(factory.createIdentifier("DIContainer"), undefined),
 							undefined,
 						),
 					],
@@ -374,44 +396,45 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					factory.createBlock(
 						[
 							factory.createReturnStatement(
-								factory.createNewExpression(
-									clazz.name,
-									undefined,
-									[
-										...(constr?.parameters.filter(p => !ctorAdded.find(a => a.name.text === (p.name as ts.Identifier).text)).map(p => p.name as ts.Identifier) ?? []),
-										...ctorAdded.map(a => {
-											let resolve: ts.Expression = factory.createCallExpression(
-												factory.createPropertyAccessExpression(
-													factory.createIdentifier("di"),
-													factory.createIdentifier(a.nullable ? "tryResolve" : "resolve"),
-												),
-												[a.type],
-												[factory.createStringLiteral(identifierByTypeNode(a.type)!)],
+								factory.createNewExpression(clazz.name, undefined, [
+									...(constr?.parameters
+										.filter(
+											(p) =>
+												!ctorAdded.find((a) => a.name.text === (p.name as ts.Identifier).text),
+										)
+										.map((p) => p.name as ts.Identifier) ?? []),
+									...ctorAdded.map((a) => {
+										let resolve: ts.Expression = factory.createCallExpression(
+											factory.createPropertyAccessExpression(
+												factory.createIdentifier("di"),
+												factory.createIdentifier(a.nullable ? "tryResolve" : "resolve"),
+											),
+											[a.type],
+											[factory.createStringLiteral(identifierByTypeNode(a.type)!)],
+										);
+
+										if (a.isFunc) {
+											resolve = factory.createArrowFunction(
+												undefined,
+												undefined,
+												[],
+												undefined,
+												undefined,
+												resolve,
 											);
+										}
 
-											if (a.isFunc) {
-												resolve = factory.createArrowFunction(
-													undefined,
-													undefined,
-													[],
-													undefined,
-													undefined,
-													resolve
-												);
-											}
-
-											return resolve;
-										}),
-									],
-								),
+										return resolve;
+									}),
+								]),
 							),
 						],
 						true,
 					),
-				)
+				);
 				methods.push(method);
 			}
-			if (propAdded.length !== 0 && !propAdded.find(a => !identifierByTypeNode(a.type))) {
+			if (propAdded.length !== 0 && !propAdded.find((a) => !identifierByTypeNode(a.type))) {
 				const method: ts.MethodDeclaration = factory.createMethodDeclaration(
 					undefined,
 					undefined,
@@ -424,23 +447,20 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 							undefined,
 							factory.createIdentifier("di"),
 							undefined,
-							factory.createTypeReferenceNode(
-								factory.createIdentifier("DIContainer"),
-								undefined,
-							),
+							factory.createTypeReferenceNode(factory.createIdentifier("DIContainer"), undefined),
 							undefined,
 						),
 					],
 					undefined,
 					factory.createBlock(
 						[
-							...propAdded.map(p => {
+							...propAdded.map((p) => {
 								return factory.createExpressionStatement(
 									factory.createBinaryExpression(
 										factory.createPropertyAccessExpression(
 											factory.createAsExpression(
 												factory.createThis(),
-												factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword)
+												factory.createKeywordTypeNode(ts.SyntaxKind.AnyKeyword),
 											),
 											p.name,
 										),
@@ -454,40 +474,62 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 											[factory.createStringLiteral(identifierByTypeNode(p.type)!)],
 										),
 									),
-								)
+								);
 							}),
 						],
 						true,
 					),
-				)
+				);
 				methods.push(method);
 			}
 
 			return ts.factory.createClassDeclaration(
-				clazz.modifiers?.filter(m => !(ts.isDecorator(m) && ts.isIdentifier(m.expression) && m.expression.text === 'injectable')),
+				clazz.modifiers?.filter(
+					(m) => !(ts.isDecorator(m) && ts.isIdentifier(m.expression) && m.expression.text === "injectable"),
+				),
 				clazz.name,
 				clazz.typeParameters,
 				clazz.heritageClauses,
 				[
 					...methods,
-					...clazz.members.map(m => {
+					...clazz.members.map((m) => {
 						if (ts.isConstructorDeclaration(m)) {
 							return ts.factory.createConstructorDeclaration(
 								m.modifiers,
-								m.parameters.map(p => ts.factory.createParameterDeclaration(
-									p.modifiers?.filter(m => !(ts.isDecorator(m) && ts.isIdentifier(m.expression) && (m.expression.text === 'inject' || m.expression.text === 'injectFunc' || m.expression.text === 'tryInject'))),
-									p.dotDotDotToken,
-									p.name,
-									p.questionToken,
-									p.type,
-									p.initializer,
-								)),
+								m.parameters.map((p) =>
+									ts.factory.createParameterDeclaration(
+										p.modifiers?.filter(
+											(m) =>
+												!(
+													ts.isDecorator(m) &&
+													ts.isIdentifier(m.expression) &&
+													(m.expression.text === "inject" ||
+														m.expression.text === "injectFunc" ||
+														m.expression.text === "tryInject")
+												),
+										),
+										p.dotDotDotToken,
+										p.name,
+										p.questionToken,
+										p.type,
+										p.initializer,
+									),
+								),
 								m.body,
 							);
 						}
 						if (ts.isPropertyDeclaration(m)) {
 							return ts.factory.createPropertyDeclaration(
-								m.modifiers?.filter(m => !(ts.isDecorator(m) && ts.isIdentifier(m.expression) && (m.expression.text === 'inject' || m.expression.text === 'injectFunc' || m.expression.text === 'tryInject'))),
+								m.modifiers?.filter(
+									(m) =>
+										!(
+											ts.isDecorator(m) &&
+											ts.isIdentifier(m.expression) &&
+											(m.expression.text === "inject" ||
+												m.expression.text === "injectFunc" ||
+												m.expression.text === "tryInject")
+										),
+								),
 								m.name,
 								m.questionToken ?? m.exclamationToken,
 								m.type,
@@ -510,7 +552,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 		};
 
 		return ts.visitEachChild(file, visit, context);
-	}
+	};
 	const transformDIDecoratorPathOf = (file: ts.SourceFile): ts.SourceFile => {
 		const modifyParameters = (call: ts.CallExpression): ts.CallExpression | undefined => {
 			const methodType = typeChecker.getResolvedSignature(call);
@@ -520,7 +562,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 
 			let paramIdx = -1;
 			for (const parameter of declaration.parameters) {
-				if (ts.isIdentifier(parameter.name) && parameter.name.text === 'this') continue;
+				if (ts.isIdentifier(parameter.name) && parameter.name.text === "this") continue;
 				paramIdx++;
 
 				const decorators = ts.getDecorators(parameter);
@@ -530,12 +572,12 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					if (!ts.isCallExpression(decorator.expression)) continue;
 					if (!ts.isIdentifier(decorator.expression.expression)) continue;
 
-					if (decorator.expression.expression.text === 'pathOf') {
+					if (decorator.expression.expression.text === "pathOf") {
 						if (!declaration.typeParameters) continue;
 						if (call.arguments.length > paramIdx) continue;
 
 						const typeName = (decorator.expression.arguments[0] as ts.StringLiteral).text;
-						const typeArgumentIndex = declaration.typeParameters.findIndex(p => p.name.text === typeName);
+						const typeArgumentIndex = declaration.typeParameters.findIndex((p) => p.name.text === typeName);
 						if (typeArgumentIndex < 0) continue;
 
 						let type: ts.Type;
@@ -544,23 +586,19 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 							if (!typeNode) continue;
 
 							type = typeChecker.getTypeFromTypeNode(typeNode);
-						}
-						else {
+						} else {
 							const typeParameter = methodType.getTypeParameterAtPosition(typeArgumentIndex);
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							type = (typeParameter as any)?.mapper?.target ?? typeParameter;
 						}
 
 						const path = identifierByType(type);
 						if (!path) continue;
 
-						const args = [...call.arguments ?? []];
+						const args = [...(call.arguments ?? [])];
 						args[paramIdx] = ts.factory.createStringLiteral(path);
 
-						call = ts.factory.createCallExpression(
-							call.expression,
-							call.typeArguments,
-							args,
-						);
+						call = ts.factory.createCallExpression(call.expression, call.typeArguments, args);
 					}
 				}
 			}
@@ -577,7 +615,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 		};
 
 		return ts.visitEachChild(file, visit, context);
-	}
+	};
 
 	return (file: ts.SourceFile): ts.SourceFile => {
 		file = transformNamespaces(file);
@@ -586,8 +624,8 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 		file = transformDIDecoratorPathOf(file);
 
 		return file;
-	}
-}
+	};
+};
 
 export default function (program: ts.Program) {
 	return (context: ts.TransformationContext) => create(program, context);
