@@ -1,0 +1,21 @@
+{
+	"name": "transformer",
+	"version": "0.0.1",
+	"description": "The transformer for anywaymachines engine stuff",
+	"main": "out/index.js",
+	"author": "anywaymachines",
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"prepare": "tsc"
+	},
+	"devDependencies": {
+		"@types/node": "^20.16.5",
+		"typescript": "=5.5.3"
+	},
+	"files": [
+		"out",
+		"index.d.ts"
+	]
+}
