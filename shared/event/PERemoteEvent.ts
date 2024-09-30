@@ -208,7 +208,7 @@ const createWaiter = <TRet extends Response>(middlewares: readonly WaiterMiddlew
 	};
 };
 
-export class S2C2SRemoteFunction<TArg, TResp extends Response = Response> extends PERemoveEvent<
+export class S2C2SRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoveEvent<
 	CustomRemoteFunctionBase<TArg, TArg, TResp | ErrorResponse>
 > {
 	/** @client */
@@ -272,7 +272,7 @@ export class S2C2SRemoteFunction<TArg, TResp extends Response = Response> extend
 	}
 }
 
-export class C2S2CRemoteFunction<TArg, TResp extends Response = Response> extends PERemoveEvent<
+export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoveEvent<
 	CustomRemoteFunctionBase<TArg, TArg, TResp | ErrorResponse>
 > {
 	private readonly _sent = new ArgsSignal<[arg: TArg]>();
