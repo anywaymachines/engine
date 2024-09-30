@@ -148,4 +148,10 @@ export namespace Objects {
 
 		return result as TRet;
 	}
+	/** Returns a function that wraps {@link func} with {@link requireNoYield} */
+	export function wrapRequireNoYield<TFunc extends (...args: TArgs) => TRet, TArgs extends unknown[], TRet>(
+		func: TFunc,
+	): (...args: TArgs) => TRet {
+		return (...args) => requireNoYield(func, ...args);
+	}
 }
