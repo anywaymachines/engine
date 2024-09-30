@@ -11,8 +11,8 @@ namespace StringTests {
 		Assert.equals("1.05", Strings.prettyNumber(1.05, 0.01));
 		Assert.equals("1", Strings.prettyNumber(1, 0.01));
 		Assert.equals("252", Strings.prettyNumber(252, 1));
-		Assert.equals("253.123456", Strings.prettyNumber(253.123456, 0));
-		Assert.equals("255.123456", Strings.prettyNumber(255.123456, undefined));
+		Assert.equals("253.1234", Strings.prettyNumber(253.123456, 0));
+		Assert.equals("255.1234", Strings.prettyNumber(255.123456, undefined));
 	}
 }
 export const _Tests: UnitTests = { StringTests };
