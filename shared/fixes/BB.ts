@@ -108,7 +108,7 @@ export class BB {
 		const size = rotateSize(bb.originalSize, localCenter).div(2);
 
 		return (
-			this.isPointInside(this.center.add(localCenter.Position).PointToWorldSpace(size.unm())) &&
+			this.isPointInside(this.center.add(localCenter.Position).PointToWorldSpace(size.mul(-1))) &&
 			this.isPointInside(this.center.add(localCenter.Position).PointToWorldSpace(size))
 		);
 	}
