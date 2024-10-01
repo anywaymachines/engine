@@ -1,2 +1,2 @@
-type InputType = "Desktop" | "Touch" | "Gamepad" | "VR";
+type InputType = "Desktop" | "Touch" | "Gamepad";
 type KeyCode = Enum.KeyCode["Name"];
