@@ -5,7 +5,9 @@ import { ObservableValue } from "engine/shared/event/ObservableValue";
 namespace InputTypeChangeEvent {
 	/** Returns the input type based on the given input type */
 	function getInputTypeByEnum(userInputType: Enum.UserInputType): InputType {
-		if (userInputType === Enum.UserInputType.Gamepad1) {
+		if (UserInputService.VREnabled) {
+			return "VR";
+		} else if (userInputType === Enum.UserInputType.Gamepad1) {
 			return "Gamepad";
 		} else if (userInputType === Enum.UserInputType.Touch) {
 			return "Touch";
@@ -40,7 +42,9 @@ export namespace InputController {
 
 	/** Returns the input type based on the device the client is playing from */
 	export function getPhysicalInputType(): InputType {
-		if (GuiService.IsTenFootInterface()) {
+		if (UserInputService.VREnabled) {
+			return "VR";
+		} else if (GuiService.IsTenFootInterface()) {
 			return "Gamepad";
 		} else if (UserInputService.TouchEnabled && !UserInputService.MouseEnabled) {
 			return "Touch";
