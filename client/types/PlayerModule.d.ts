@@ -129,7 +129,7 @@ declare namespace CameraModule {
 		activeMouseLockController: MouseLockController;
 	}
 }
-export interface PlayerModule {
+interface PlayerModule {
 	cameras: CameraModule.CameraModule;
 	controls: ControlModule.ControlModule;
 	GetControls(): ControlModule.ControlModule;
