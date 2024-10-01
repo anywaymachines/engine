@@ -1,7 +1,7 @@
 import { Players } from "@rbxts/services";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { Signal } from "engine/shared/event/Signal";
-import type { PlayerModule } from "client/types/PlayerModule";
+import type { PlayerModule } from "engine/client/types/PlayerModule";
 
 export namespace LocalPlayer {
 	export const player = Players.LocalPlayer;
