@@ -1,5 +1,5 @@
-# Roblox Game Engine for roblox-ts
-This project provides a custom game engine for **roblox-ts**, designed to integrate seamlessly with the Roblox platform. However, **this framework is not officially supported** and should be used **at your own risk**. Future updates, features, and bug fixes are not guaranteed.
+# engine-awm for roblox-ts
+This custom game engine was developed for internal use with **roblox-ts**, providing utilities and tools to streamline game development on Roblox. The engine played a crucial role in the development of the game **Plane Engineers**.
 
 ## Disclaimer
 - **Use at your own risk**: This framework is in an experimental phase and is not maintained or officially supported.
