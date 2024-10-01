@@ -3,24 +3,39 @@ export namespace ComponentInstance {
 	export function init<T extends Instance>(
 		state: IReadonlyDestroyableComponent & IDestroyableComponent,
 		instance: T | undefined,
+		destroyComponentOnInstanceDestroy = true,
+		destroyInstanceOnComponentDestroy = true,
 	) {
 		if (!instance) throw "The provided instance is nil";
 
-		const destroyingSignal = instance!.Destroying.Connect(() => {
-			instance = undefined;
-			state.destroy();
-		});
+		if (destroyComponentOnInstanceDestroy) {
+			const destroyingSignal = instance.Destroying.Connect(() => {
+				instance = undefined;
+				state.destroy();
+			});
 
-		state.onDestroy(() => {
-			if (!instance) return;
+			state.onDestroy(() => {
+				if (!instance) return;
 
-			try {
-				destroyingSignal.Disconnect();
-				instance.Destroy();
-			} catch (error) {
-				$err(`Could not destroy instance ${instance}: ${error}`);
-			}
-		});
+				try {
+					destroyingSignal.Disconnect();
+				} catch (error) {
+					$err(`Could not destroy instance ${instance}: ${error}`);
+				}
+			});
+		}
+
+		if (destroyInstanceOnComponentDestroy) {
+			state.onDestroy(() => {
+				if (!instance) return;
+
+				try {
+					instance.Destroy();
+				} catch (error) {
+					$err(`Could not destroy instance ${instance}: ${error}`);
+				}
+			});
+		}
 	}
 	export function setParentIfNeeded(instance: Instance, parent: Instance) {
 		if (instance !== parent && instance.Parent === undefined) {

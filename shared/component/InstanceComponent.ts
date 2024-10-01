@@ -10,11 +10,11 @@ export class InstanceComponent<
 > extends ContainerComponent<TChild> {
 	readonly instance;
 
-	constructor(instance: T) {
+	constructor(instance: T, destroyComponentOnInstanceDestroy = true, destroyInstanceOnComponentDestroy = true) {
 		super();
 		this.instance = instance;
 
-		ComponentInstance.init(this, instance);
+		ComponentInstance.init(this, instance, destroyComponentOnInstanceDestroy, destroyInstanceOnComponentDestroy);
 
 		this.children.onAdded.Connect((child) => {
 			if (child instanceof InstanceComponent && typeIs(child.instance, "Instance")) {
