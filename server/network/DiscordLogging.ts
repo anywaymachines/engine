@@ -15,7 +15,7 @@ export namespace DiscordLogging {
 
 		// Players
 		Players.PlayerAdded.Connect((plr) => {
-			addLine(` joined the game`);
+			addLine(`${getPlayerCredentialsString(plr)} joined the game`);
 
 			if (plr.HasVerifiedBadge) {
 				DiscordWebhook.sendMessage({
