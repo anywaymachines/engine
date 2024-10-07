@@ -66,6 +66,9 @@ class RegistrationBuilder<T = unknown> {
 		private func: (di: DIContainer) => T,
 	) {}
 
+	asSelf(): this {
+		return this.as(this.defaultPath);
+	}
 	as<U>(this: this & RegistrationBuilder<U>, @pathOf("U") name?: string): this {
 		assertRegisteringNameNotNull(this.func, name);
 		this.registerAs.push(name);
