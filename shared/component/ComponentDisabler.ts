@@ -1,6 +1,14 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 
-export class ComponentDisabler<TItem extends defined> {
+export interface ReadonlyComponentDisabler<TItem extends defined> {
+	readonly enabled: ReadonlyObservableValue<readonly TItem[]>;
+	readonly disabled: ReadonlyObservableValue<readonly TItem[]>;
+
+	isEnabled(item: TItem): boolean;
+	isDisabled(item: TItem): boolean;
+}
+
+export class ComponentDisabler<TItem extends defined> implements ReadonlyComponentDisabler<TItem> {
 	private readonly _enabled = new ObservableValue<readonly TItem[]>([]);
 	private readonly _disabled = new ObservableValue<readonly TItem[]>([]);
 	readonly enabled = this._enabled.asReadonly();
@@ -13,6 +21,10 @@ export class ComponentDisabler<TItem extends defined> {
 
 		this._enabled.set(this.allItems);
 		this.enabled.subscribe((enabled) => this._disabled.set(this.allItems.except(enabled)));
+	}
+
+	asReadonly(): ReadonlyComponentDisabler<TItem> {
+		return this;
 	}
 
 	isEnabled(item: TItem) {
