@@ -1,69 +1,78 @@
 import { Players, RunService } from "@rbxts/services";
 import { DiscordWebhook } from "engine/server/network/DiscordWebhook";
 import { LaunchDataController } from "engine/server/network/LaunchDataController";
-import { GameDefinitions } from "shared/data/GameDefinitions";
+import { HostedService } from "engine/shared/di/HostedService";
+import { PlayerRank } from "engine/shared/PlayerRank";
 
-export namespace DiscordLogging {
-	const storage: string[] = [];
+export interface DiscordLoggingConfig {
+	readonly footerText?: string;
+}
 
-	function getPlayerCredentialsString(player: Player) {
+export class DiscordLogging extends HostedService {
+	private readonly storage: string[] = [];
+
+	constructor(private readonly config: DiscordLoggingConfig) {
+		super();
+	}
+
+	private getPlayerCredentialsString(player: Player) {
 		return `[**@${player.Name}**](https://www.roblox.com/users/${player.UserId}/profile)`;
 	}
 
-	export function initialize() {
+	initialize() {
 		if (RunService.IsStudio()) return;
 
 		// Players
 		Players.PlayerAdded.Connect((plr) => {
-			addLine(`${getPlayerCredentialsString(plr)} joined the game`);
+			this.addLine(`${this.getPlayerCredentialsString(plr)} joined the game`);
 
 			if (plr.HasVerifiedBadge) {
 				DiscordWebhook.sendMessage({
-					content: `Verified player ${getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
+					content: `Verified player ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
 				});
 			}
-			if (GameDefinitions.isRobloxEngineer(plr)) {
+			if (PlayerRank.isRobloxEngineer(plr)) {
 				DiscordWebhook.sendMessage({
-					content: `Roblox staff ${getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
+					content: `Roblox staff ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
 				});
 			}
 
 			plr.Chatted.Connect((message, recipient) => {
-				addLine(
-					`${getPlayerCredentialsString(plr)} chatted \`${message}\`` +
+				this.addLine(
+					`${this.getPlayerCredentialsString(plr)} chatted \`${message}\`` +
 						(recipient
 							? ` to [**@${recipient!.Name}**](https://www.roblox.com/users/${recipient!.UserId}/profile)`
 							: ""),
 				);
 			});
 		});
-		Players.PlayerRemoving.Connect((plr) => addLine(`${getPlayerCredentialsString(plr)} left the game`));
+		Players.PlayerRemoving.Connect((plr) => this.addLine(`${this.getPlayerCredentialsString(plr)} left the game`));
 
 		// Send every 2 mins
 		task.spawn(() => {
 			while (true as boolean) {
 				task.wait(120);
-				sendMetrics();
+				this.sendMetrics();
 			}
 		});
 
 		// Send on close
 		game.BindToClose(() => {
-			addLine(`\n**SERVER CLOSED**`);
-			sendMetrics();
+			this.addLine(`\n**SERVER CLOSED**`);
+			this.sendMetrics();
 		});
 
-		addLine("**SERVER STARTED**\n");
+		this.addLine("**SERVER STARTED**\n");
 	}
 
-	export function addLine(text: string) {
-		storage.push(text);
+	addLine(text: string) {
+		this.storage.push(text);
 	}
 
-	function sendMetrics() {
-		if (storage.size() === 0) return;
+	private sendMetrics() {
+		if (this.storage.size() === 0) return;
 
-		const content = storage.join("\n");
+		const content = this.storage.join("\n");
 
 		DiscordWebhook.sendMessage({
 			embeds: [
@@ -75,16 +84,11 @@ export namespace DiscordLogging {
 						name: "JOIN",
 						url: LaunchDataController.getJoinURL(),
 					},
-					footer: {
-						text:
-							`🔨 ${GameDefinitions.isTestPlace() ? "⚠️ Test" : ""} Build ${game.PlaceVersion}` +
-							(game.PrivateServerOwnerId !== 0 ? ", Private Server" : "") +
-							` (${game.JobId.sub(game.JobId.size() - 4)})`,
-					},
+					footer: !this.config.footerText ? undefined : { text: this.config.footerText },
 				},
 			],
 		});
 
-		storage.clear();
+		this.storage.clear();
 	}
 }

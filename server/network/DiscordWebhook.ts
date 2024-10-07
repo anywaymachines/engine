@@ -1,38 +1,38 @@
 import { HttpService } from "@rbxts/services";
 import { Secrets } from "engine/server/Secrets";
 
-type Field = {
-	name: string;
-	value: string;
-	inline?: boolean;
-};
+interface Field {
+	readonly name: string;
+	readonly value: string;
+	readonly inline?: boolean;
+}
 
-type Author = {
-	name: string;
-	url?: string;
-	icon_url?: string;
-};
+interface Author {
+	readonly name: string;
+	readonly url?: string;
+	readonly icon_url?: string;
+}
 
-type Footer = {
-	text: string;
-};
+interface Footer {
+	readonly text: string;
+}
 
-type Embed = {
-	title?: string;
-	description?: string;
-	color: number;
-	url?: string;
-	author?: Author;
-	timestamp?: string;
-	fields?: readonly Field[];
-	footer?: Footer;
-};
+interface Embed {
+	readonly title?: string;
+	readonly description?: string;
+	readonly color: number;
+	readonly url?: string;
+	readonly author?: Author;
+	readonly timestamp?: string;
+	readonly fields?: readonly Field[];
+	readonly footer?: Footer;
+}
 
-type Message = {
-	content?: string;
-	embeds?: readonly Embed[];
-	username?: string;
-};
+interface Message {
+	readonly content?: string;
+	readonly embeds?: readonly Embed[];
+	readonly username?: string;
+}
 
 export namespace DiscordWebhook {
 	const webhook = Secrets.getSecret("discord_webhook");
