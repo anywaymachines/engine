@@ -365,6 +365,22 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					undefined,
 					undefined,
 					[
+						factory.createParameterDeclaration(
+							undefined,
+							undefined,
+							factory.createIdentifier("instance"),
+							undefined,
+							factory.createTypeReferenceNode(factory.createIdentifier("unknown"), undefined),
+							undefined,
+						),
+						factory.createParameterDeclaration(
+							undefined,
+							undefined,
+							factory.createIdentifier("di"),
+							undefined,
+							factory.createTypeReferenceNode(factory.createIdentifier("DIContainer"), undefined),
+							undefined,
+						),
 						...(
 							constr?.parameters.filter(
 								(p) => !ctorAdded.find((a) => a.name.text === (p.name as ts.Identifier).text),
@@ -383,50 +399,84 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 								p.initializer,
 							),
 						),
-						factory.createParameterDeclaration(
-							undefined,
-							undefined,
-							factory.createIdentifier("di"),
-							undefined,
-							factory.createTypeReferenceNode(factory.createIdentifier("DIContainer"), undefined),
-							undefined,
-						),
 					],
-					undefined,
+					factory.createTypeReferenceNode(factory.createIdentifier(clazz.name.text), undefined),
 					factory.createBlock(
 						[
 							factory.createReturnStatement(
-								factory.createNewExpression(clazz.name, undefined, [
-									...(constr?.parameters
-										.filter(
-											(p) =>
-												!ctorAdded.find((a) => a.name.text === (p.name as ts.Identifier).text),
-										)
-										.map((p) => p.name as ts.Identifier) ?? []),
-									...ctorAdded.map((a) => {
-										let resolve: ts.Expression = factory.createCallExpression(
-											factory.createPropertyAccessExpression(
-												factory.createIdentifier("di"),
-												factory.createIdentifier(a.nullable ? "tryResolve" : "resolve"),
+								factory.createCallExpression(
+									factory.createPropertyAccessExpression(
+										factory.createParenthesizedExpression(
+											factory.createAsExpression(
+												factory.createAsExpression(
+													factory.createIdentifier("instance"),
+													factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword),
+												),
+												factory.createTypeLiteralNode([
+													factory.createMethodSignature(
+														undefined,
+														factory.createIdentifier("constructor"),
+														undefined,
+														undefined,
+														[
+															factory.createParameterDeclaration(
+																undefined,
+																factory.createToken(ts.SyntaxKind.DotDotDotToken),
+																factory.createIdentifier("args"),
+																undefined,
+																factory.createArrayTypeNode(
+																	factory.createKeywordTypeNode(
+																		ts.SyntaxKind.AnyKeyword,
+																	),
+																),
+																undefined,
+															),
+														],
+														factory.createTypeReferenceNode(
+															factory.createIdentifier(clazz.name.text),
+															undefined,
+														),
+													),
+												]),
 											),
-											[a.type],
-											[factory.createStringLiteral(identifierByTypeNode(a.type)!)],
-										);
-
-										if (a.isFunc) {
-											resolve = factory.createArrowFunction(
-												undefined,
-												undefined,
-												[],
-												undefined,
-												undefined,
-												resolve,
+										),
+										factory.createIdentifier("constructor"),
+									),
+									undefined,
+									[
+										...(constr?.parameters
+											.filter(
+												(p) =>
+													!ctorAdded.find(
+														(a) => a.name.text === (p.name as ts.Identifier).text,
+													),
+											)
+											.map((p) => p.name as ts.Identifier) ?? []),
+										...ctorAdded.map((a) => {
+											let resolve: ts.Expression = factory.createCallExpression(
+												factory.createPropertyAccessExpression(
+													factory.createIdentifier("di"),
+													factory.createIdentifier(a.nullable ? "tryResolve" : "resolve"),
+												),
+												[a.type],
+												[factory.createStringLiteral(identifierByTypeNode(a.type)!)],
 											);
-										}
 
-										return resolve;
-									}),
-								]),
+											if (a.isFunc) {
+												resolve = factory.createArrowFunction(
+													undefined,
+													undefined,
+													[],
+													undefined,
+													undefined,
+													resolve,
+												);
+											}
+
+											return resolve;
+										}),
+									],
+								),
 							),
 						],
 						true,

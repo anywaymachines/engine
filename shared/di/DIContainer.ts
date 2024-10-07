@@ -33,7 +33,7 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 ): InstanceOf<TCtor> => {
 	type DepsCreatable<TSelf, TArgs extends unknown[]> = {
 		readonly prototype: unknown;
-		_depsCreate(...args: [...Partial<TArgs>, deps: DIContainer]): TSelf;
+		_depsCreate(instance: InstanceOf<TCtor>, di: DIContainer, ...args: Partial<TArgs>): TSelf;
 	};
 
 	const isDeps = (clazz: unknown): clazz is DepsCreatable<InstanceOf<TCtor>, TArgs> =>
@@ -42,17 +42,18 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 		"_inject" in instance;
 
 	const instance = isDeps(clazz)
-		? clazz._depsCreate(...[...(args ?? ([] as unknown as TArgs)), container])
+		? (setmetatable({}, clazz as LuaMetatable<{}>) as InstanceOf<TCtor>)
 		: new (clazz as unknown as new (...args: Partial<TArgs>) => InstanceOf<TCtor>)(
 				...(args ?? ([] as unknown as TArgs)),
 			);
 
-	if (isInject(instance)) {
-		const scope = container.beginScope((builder) => {
-			builder.registerSingletonValue(instance, getDIClassSymbol(clazz));
-		});
+	container = container.beginScope((builder) => builder.registerSingletonValue(instance, getDIClassSymbol(clazz)));
+	if (isDeps(clazz)) {
+		clazz._depsCreate(instance, container, ...(args ?? ([] as unknown as TArgs)));
+	}
 
-		instance._inject(scope);
+	if (isInject(instance)) {
+		instance._inject(container);
 	}
 
 	return instance;
