@@ -13,3 +13,7 @@ interface ReadonlyObservableValue<T> {
 
 	createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
 }
+
+interface IObservableValue<T> extends ReadonlyObservableValue<T> {
+	set(value: T, forceSet?: boolean): void;
+}
