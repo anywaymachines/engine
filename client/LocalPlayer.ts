@@ -1,50 +1,21 @@
 import { Players } from "@rbxts/services";
-import { ObservableValue } from "engine/shared/event/ObservableValue";
-import { Signal } from "engine/shared/event/Signal";
+import { PlayerInfo } from "engine/shared/PlayerInfo";
+
+const info = new PlayerInfo(Players.LocalPlayer);
+info.enable();
 
 export namespace LocalPlayer {
-	export const player = Players.LocalPlayer;
+	export const player = info.instance;
 	export const mouse = player.GetMouse();
-	export const character = new ObservableValue<Model | undefined>(undefined);
-	export const humanoid = new ObservableValue<Humanoid | undefined>(undefined);
-	export const rootPart = new ObservableValue<BasePart | undefined>(undefined);
+	export const character = info.character;
+	export const humanoid = info.humanoid;
+	export const rootPart = info.rootPart;
 
-	export const spawnEvent = new Signal();
-	export const diedEvent = new Signal();
-
-	player.CharacterAdded.Connect((_) => {
-		if (!player.HasAppearanceLoaded()) {
-			player.CharacterAppearanceLoaded.Wait();
-		}
-
-		playerSpawned();
-	});
-	if (player.Character) {
-		playerSpawned();
-	}
-
-	function playerSpawned() {
-		const char = player.Character!;
-		character.set(char);
-
-		const h = char.WaitForChild("Humanoid") as Humanoid;
-		h.Died.Once(() => {
-			character.set(undefined);
-			humanoid.set(undefined);
-			rootPart.set(undefined);
-
-			diedEvent.Fire();
-		});
-
-		humanoid.set(h);
-		rootPart.set(char.WaitForChild("HumanoidRootPart") as Part);
-
-		spawnEvent.Fire();
-	}
+	export const spawnEvent = info.spawnEvent;
+	export const diedEvent = info.diedEvent;
 
 	/** Native `PlayerModule` library */
 	export function getPlayerModule(): PlayerModule {
-		const instance = player.WaitForChild("PlayerScripts").WaitForChild("PlayerModule") as ModuleScript;
-		return require(instance) as PlayerModule;
+		return info.getPlayerModule();
 	}
 }
