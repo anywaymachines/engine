@@ -38,6 +38,8 @@ abstract class ObservableCollectionBase<T extends defined> implements ReadonlyOb
 	/** Add the provided items */
 	add(...items: readonly T[]) {
 		items = this._add(...items);
+		if (items.size() === 0) return;
+
 		this._changed.Fire({ kind: "add", added: items });
 	}
 	/** Add the provided items */
@@ -48,10 +50,14 @@ abstract class ObservableCollectionBase<T extends defined> implements ReadonlyOb
 	/** Remove the provided items */
 	remove(...items: readonly T[]) {
 		items = this._remove(...items);
+		if (items.size() === 0) return;
+
 		this._changed.Fire({ kind: "remove", removed: items });
 	}
 	/** Clear the collection */
 	clear() {
+		if (this.size() === 0) return;
+
 		this._clear();
 		this._changed.Fire({ kind: "clear" });
 	}
