@@ -1,22 +1,6 @@
 import { Signal } from "engine/shared/event/Signal";
 import type { ReadonlySignal } from "engine/shared/event/Signal";
 
-export interface ReadonlySubscribeObservableValue<T> {
-	readonly changed: ReadonlySignal<(value: T, prev: T) => void>;
-
-	get(): T;
-}
-export interface ReadonlyObservableValue<T> {
-	readonly changed: ReadonlySignal<(value: T, prev: T) => void>;
-
-	get(): T;
-
-	subscribe(func: (value: T, prev: T) => void): SignalConnection;
-	subscribe(func: (value: T, prev: T) => void, executeImmediately: boolean | undefined): SignalConnection;
-
-	createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
-}
-
 /** Stores a value and provides and event of it being changed */
 export class ObservableValue<T> implements ReadonlyObservableValue<T> {
 	private readonly _changed = new Signal<(value: T, prev: T) => void>();
@@ -111,6 +95,24 @@ export class ObservableValue<T> implements ReadonlyObservableValue<T> {
 		observable.subscribe((val) => this.set(val));
 
 		return observable;
+	}
+
+	waitUntil<U extends T>(func: (value: T) => value is U): U {
+		let ret: U;
+		let returned = false;
+		const connection = this.subscribe((value) => {
+			if (!func(value)) return;
+
+			ret = value;
+			returned = true;
+			connection.Disconnect();
+		});
+
+		while (!returned) {
+			task.wait();
+		}
+
+		return ret!;
 	}
 
 	static fromSignal<TSignal extends ReadonlySignal<(arg: unknown) => void>>(

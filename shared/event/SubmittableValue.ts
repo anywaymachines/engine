@@ -1,6 +1,5 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { ArgsSignal } from "engine/shared/event/Signal";
-import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 import type { ReadonlyArgsSignal } from "engine/shared/event/Signal";
 
 interface SubmittableValueBase<T> {
