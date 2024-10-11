@@ -61,11 +61,22 @@ export class ComponentEvents {
 		this.onEnable(() => this.eventHandler.register(func()));
 	}
 
-	/** Register an event and immediately call the callback function */
-	subscribeImmediately<TArgs extends unknown[]>(signal: ReadonlyArgsSignal<TArgs>, callback: () => void): void {
+	/** Register an event and call the callback function on enable or immediately */
+	subscribeImmediately<TArgs extends unknown[]>(
+		signal: ReadonlyArgsSignal<TArgs>,
+		callback: () => void,
+		executeOnEnable = true,
+		executeImmediately = false,
+	): void {
 		if (this.state.isDestroyed()) return;
 		this.sub(this.events, [signal, callback]);
-		callback();
+
+		if (executeOnEnable) {
+			this.onEnable(callback);
+		}
+		if (executeImmediately) {
+			callback();
+		}
 	}
 
 	/** Subscribe to an observable value changed event */
