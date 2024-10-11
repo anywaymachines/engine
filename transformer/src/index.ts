@@ -363,7 +363,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 					undefined,
 					factory.createIdentifier("_depsCreate"),
 					undefined,
-					undefined,
+					clazz.typeParameters,
 					[
 						factory.createParameterDeclaration(
 							undefined,
@@ -400,7 +400,10 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 							),
 						),
 					],
-					factory.createTypeReferenceNode(factory.createIdentifier(clazz.name.text), undefined),
+					factory.createTypeReferenceNode(
+						factory.createIdentifier(clazz.name.text),
+						clazz.typeParameters?.map(t => factory.createTypeReferenceNode(t.name)),
+					),
 					factory.createBlock(
 						[
 							factory.createReturnStatement(
@@ -434,7 +437,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 														],
 														factory.createTypeReferenceNode(
 															factory.createIdentifier(clazz.name.text),
-															undefined,
+															clazz.typeParameters?.map(t => factory.createTypeReferenceNode(t.name)),
 														),
 													),
 												]),
