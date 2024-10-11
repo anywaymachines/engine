@@ -1,23 +1,5 @@
 import { ArgsSignal } from "engine/shared/event/Signal";
 
-export type CollectionChangedArgs<T> =
-	| { readonly kind: "add"; readonly added: readonly T[] }
-	| { readonly kind: "remove"; readonly removed: readonly T[] }
-	| { readonly kind: "clear" };
-
-export interface ReadonlyObservableCollection<T extends defined> {
-	readonly changed: ReadonlyArgsSignal<[collectionChangedType: CollectionChangedArgs<T>]>;
-
-	size(): number;
-	getArr(): readonly T[];
-}
-export interface ReadonlyObservableCollectionArr<T extends defined> extends ReadonlyObservableCollection<T> {
-	get(): readonly T[];
-}
-export interface ReadonlyObservableCollectionSet<T extends defined> extends ReadonlyObservableCollection<T> {
-	get(): ReadonlySet<T>;
-}
-
 abstract class ObservableCollectionBase<T extends defined> implements ReadonlyObservableCollection<T> {
 	protected readonly _changed = new ArgsSignal<[collectionChangedType: CollectionChangedArgs<T>]>();
 	readonly changed = this._changed.asReadonly();

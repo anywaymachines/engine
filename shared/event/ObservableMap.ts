@@ -1,12 +1,4 @@
 import { Signal } from "engine/shared/event/Signal";
-import type { ReadonlySignal } from "engine/shared/event/Signal";
-
-export interface ReadonlyObservableMap<K extends defined, V extends defined> {
-	readonly changed: ReadonlySignal<(key: K, value: V | undefined) => void>;
-
-	size(): number;
-	getAll(): ReadonlyMap<K, V>;
-}
 
 export class ObservableMap<K extends defined, V extends defined> implements ReadonlyObservableMap<K, V> {
 	protected readonly _changed = new Signal<(key: K, value: V | undefined) => void>();

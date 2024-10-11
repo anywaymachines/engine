@@ -1,8 +1,6 @@
 import { EventHandler } from "engine/shared/event/EventHandler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { JSON } from "engine/shared/fixes/Json";
-import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
-import type { ReadonlyObservableMap } from "engine/shared/event/ObservableMap";
 import type { ReadonlyArgsSignal, ReadonlySignal } from "engine/shared/event/Signal";
 
 type Sub<T extends Callback> = readonly [signal: ReadonlySignal<T>, callback: T];
