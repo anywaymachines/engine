@@ -368,7 +368,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 						factory.createParameterDeclaration(
 							undefined,
 							undefined,
-							factory.createIdentifier("instance"),
+							factory.createIdentifier("_____instance"),
 							undefined,
 							factory.createTypeReferenceNode(factory.createIdentifier("unknown"), undefined),
 							undefined,
@@ -409,7 +409,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 										factory.createParenthesizedExpression(
 											factory.createAsExpression(
 												factory.createAsExpression(
-													factory.createIdentifier("instance"),
+													factory.createIdentifier("_____instance"),
 													factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword),
 												),
 												factory.createTypeLiteralNode([
