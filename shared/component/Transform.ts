@@ -1,10 +1,9 @@
 import { RunService } from "@rbxts/services";
 import { Component } from "engine/shared/component/Component";
-import { ContainerComponent } from "engine/shared/component/ContainerComponent";
 import { Easing } from "engine/shared/component/Easing";
-import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
+import type { TransformSetup } from "engine/shared/component/TransformService";
 
 interface Transform {
 	/** @returns True if completed */
@@ -22,7 +21,7 @@ class FuncTransform implements Transform {
 		this.func = func;
 	}
 
-	runFrame(_: never): boolean {
+	runFrame(): boolean {
 		if (this.finished) return true;
 
 		this.finished = true;
@@ -32,6 +31,7 @@ class FuncTransform implements Transform {
 	finish() {
 		if (this.finished) return;
 
+		this.finished = true;
 		this.func();
 	}
 }
@@ -219,51 +219,6 @@ class TransformSequence implements Transform {
 
 //
 
-class TransformRunner extends Component {
-	readonly completed = new SlimSignal();
-	readonly transform: Transform;
-	private time = 0;
-
-	constructor(transform: Transform) {
-		super();
-		this.transform = transform;
-
-		const run = () => {
-			const completed = transform.runFrame(this.time);
-			if (completed) {
-				this.completed.Fire();
-				this.disable();
-			}
-		};
-
-		this.event.subscribe(RunService.Heartbeat, (dt) => {
-			this.time += dt;
-			run();
-		});
-
-		let firstRan = false;
-		this.event.onEnable(() => {
-			if (firstRan) return;
-
-			run();
-			firstRan = true;
-		});
-	}
-
-	/** Immediately finish the transform */
-	finish() {
-		this.transform.finish();
-		this.disable();
-	}
-
-	/** Stop and disable the transform */
-	cancel() {
-		this.disable();
-	}
-}
-
-//
-
 type Direction = "top" | "bottom" | "left" | "right";
 const directionToOffset = (direction: Direction, power: number) => {
 	const offsets: Record<Direction, UDim2> = {
@@ -348,6 +303,13 @@ export class TransformBuilder<T extends object> {
 			func(transform);
 			transform.then();
 		}
+
+		return this.push(transform.buildSequence());
+	}
+
+	other<T extends object>(instance: T, setup: TransformSetup<T>) {
+		const transform = new TransformBuilder(instance);
+		setup(transform, instance);
 
 		return this.push(transform.buildSequence());
 	}
@@ -483,59 +445,47 @@ export class TransformBuilder<T extends object> {
 
 //
 
-export type RunningTransform = {
+export interface RunningTransform {
 	cancel(): void;
 	finish(): void;
-};
-export class TransformContainer<T extends object>
-	extends ContainerComponent<TransformRunner>
-	implements RunningTransform
-{
-	private readonly instance;
+}
+export class TransformRunner extends Component implements RunningTransform {
+	readonly transform: Transform;
+	private time = 0;
 
-	constructor(instance: T) {
+	constructor(transform: Transform) {
 		super();
-		this.instance = instance;
-	}
+		this.transform = transform;
 
-	run(setup: (transform: TransformBuilder<T>, instance: T) => void): void {
-		this.finish();
+		const run = () => {
+			const completed = transform.runFrame(this.time);
+			if (completed) {
+				this.destroy();
+			}
+		};
 
-		const transform = new TransformBuilder(this.instance);
-		setup(transform, this.instance);
-
-		const sequence = transform.build();
-		sequence.completed.Connect(() => {
-			// spawn is to not call this.remove() right inside this.add()
-			spawn(() => this.remove(sequence));
+		this.event.subscribe(RunService.Heartbeat, (dt) => {
+			this.time += dt;
+			run();
 		});
 
-		this.add(sequence);
+		let firstRan = false;
+		this.onEnable(() => {
+			if (firstRan) return;
+
+			run();
+			firstRan = true;
+		});
 	}
 
+	/** Immediately finish the transform */
 	finish() {
-		for (const transform of this.getChildren()) {
-			transform.finish();
-		}
-
-		this.clear();
+		this.transform.finish();
+		this.destroy();
 	}
 
+	/** Stop and disable the transform */
 	cancel() {
-		this.clear();
-	}
-
-	disable(): void {
-		this.finish();
-		super.disable();
-	}
-
-	private destroying = false;
-	destroy(): void {
-		if (this.destroying) return;
-
-		this.destroying = true;
-		this.finish();
-		super.destroy();
+		this.destroy();
 	}
 }

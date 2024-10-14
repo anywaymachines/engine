@@ -1,4 +1,6 @@
 export namespace Objects {
+	export const empty: readonly [] = [];
+
 	export function firstKey<T>(object: readonly T[]): number | undefined;
 	export function firstKey<T>(object: ReadonlyMap<T, defined>): T | undefined;
 	export function firstKey<T>(object: ReadonlySet<T>): T | undefined;

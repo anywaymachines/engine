@@ -1,38 +1,54 @@
-import { TransformContainer } from "engine/shared/component/Transform";
+import { TransformBuilder } from "engine/shared/component/Transform";
 import { Objects } from "engine/shared/fixes/Objects";
 import type {
 	RunningTransform,
-	TransformBuilder,
 	TransformProps,
+	TransformRunner,
 	TweenableProperties,
 } from "engine/shared/component/Transform";
 
+export type TransformSetup<T extends object> = (transform: TransformBuilder<T>, instance: T) => void;
 type State<T extends object> = { readonly [k in TweenableProperties<T>]?: T[k] };
 export namespace TransformService {
-	const transforms = new Map<object, TransformContainer<object>>();
 	export const commonProps = {
 		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
 	} as const satisfies Record<string, TransformProps>;
 
-	export function run<T extends object>(
-		instance: T,
-		setup: (transform: TransformBuilder<T>, instance: T) => void,
-	): RunningTransform {
+	const transforms = new Map<object, TransformRunner>();
+
+	export function run<T extends object>(instance: T, setup: TransformSetup<T>): RunningTransform {
 		transforms.get(instance)?.finish();
 
-		const container = new TransformContainer(instance);
-		transforms.set(instance, container);
-		container.run((transform, instance) => {
-			setup(transform, instance);
-			transform.then().func(() => {
-				container.destroy();
-				transforms.delete(instance);
-			});
-		});
-		container.enable();
+		const builder = new TransformBuilder<T>(instance);
+		setup(builder, instance);
 
-		return container;
+		const tr = builder.build();
+		transforms.set(instance, tr);
+		tr.onDestroy(() => transforms.delete(instance));
+
+		tr.enable();
+
+		return tr;
 	}
+	// export function start<T extends object>(builder: TransformBuilder<T>): RunningTransform {
+	// 	transforms.get(instance)?.finish();
+
+	// 	const container = new TransformContainer(instance);
+	// 	transforms.set(instance, container);
+	// 	container.run((transform, instance) => {
+	// 		setup(transform, instance);
+	// 		transform.then().func(() => {
+	// 			container.destroy();
+	// 			transforms.delete(instance);
+	// 		});
+	// 	});
+	// 	container.enable();
+
+	// 	return container;
+	// }
+
+	export function runParallel(...transforms: TransformBuilder<object>[]): void {}
+
 	export function finish(instance: object) {
 		transforms.get(instance)?.finish();
 	}
