@@ -25,4 +25,11 @@ export namespace TransformService2 {
 
 		return tr;
 	}
+
+	export function finish(key: object) {
+		transforms.get(key)?.finish();
+	}
+	export function cancel(key: object) {
+		transforms.get(key)?.cancel();
+	}
 }
