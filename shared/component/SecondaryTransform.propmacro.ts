@@ -1,5 +1,4 @@
 import { Easing } from "engine/shared/component/Easing";
-import { Transforms } from "engine/shared/component/Transform2";
 import { TransformService2 } from "engine/shared/component/TransformService2";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type {
@@ -82,10 +81,6 @@ const directionToOffset = (direction: Direction, power: number) => {
 
 //
 
-Transforms.create() //
-	.flash({ a: 1 }, 5, "a")
-	.func(() => print("a"));
-
 declare global {
 	interface ITransformBuilder {
 		/** Run this transform in the global {@link TransformService}*/
@@ -138,7 +133,8 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		props?: TransformProps,
 	) => {
 		return selv.push(
-			Transforms.create()
+			selv
+				.create()
 				.transform(object, property, value, { style: "Quad", direction: "Out", ...props })
 				.then()
 				.transform(object, property, object[property]!, {

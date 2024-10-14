@@ -1,12 +1,7 @@
 import { Easing } from "engine/shared/component/Easing";
-import { ParallelTransformSequence, Transforms } from "engine/shared/component/Transform2";
+import { ParallelTransformSequence } from "engine/shared/component/Transform2";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type {
-	Transform,
-	TransformProps,
-	TransformSetup2,
-	TweenableProperties,
-} from "engine/shared/component/Transform2";
+import type { Transform, TransformProps, TweenableProperties } from "engine/shared/component/Transform2";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -113,7 +108,7 @@ declare global {
 			params?: TransformProps,
 		): this;
 
-		setup(setup: TransformSetup2 | undefined): this;
+		setup(setup: ((transform: ITransformBuilder) => void) | undefined): this;
 	}
 }
 export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
@@ -123,7 +118,7 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		selv.push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence()))),
 
 	repeat: (selv: B, amount: number, func: (transform: ITransformBuilder) => void) => {
-		const transform = Transforms.create();
+		const transform = selv.create();
 		for (let i = 0; i < amount; i++) {
 			func(transform);
 			transform.then();
@@ -164,7 +159,7 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		);
 	},
 
-	setup: (selv: B, setup: TransformSetup2 | undefined) => {
+	setup: (selv: B, setup: ((transform: ITransformBuilder) => void) | undefined) => {
 		setup?.(selv);
 		return selv;
 	},

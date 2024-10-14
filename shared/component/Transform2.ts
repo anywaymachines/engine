@@ -86,7 +86,10 @@ export class TransformSequence implements Transform {
 		if (result !== true) {
 			const seq = result.buildSequence();
 			this.sequence.push(seq);
-			if (this.runFrame(time)) return true;
+		}
+
+		if (this.runFrame(time)) {
+			return true;
 		}
 
 		if (this.sequence.size() === 0) {
@@ -108,37 +111,24 @@ export class TransformSequence implements Transform {
 //
 
 declare global {
-	interface TransformBuilderBase {
-		buildSequence(): TransformSequence;
-
-		/** Add a transform into the current parallel sequence */
-		push(transform: Transform | ITransformBuilder): this;
-
-		/** End the current parallel sequence and start another */
-		then(): this;
-	}
 	interface ITransformBuilder extends TransformBuilderBase {}
 }
 
-export namespace Transforms {
-	export function create(): ITransformBuilder {
-		return new TransformBuilder() as unknown as ITransformBuilder;
-	}
+interface TransformBuilderBase {
+	buildSequence(): TransformSequence;
 
-	export function parallel(...transforms: readonly ITransformBuilder[]): ITransformBuilder {
-		return create().push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence())));
-	}
-	export function sequence(...transforms: readonly ITransformBuilder[]): ITransformBuilder {
-		return create().push(new TransformSequence(transforms.map((t) => t.buildSequence())));
-	}
+	/** Add a transform into the current parallel sequence */
+	push(transform: Transform | ITransformBuilder): this;
 
-	export function func(func: () => void | ITransformBuilder): ITransformBuilder {
-		return create().func(func);
-	}
+	/** End the current parallel sequence and start another */
+	then(): this;
+
+	/** Create another empty builder */
+	create(): ITransformBuilder;
 }
 
-export type TransformSetup2 = (transform: ITransformBuilder) => void;
-class TransformBuilder implements TransformBuilderBase {
+/** @deprecated Internal use only */
+export class TransformBuilder implements TransformBuilderBase {
 	private readonly transforms: Transform[][] = [[]];
 
 	buildSequence(): TransformSequence {
@@ -156,6 +146,10 @@ class TransformBuilder implements TransformBuilderBase {
 
 		this.transforms[this.transforms.size() - 1].push(transform);
 		return this;
+	}
+
+	create(): ITransformBuilder {
+		return new TransformBuilder() as unknown as ITransformBuilder;
 	}
 
 	repeat(amount: number, func: (transform: TransformBuilder) => void): this {
