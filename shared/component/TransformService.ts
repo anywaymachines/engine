@@ -9,6 +9,7 @@ import type {
 
 export type TransformSetup<T extends object> = (transform: TransformBuilder<T>, instance: T) => void;
 type State<T extends object> = { readonly [k in TweenableProperties<T>]?: T[k] };
+/** @deprecated */
 export namespace TransformService {
 	export const commonProps = {
 		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
@@ -30,22 +31,6 @@ export namespace TransformService {
 
 		return tr;
 	}
-	// export function start<T extends object>(builder: TransformBuilder<T>): RunningTransform {
-	// 	transforms.get(instance)?.finish();
-
-	// 	const container = new TransformContainer(instance);
-	// 	transforms.set(instance, container);
-	// 	container.run((transform, instance) => {
-	// 		setup(transform, instance);
-	// 		transform.then().func(() => {
-	// 			container.destroy();
-	// 			transforms.delete(instance);
-	// 		});
-	// 	});
-	// 	container.enable();
-
-	// 	return container;
-	// }
 
 	export function runParallel(...transforms: TransformBuilder<object>[]): void {}
 

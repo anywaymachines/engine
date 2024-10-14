@@ -1,0 +1,181 @@
+import { Easing } from "engine/shared/component/Easing";
+import { ParallelTransformSequence, Transforms } from "engine/shared/component/Transform2";
+import { Objects } from "engine/shared/fixes/Objects";
+import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
+import type {
+	Transform,
+	TransformAffectedObject,
+	TransformProps,
+	TransformSetup2,
+	TweenableProperties,
+} from "engine/shared/component/Transform2";
+
+// function to force hoisting of the macros, because it does not but still tries to use them
+// do NOT remove and should ALWAYS be before any other code
+const _ = () => [TransformBuilderMacros];
+
+type B = ITransformBuilder;
+
+class FuncTransform implements Transform {
+	readonly affected: readonly TransformAffectedObject[];
+	private readonly func: () => void | ITransformBuilder;
+	private finished = false;
+
+	constructor(func: () => void | ITransformBuilder, affected: readonly TransformAffectedObject[]) {
+		this.func = func;
+		this.affected = affected ?? Objects.empty;
+	}
+
+	runFrame(): boolean | ITransformBuilder {
+		if (this.finished) return true;
+
+		this.finished = true;
+		const result = this.func();
+		if (result) return result;
+
+		return true;
+	}
+	finish() {
+		if (this.finished) return;
+
+		this.finished = true;
+		this.func();
+	}
+}
+class DelayTransform implements Transform {
+	private readonly delay: number;
+	readonly affected = Objects.empty;
+
+	constructor(delay: number) {
+		this.delay = delay;
+	}
+
+	runFrame(time: number): boolean {
+		return time >= this.delay;
+	}
+	finish() {}
+}
+class TweenTransform<T extends object, TKey extends TweenableProperties<T>> implements Transform {
+	readonly affected: readonly TransformAffectedObject[];
+
+	constructor(
+		private readonly instance: T,
+		private readonly key: TKey,
+		private readonly value: T[TKey] | (() => T[TKey]),
+		private readonly duration: number,
+		private readonly style: EasingStyle,
+		private readonly direction: EasingDirection,
+	) {
+		this.instance = instance;
+		this.key = key;
+		this.value = value;
+
+		this.affected = [{ object: instance, keys: [key] }];
+	}
+
+	private startValue?: T[TKey];
+	private actualValue?: T[TKey];
+
+	runFrame(time: number): boolean {
+		if (time >= this.duration) {
+			this.finish();
+			return true;
+		}
+
+		this.startValue ??= this.instance[this.key];
+		this.actualValue ??= typeIs(this.value, "function") ? this.value() : this.value;
+
+		this.instance[this.key] = Easing.easeValue(
+			time / this.duration,
+			this.startValue as Easable,
+			this.actualValue as Easable,
+			this.style,
+			this.direction,
+		) as T[TKey];
+
+		return false;
+	}
+
+	finish() {
+		this.instance[this.key] = this.actualValue ?? (typeIs(this.value, "function") ? this.value() : this.value);
+	}
+}
+
+//
+
+declare global {
+	interface ITransformBuilder {
+		func(func: () => void, affected?: readonly TransformAffectedObject[]): this;
+		wait(delay: number): this;
+		parallel(...transforms: readonly ITransformBuilder[]): this;
+		repeat(amount: number, func: (transform: ITransformBuilder) => void): this;
+
+		transformMulti<T extends object, TKey extends TweenableProperties<T>>(
+			object: T,
+			value: { readonly [k in TKey]?: T[TKey] & defined },
+			params?: TransformProps,
+		): this;
+		transform<T extends object, TKey extends TweenableProperties<T>>(
+			object: T,
+			key: TKey,
+			value: (T[TKey] & defined) | (() => T[TKey] & defined),
+			params?: TransformProps,
+		): this;
+
+		setup(setup: TransformSetup2 | undefined): this;
+	}
+}
+export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
+	func: (selv: B, func: () => void, affected?: readonly TransformAffectedObject[]) =>
+		selv.push(new FuncTransform(func, affected ?? Objects.empty)),
+	wait: (selv: B, delay: number) => selv.push(new DelayTransform(delay)).then(),
+	parallel: (selv: B, ...transforms: readonly ITransformBuilder[]) =>
+		selv.push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence()))),
+
+	repeat: (selv: B, amount: number, func: (transform: ITransformBuilder) => void) => {
+		const transform = Transforms.create();
+		for (let i = 0; i < amount; i++) {
+			func(transform);
+			transform.then();
+		}
+
+		return selv.push(transform.buildSequence());
+	},
+
+	transformMulti: <T extends object, TKey extends TweenableProperties<T>>(
+		selv: B,
+		object: T,
+		value: { readonly [k in TKey]?: T[TKey] & defined },
+		params?: TransformProps,
+	) => {
+		for (const [key, val] of pairs(value)) {
+			selv.transform(object, key, val, params);
+		}
+
+		return selv;
+	},
+
+	transform: <T extends object, TKey extends TweenableProperties<T>>(
+		selv: B,
+		object: T,
+		key: TKey,
+		value: (T[TKey] & defined) | (() => T[TKey] & defined),
+		params?: TransformProps,
+	) => {
+		return selv.push(
+			new TweenTransform(
+				object,
+				key,
+				value,
+				params?.duration ?? 0,
+				params?.style ?? "Quad",
+				params?.direction ?? "Out",
+			),
+		);
+	},
+
+	setup: (selv: B, setup: TransformSetup2 | undefined) => {
+		setup?.(selv);
+		return selv;
+	},
+};
