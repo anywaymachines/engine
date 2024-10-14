@@ -1,7 +1,5 @@
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
 import { ContainerComponent } from "engine/shared/component/ContainerComponent";
-import { TransformService } from "engine/shared/component/TransformService";
-import type { TransformBuilder } from "engine/shared/component/Transform";
 
 /** Component with an `Instance` and children */
 export class InstanceComponent<
@@ -46,13 +44,5 @@ export class InstanceComponent<
 	/** Get an attribute value on the Instance */
 	getAttribute<T extends AttributeValue>(name: string) {
 		return this.instance.GetAttribute(name) as T | undefined;
-	}
-
-	cancelTransforms() {
-		TransformService.cancel(this.instance);
-	}
-	/** Transform the current instance */
-	transform(setup: (transform: TransformBuilder<T>, instance: T) => void) {
-		TransformService.run(this.instance, setup);
 	}
 }
