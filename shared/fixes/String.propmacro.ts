@@ -39,6 +39,10 @@ export namespace Strings {
 		if (typeIs(value, "string")) return value;
 
 		if (typeIs(value, "table")) {
+			if (1 in value) {
+				return `[ ${Objects.values(value).join()} ]`;
+			}
+
 			return `{ ${Objects.entriesArray(value)
 				.map((e) => `${e[0]}: ${pretty(e[1])}`)
 				.join()} }`;
