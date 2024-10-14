@@ -1,10 +1,8 @@
 import { Easing } from "engine/shared/component/Easing";
 import { ParallelTransformSequence, Transforms } from "engine/shared/component/Transform2";
-import { Objects } from "engine/shared/fixes/Objects";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type {
 	Transform,
-	TransformAffectedObject,
 	TransformProps,
 	TransformSetup2,
 	TweenableProperties,
@@ -17,13 +15,11 @@ const _ = () => [TransformBuilderMacros];
 type B = ITransformBuilder;
 
 class FuncTransform implements Transform {
-	readonly affected: readonly TransformAffectedObject[];
 	private readonly func: () => void | ITransformBuilder;
 	private finished = false;
 
-	constructor(func: () => void | ITransformBuilder, affected: readonly TransformAffectedObject[]) {
+	constructor(func: () => void | ITransformBuilder) {
 		this.func = func;
-		this.affected = affected ?? Objects.empty;
 	}
 
 	runFrame(): boolean | ITransformBuilder {
@@ -44,7 +40,6 @@ class FuncTransform implements Transform {
 }
 class DelayTransform implements Transform {
 	private readonly delay: number;
-	readonly affected = Objects.empty;
 
 	constructor(delay: number) {
 		this.delay = delay;
@@ -56,8 +51,6 @@ class DelayTransform implements Transform {
 	finish() {}
 }
 class TweenTransform<T extends object, TKey extends TweenableProperties<T>> implements Transform {
-	readonly affected: readonly TransformAffectedObject[];
-
 	constructor(
 		private readonly instance: T,
 		private readonly key: TKey,
@@ -69,8 +62,6 @@ class TweenTransform<T extends object, TKey extends TweenableProperties<T>> impl
 		this.instance = instance;
 		this.key = key;
 		this.value = value;
-
-		this.affected = [{ object: instance, keys: [key] }];
 	}
 
 	private startValue?: T[TKey];
@@ -105,7 +96,7 @@ class TweenTransform<T extends object, TKey extends TweenableProperties<T>> impl
 
 declare global {
 	interface ITransformBuilder {
-		func(func: () => void, affected?: readonly TransformAffectedObject[]): this;
+		func(func: () => void): this;
 		wait(delay: number): this;
 		parallel(...transforms: readonly ITransformBuilder[]): this;
 		repeat(amount: number, func: (transform: ITransformBuilder) => void): this;
@@ -126,8 +117,7 @@ declare global {
 	}
 }
 export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
-	func: (selv: B, func: () => void, affected?: readonly TransformAffectedObject[]) =>
-		selv.push(new FuncTransform(func, affected ?? Objects.empty)),
+	func: (selv: B, func: () => void) => selv.push(new FuncTransform(func)),
 	wait: (selv: B, delay: number) => selv.push(new DelayTransform(delay)).then(),
 	parallel: (selv: B, ...transforms: readonly ITransformBuilder[]) =>
 		selv.push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence()))),

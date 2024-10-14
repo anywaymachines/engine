@@ -5,14 +5,11 @@ import type { EasingDirection, EasingStyle } from "engine/shared/component/Easin
 import type {
 	RunningTransform,
 	Transform,
-	TransformAffectedObject,
 	TransformProps,
 	TweenableProperties,
 } from "engine/shared/component/Transform2";
 
 class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform {
-	readonly affected: readonly TransformAffectedObject[] = [];
-
 	constructor(
 		private readonly instance: T,
 		private readonly key: TKey,

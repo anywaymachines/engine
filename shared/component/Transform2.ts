@@ -2,14 +2,7 @@ import { RunService } from "@rbxts/services";
 import { Component } from "engine/shared/component/Component";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 
-export interface TransformAffectedObject {
-	readonly object: object;
-	readonly keys: readonly string[];
-}
-
 export interface Transform {
-	readonly affected: readonly TransformAffectedObject[];
-
 	/** @returns True if completed */
 	runFrame(time: number): boolean | ITransformBuilder;
 
@@ -25,12 +18,10 @@ export interface TransformProps {
 }
 
 export class ParallelTransformSequence implements Transform {
-	readonly affected: readonly TransformAffectedObject[];
 	private readonly sequence: Transform[];
 
 	constructor(sequence: readonly Transform[]) {
 		this.sequence = [...sequence];
-		this.affected = [...new Set(sequence.flatmap((t) => t.affected))];
 	}
 
 	runFrame(time: number): boolean {
@@ -74,13 +65,11 @@ export class ParallelTransformSequence implements Transform {
 }
 
 export class TransformSequence implements Transform {
-	readonly affected: readonly TransformAffectedObject[];
 	private readonly sequence: Transform[];
 	private timeOffset = 0;
 
 	constructor(sequence: readonly Transform[]) {
 		this.sequence = [...sequence];
-		this.affected = [...new Set(sequence.flatmap((t) => t.affected))];
 	}
 
 	runFrame(time: number): boolean {
