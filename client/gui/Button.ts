@@ -1,7 +1,7 @@
 import { ContentProvider, ReplicatedStorage } from "@rbxts/services";
 import { Control } from "engine/client/gui/Control";
 import { ObjectOverlayStorage } from "engine/shared/component/ObjectOverlayStorage";
-import { TransformService } from "engine/shared/component/TransformService";
+import { OldTransformService } from "engine/shared/component/OldTransformService";
 import { Element } from "engine/shared/Element";
 import { Signal } from "engine/shared/event/Signal";
 import type { ElementProperties } from "engine/shared/Element";
@@ -33,12 +33,12 @@ export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extend
 		}
 
 		this.visibilityOverlay.value.subscribe(({ transparency }) => {
-			TransformService.run(gui as GuiObject, (tr) => {
+			OldTransformService.run(gui as GuiObject, (tr) => {
 				if (gui.Transparency === 1 && transparency !== 1) {
 					tr.func(() => (this.gui.Visible = true)).then();
 				}
 
-				tr.transform("Transparency", transparency, TransformService.commonProps.quadOut02);
+				tr.transform("Transparency", transparency, OldTransformService.commonProps.quadOut02);
 
 				if (transparency === 1) {
 					tr.then().func(() => (this.gui.Visible = false));

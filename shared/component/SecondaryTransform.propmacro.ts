@@ -1,12 +1,12 @@
 import { Easing } from "engine/shared/component/Easing";
-import { TransformService2 } from "engine/shared/component/TransformService2";
+import { TransformService } from "engine/shared/component/TransformService";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type {
 	RunningTransform,
 	Transform,
 	TransformProps,
 	TweenableProperties,
-} from "engine/shared/component/Transform2";
+} from "engine/shared/component/Transform";
 
 class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform {
 	constructor(
@@ -104,7 +104,7 @@ declare global {
 }
 export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 	run: (selv: B, key: object): RunningTransform => {
-		return TransformService2.run(key, selv);
+		return TransformService.run(key, selv);
 	},
 
 	setText: <T extends object, TKey extends ExtractKeys<T, string>>(

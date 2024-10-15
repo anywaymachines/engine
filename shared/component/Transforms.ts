@@ -1,5 +1,5 @@
-import { TransformBuilder } from "engine/shared/component/Transform2";
-import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform2";
+import { TransformBuilder } from "engine/shared/component/Transform";
+import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
 
 export namespace Transforms {
 	export function create(): ITransformBuilder {

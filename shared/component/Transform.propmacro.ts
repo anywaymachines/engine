@@ -1,7 +1,7 @@
 import { Easing } from "engine/shared/component/Easing";
-import { ParallelTransformSequence } from "engine/shared/component/Transform2";
+import { ParallelTransformSequence } from "engine/shared/component/Transform";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { Transform, TransformProps, TweenableProperties } from "engine/shared/component/Transform2";
+import type { Transform, TransformProps, TweenableProperties } from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
