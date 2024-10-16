@@ -1,4 +1,5 @@
 import { OldTransformBuilder } from "engine/shared/component/OldTransform";
+import { TransformService } from "engine/shared/component/TransformService";
 import { Objects } from "engine/shared/fixes/Objects";
 import type { OldTransformRunner } from "engine/shared/component/OldTransform";
 import type { RunningTransform, TransformProps, TweenableProperties } from "engine/shared/component/Transform";
@@ -44,17 +45,17 @@ export namespace OldTransformService {
 
 	export function stateMachineFunc<
 		T extends object,
-		TStates extends { readonly [k in string]: (builder: OldTransformBuilder<T>) => void },
+		TStates extends { readonly [k in string]: (builder: ITransformBuilder) => void },
 	>(
 		instance: T,
 		states: TStates,
-		setupStart?: (transform: OldTransformBuilder<T>, state: keyof TStates) => void,
-		setupEnd?: (transform: OldTransformBuilder<T>, state: keyof TStates) => void,
+		setupStart?: (transform: ITransformBuilder, state: keyof TStates) => void,
+		setupEnd?: (transform: ITransformBuilder, state: keyof TStates) => void,
 	): { readonly [k in keyof TStates]: () => void } {
 		const result: Partial<Readonly<Record<keyof TStates, () => void>>> = {};
 		for (const [name, state] of pairs(states)) {
 			result[name] = () => {
-				const setup = (tr: OldTransformBuilder<T>) => {
+				const setup = (tr: ITransformBuilder) => {
 					if (setupStart) {
 						setupStart(tr, name);
 						tr.then();
@@ -68,7 +69,7 @@ export namespace OldTransformService {
 					}
 				};
 
-				OldTransformService.run(instance, setup);
+				TransformService.run(instance, setup);
 			};
 		}
 
@@ -78,8 +79,8 @@ export namespace OldTransformService {
 		instance: T,
 		props: TransformProps,
 		states: TStates,
-		setupStart?: (transform: OldTransformBuilder<T>, state: keyof TStates) => void,
-		setupEnd?: (transform: OldTransformBuilder<T>, state: keyof TStates) => void,
+		setupStart?: (transform: ITransformBuilder, state: keyof TStates) => void,
+		setupEnd?: (transform: ITransformBuilder, state: keyof TStates) => void,
 	): { readonly [k in keyof TStates & string]: () => void } {
 		return stateMachineFunc(
 			instance,
@@ -88,9 +89,9 @@ export namespace OldTransformService {
 					([k, state]) =>
 						[
 							k as keyof TStates & string,
-							(tr: OldTransformBuilder<T>) => {
+							(tr: ITransformBuilder) => {
 								for (const [key, value] of pairs(state)) {
-									tr.transform(key as TweenableProperties<T>, value as never, props);
+									tr.transform(instance, key as TweenableProperties<T>, value as never, props);
 								}
 							},
 						] as const,
@@ -105,10 +106,10 @@ export namespace OldTransformService {
 		props: TransformProps,
 		trueState: State<T>,
 		falseState: State<T>,
-		setupStart?: (transform: OldTransformBuilder<T>, state: boolean) => void,
-		setupEnd?: (transform: OldTransformBuilder<T>, state: boolean) => void,
+		setupStart?: (transform: ITransformBuilder, state: boolean) => void,
+		setupEnd?: (transform: ITransformBuilder, state: boolean) => void,
 	): (value: boolean) => void {
-		const sm = OldTransformService.stateMachine(
+		const sm = stateMachine(
 			instance,
 			props,
 			{ true: trueState, false: falseState },
@@ -122,19 +123,11 @@ export namespace OldTransformService {
 		props: TransformProps,
 		trueState: State<T>,
 		falseState: State<T>,
-		setupStart?: (transform: OldTransformBuilder<T>, state: boolean) => void,
-		setupEnd?: (transform: OldTransformBuilder<T>, state: boolean) => void,
+		setupStart?: (transform: ITransformBuilder, state: boolean) => void,
+		setupEnd?: (transform: ITransformBuilder, state: boolean) => void,
 	): (value: boolean) => void {
 		let cache: (value: boolean) => void;
-		return () =>
-			(cache ??= OldTransformService.boolStateMachine(
-				instance,
-				props,
-				trueState,
-				falseState,
-				setupStart,
-				setupEnd,
-			));
+		return () => (cache ??= boolStateMachine(instance, props, trueState, falseState, setupStart, setupEnd));
 	}
 
 	export function multi<T>(...states: ((value: T) => void)[]): (value: T) => void {
