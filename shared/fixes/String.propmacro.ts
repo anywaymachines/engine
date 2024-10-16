@@ -7,12 +7,22 @@ const _ = () => [StringMacros];
 
 declare global {
 	interface String {
+		contains(this: string, search: string): boolean;
+		startsWith(this: string, search: string): boolean;
+
 		trim(this: string): string;
 		fullLower(this: string): string;
 		fullUpper(this: string): string;
 	}
 }
 export const StringMacros: PropertyMacros<String> = {
+	contains: (str: String, search: string): boolean => {
+		return (str as string).find(search)[0] !== undefined;
+	},
+	startsWith: (str: String, search: string): boolean => {
+		return (str as string).sub(1, search.size()) === search;
+	},
+
 	trim: (str: String): string => {
 		return (str as string).gsub("^%s*(.-)%s*$", "%1")[0];
 	},
