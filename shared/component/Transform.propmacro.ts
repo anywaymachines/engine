@@ -10,10 +10,10 @@ const _ = () => [TransformBuilderMacros];
 type B = ITransformBuilder;
 
 class FuncTransform implements Transform {
-	private readonly func: () => void | ITransformBuilder;
+	private readonly func: () => unknown | ITransformBuilder;
 	private finished = false;
 
-	constructor(func: () => void | ITransformBuilder) {
+	constructor(func: () => unknown | ITransformBuilder) {
 		this.func = func;
 	}
 
@@ -22,7 +22,14 @@ class FuncTransform implements Transform {
 
 		this.finished = true;
 		const result = this.func();
-		if (result) return result;
+		if (!result) return true;
+
+		if (result === true) {
+			return result;
+		}
+		if (typeIs(result, "table") && "then" in result) {
+			return result as ITransformBuilder;
+		}
 
 		return true;
 	}
