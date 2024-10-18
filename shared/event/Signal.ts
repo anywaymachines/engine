@@ -60,29 +60,28 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 		}
 
 		this.inSelf++;
-		try {
-			for (const sub of this.subscribed) {
-				const [success, result] = xpcall(
-					sub as (...args: TArgs) => void,
-					(err) => {
-						warn(
-							`Exception in signal ${tostring(this).sub("table: ".size() + 1)} handling ${tostring(sub).sub("function: ".size() + 1)}:\n${err}`,
-							`\nat`,
-							debug.traceback(undefined, 2),
-						);
+		for (const sub of this.subscribed) {
+			const [success, result] = xpcall(
+				sub as (...args: TArgs) => void,
+				(err) => {
+					warn(
+						`Exception in signal ${tostring(this).sub("table: ".size() + 1)} handling ${tostring(sub).sub("function: ".size() + 1)}:\n${err}`,
+						`\nat`,
+						debug.traceback(undefined, 2),
+					);
 
-						return err;
-					},
-					...args,
-				);
+					return err;
+				},
+				...args,
+			);
 
-				if (!success) {
-					error(result, 2);
-				}
+			if (!success) {
+				this.inSelf = 0;
+				error(result, 2);
 			}
-		} finally {
-			this.inSelf = 0;
 		}
+
+		this.inSelf = 0;
 	}
 
 	destroy() {
