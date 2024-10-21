@@ -1,7 +1,12 @@
 import { TransformBuilder } from "engine/shared/component/Transform";
 import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
+import type { TransformProps } from "engine/shared/component/Transform";
 
 export namespace Transforms {
+	export const commonProps = {
+		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
+	} as const satisfies Record<string, TransformProps>;
+
 	export function create(): ITransformBuilder {
 		return new TransformBuilder() as unknown as ITransformBuilder;
 	}
