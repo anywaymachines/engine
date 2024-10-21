@@ -103,9 +103,7 @@ declare global {
 	}
 }
 export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
-	run: (selv: B, key: object): RunningTransform => {
-		return TransformService.run(key, selv);
-	},
+	run: (selv: B, key: object): RunningTransform => TransformService.run(key, selv),
 
 	setText: <T extends object, TKey extends ExtractKeys<T, string>>(
 		selv: ITransformBuilder,
@@ -156,9 +154,7 @@ declare global {
 	}
 }
 export const InstanceTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
-	destroy: (selv: B, instance: Instance) => {
-		return selv.func(() => instance.Destroy());
-	},
+	destroy: (selv: B, instance: Instance) => selv.func(() => instance.Destroy()),
 };
 
 //
@@ -179,11 +175,25 @@ declare global {
 		/** Relatively resize a `GuiObject` */
 		resizeRelative(instance: GuiObject, offset: UDim2, params?: TransformProps): this;
 
-		slideIn(instance: GuiObject, from: Direction, power: number, props?: TransformProps): this;
-		slideOut(instance: GuiObject, direction: Direction, power: number, props?: TransformProps): this;
+		// slideIn(instance: GuiObject, from: Direction, power: number, props?: TransformProps): this;
+		// slideOut(instance: GuiObject, direction: Direction, power: number, props?: TransformProps): this;
 
 		/** Set the visibility of a `GuiObject` */
 		setVisible(instance: GuiObject, visible: boolean): this;
+		/** Set the visibility of a `GuiObject` to tru */
+		show(instance: GuiObject): this;
+		/** Set the visibility of a `GuiObject` to false */
+		hide(instance: GuiObject): this;
+
+		/** Transform the `GuiObject` transparency to 0 */
+		fadeIn(instance: GuiObject, props?: TransformProps): this;
+		/** Transform the `GuiObject` transparency to 1 */
+		fadeOut(instance: GuiObject, props?: TransformProps): this;
+
+		/** Set the `GuiObject` transparency to 1, and then transform to 0 */
+		fadeInFrom0(instance: GuiObject, props: TransformProps): this;
+		/** Set the `GuiObject` transparency to 0, and then transform to 1 */
+		fadeOutFrom1(instance: GuiObject, props: TransformProps): this;
 
 		flashColor<T extends GuiObject>(
 			instance: T,
@@ -208,26 +218,37 @@ export const GuiObjectTransformBuilderMacros: PropertyMacros<ITransformBuilder> 
 	resizeRelative: (selv: B, instance: GuiObject, offset: UDim2, params?: TransformProps) =>
 		selv.transform(instance, "Size", () => instance.Size.add(offset), params),
 
-	slideIn: (selv: B, instance: GuiObject, from: Direction, power: number, props?: TransformProps) => {
-		return selv
-			.func(() => (instance.Visible = true))
-			.moveRelative(instance, new UDim2().sub(directionToOffset(from, power)))
-			.move(instance, instance.Position, { duration: 0.5, style: "Quad", direction: "Out", ...props });
-	},
-	slideOut: (selv: B, instance: GuiObject, direction: Direction, power: number, props?: TransformProps) => {
-		return selv
-			.moveRelative(instance, new UDim2().sub(directionToOffset(direction, power)), {
-				duration: 0.5,
-				style: "Quad",
-				direction: "Out",
-				...props,
-			})
-			.then()
-			.transform(instance, "Visible", false)
-			.move(instance, instance.Position);
-	},
+	// slideIn: (selv: B, instance: GuiObject, from: Direction, power: number, props?: TransformProps) => {
+	// 	return selv
+	// 		.show(instance)
+	// 		.moveRelative(instance, new UDim2().sub(directionToOffset(from, power)))
+	// 		.move(instance, instance.Position, { duration: 0.5, style: "Quad", direction: "Out", ...props });
+	// },
+	// slideOut: (selv: B, instance: GuiObject, direction: Direction, power: number, props?: TransformProps) => {
+	// 	return selv
+	// 		.moveRelative(instance, new UDim2().sub(directionToOffset(direction, power)), {
+	// 			duration: 0.5,
+	// 			style: "Quad",
+	// 			direction: "Out",
+	// 			...props,
+	// 		})
+	// 		.then()
+	// 		.hide(instance)
+	// 		.move(instance, instance.Position);
+	// },
 
 	setVisible: (selv: B, instance: GuiObject, visible: boolean) => selv.transform(instance, "Visible", visible),
+	show: (selv: B, instance: GuiObject) => selv.setVisible(instance, true),
+	hide: (selv: B, instance: GuiObject) => selv.setVisible(instance, false),
+
+	fadeIn: (selv: B, instance: GuiObject, params?: TransformProps) =>
+		selv.transform(instance, "Transparency", 0, params),
+	fadeOut: (selv: B, instance: GuiObject, params?: TransformProps) =>
+		selv.transform(instance, "Transparency", 1, params),
+	fadeInFrom0: (selv: B, instance: GuiObject, params?: TransformProps) =>
+		selv.fadeOut(instance).then().fadeIn(instance, params),
+	fadeOutFrom1: (selv: B, instance: GuiObject, params?: TransformProps) =>
+		selv.fadeIn(instance).then().fadeOut(instance, params),
 
 	flashColor: <T extends GuiObject>(
 		selv: ITransformBuilder,
