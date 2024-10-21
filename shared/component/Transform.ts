@@ -151,16 +151,6 @@ export class TransformBuilder implements TransformBuilderBase {
 	create(): ITransformBuilder {
 		return new TransformBuilder() as unknown as ITransformBuilder;
 	}
-
-	repeat(amount: number, func: (transform: TransformBuilder) => void): this {
-		const transform = new TransformBuilder();
-		for (let i = 0; i < amount; i++) {
-			func(transform);
-			transform.then();
-		}
-
-		return this.push(transform.buildSequence());
-	}
 }
 
 //
