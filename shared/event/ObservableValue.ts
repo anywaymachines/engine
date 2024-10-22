@@ -12,10 +12,10 @@ export class ObservableValue<T> implements ReadonlyObservableValue<T> {
 		this.value = value;
 	}
 
-	set(value: T, forceSet = false) {
+	set(value: T) {
 		value = this.processValue(value);
 
-		if (!forceSet && this.value === value) return;
+		if (this.value === value) return;
 		const prev = this.get();
 
 		this.value = value;
@@ -27,7 +27,8 @@ export class ObservableValue<T> implements ReadonlyObservableValue<T> {
 	}
 
 	triggerChanged() {
-		this.set(this.value, true);
+		const value = this.get();
+		this._changed.Fire(value, value);
 	}
 
 	/** Function that modifies the value before it gets stored */
@@ -57,27 +58,6 @@ export class ObservableValue<T> implements ReadonlyObservableValue<T> {
 		observable.subscribe((value) => this.set(value), true);
 	}
 
-	createChild<TKey extends keyof NonNullable<T>>(key: TKey, def: NonNullable<T>[TKey]) {
-		const observable = new ObservableValue(this.value?.[key] ?? def);
-		this.subscribe((value) => observable.set(value?.[key] ?? def));
-		observable.subscribe((value) => {
-			if (this.value !== undefined) {
-				this.value![key] = value;
-				this.set(this.value, true);
-			}
-		});
-
-		return observable;
-	}
-	createNullableChild<TKey extends keyof NonNullable<T>>(
-		key: TKey,
-		def: NonNullable<T>[TKey] | undefined,
-	): ReadonlyObservableValue<NonNullable<T>[TKey] | undefined> {
-		const observable = new ObservableValue<NonNullable<T>[TKey] | undefined>(this.value?.[key] ?? def);
-		this.subscribe((value) => observable.set(value?.[key] ?? def));
-
-		return observable;
-	}
 	createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew> {
 		const observable = new ObservableValue<TNew>(func(this.get()));
 		this.subscribe((value) => observable.set(func(value)));
