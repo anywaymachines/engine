@@ -81,7 +81,7 @@ export class ComponentEvents {
 
 	/** Subscribe to an observable value changed event */
 	subscribeObservable<T>(
-		observable: ReadonlySubscribeObservableValue<T>,
+		observable: ReadonlyObservableValue<T>,
 		callback: (value: T, prev: T) => void,
 		executeOnEnable = false,
 		executeImmediately = false,
