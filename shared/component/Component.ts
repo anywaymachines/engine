@@ -59,9 +59,13 @@ class ComponentBase {
 	onDisable(func: () => void): void {
 		this.onDisabled.Connect(func);
 	}
-	onEnabledStateChange(func: (enabled: boolean) => void): void {
+	onEnabledStateChange(func: (enabled: boolean) => void, executeImmediately = false): void {
 		this.onEnable(() => func(true));
 		this.onDisable(() => func(false));
+
+		if (executeImmediately) {
+			func(this.isEnabled());
+		}
 	}
 	onDestroy(func: () => void): void {
 		this.onDestroyed.Connect(func);
