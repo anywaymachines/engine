@@ -1,9 +1,11 @@
-interface ReadonlyObservableValue<T> {
-	readonly changed: ReadonlySignal<(value: T, prev: T) => void>;
+interface ReadonlyObservableValueBase<T> {
+	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
 
 	get(): T;
 }
-
-interface ObservableValue<T> extends ReadonlyObservableValue<T> {
+interface ObservableValueBase<T> extends ReadonlyObservableValueBase<T> {
 	set(value: T, forceSet?: boolean): void;
 }
+
+interface ReadonlyObservableValue<T> extends ReadonlyObservableValueBase<T> {}
+interface ObservableValue<T> extends ReadonlyObservableValue<T>, ObservableValueBase<T> {}
