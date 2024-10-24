@@ -1,6 +1,7 @@
 import { ArgsSignal } from "engine/shared/event/Signal";
 
 interface ObservableSwitchBase extends ReadonlyObservableValueBase<boolean> {
+	getKeyed(key: string | object): boolean;
 	set(key: string | object, enabled: boolean): void;
 }
 interface ObservableSwitch extends ObservableSwitchBase, ReadonlyObservableValue<boolean> {}
@@ -13,6 +14,10 @@ class _ObservableSwitch implements ObservableSwitchBase {
 
 	get(): boolean {
 		return !this.overrides || this.overrides.size() === 0;
+	}
+
+	getKeyed(key: string | object): boolean {
+		return this.overrides?.has(key) ? !this.defaultValue : this.defaultValue;
 	}
 
 	set(key: string | object, enabled: boolean): void {
