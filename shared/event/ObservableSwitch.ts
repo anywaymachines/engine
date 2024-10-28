@@ -13,7 +13,7 @@ class _ObservableSwitch implements ObservableSwitchBase {
 	constructor(readonly defaultValue: boolean = true) {}
 
 	get(): boolean {
-		return !this.overrides || this.overrides.size() === 0;
+		return !this.overrides || this.overrides.size() === 0 ? this.defaultValue : !this.defaultValue;
 	}
 
 	getKeyed(key: string | object): boolean {
