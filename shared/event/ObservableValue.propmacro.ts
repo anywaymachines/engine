@@ -54,6 +54,8 @@ declare global {
 
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
 		createBackwardBased<TNew>(defaultValue: TNew, func: (value: TNew) => T): ObservableValue<TNew>;
+
+		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -117,6 +119,14 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 	): ObservableValue<TNew> => {
 		const observable = new ObservableValue<TNew>(defaultValue);
 		observable.subscribe((value) => selv.set(func(value)));
+
+		return observable;
+	},
+
+	withMiddleware: <T>(selv: ObservableValue<T>, middleware: (value: T) => T): ObservableValue<T> => {
+		const observable = new ObservableValue<T>(middleware(selv.get()), middleware);
+		observable.subscribe((value) => selv.set(value));
+		selv.subscribe((value) => observable.set(value));
 
 		return observable;
 	},
