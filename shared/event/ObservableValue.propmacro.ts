@@ -51,6 +51,8 @@ declare global {
 
 		withDefault(defval: T & defined): ObservableValue<T & defined>;
 		waitUntil<U extends T>(func: (value: T) => value is U): U;
+
+		createBackwardBased<TNew>(defaultValue: TNew, func: (value: TNew) => T): ObservableValue<TNew>;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -91,5 +93,16 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		}
 
 		return ret!;
+	},
+
+	createBackwardBased: <T, TNew>(
+		selv: ObservableValue<T>,
+		defaultValue: TNew,
+		func: (value: TNew) => T,
+	): ObservableValue<TNew> => {
+		const observable = new ObservableValue<TNew>(defaultValue);
+		observable.subscribe((value) => selv.set(func(value)));
+
+		return observable;
 	},
 };
