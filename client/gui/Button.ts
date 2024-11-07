@@ -2,6 +2,7 @@ import { ContentProvider, ReplicatedStorage } from "@rbxts/services";
 import { Control } from "engine/client/gui/Control";
 import { ObjectOverlayStorage } from "engine/shared/component/ObjectOverlayStorage";
 import { OldTransformService } from "engine/shared/component/OldTransformService";
+import { TransformService } from "engine/shared/component/TransformService";
 import { Element } from "engine/shared/Element";
 import { Signal } from "engine/shared/event/Signal";
 import type { ElementProperties } from "engine/shared/Element";
@@ -16,11 +17,12 @@ ContentProvider.PreloadAsync([clickSound]);
 export type ButtonDefinition = GuiButton;
 export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extends Control<T> {
 	readonly activated = new Signal();
-	private readonly visibilityOverlay = new ObjectOverlayStorage({ transparency: 0 });
+	private readonly visibilityOverlay;
 
 	constructor(gui: T, activated?: () => void) {
 		super(gui);
 
+		this.visibilityOverlay = new ObjectOverlayStorage({ transparency: gui.Transparency });
 		const silent = this.getAttribute<boolean>("silent") === true;
 
 		this.event.subscribe(this.gui.Activated, () => {
@@ -33,12 +35,12 @@ export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extend
 		}
 
 		this.visibilityOverlay.value.subscribe(({ transparency }) => {
-			OldTransformService.run(gui as GuiObject, (tr) => {
+			TransformService.run(gui, (tr) => {
 				if (gui.Transparency === 1 && transparency !== 1) {
 					tr.func(() => (this.gui.Visible = true)).then();
 				}
 
-				tr.transform("Transparency", transparency, OldTransformService.commonProps.quadOut02);
+				tr.transform(gui as GuiObject, "Transparency", transparency, OldTransformService.commonProps.quadOut02);
 
 				if (transparency === 1) {
 					tr.then().func(() => (this.gui.Visible = false));
@@ -51,9 +53,9 @@ export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extend
 		this.gui.Interactable = interactable;
 		this.visibilityOverlay.get(0).transparency = interactable ? undefined : 0.6;
 	}
-	protected setInstanceVisibilityFunction(visible: boolean): void {
-		this.visibilityOverlay.get(-1).transparency = visible ? undefined : 1;
-	}
+	// protected setInstanceVisibilityFunction(visible: boolean): void {
+	// 	this.visibilityOverlay.get(-1).transparency = visible ? undefined : 1;
+	// }
 }
 
 export type TextButtonDefinition = (GuiButton & { readonly TextLabel: TextLabel }) | TextButton;
