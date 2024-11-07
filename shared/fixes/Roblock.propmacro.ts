@@ -7,6 +7,12 @@ declare global {
 		/** Return a vector with all its components processed through the {@link func} */
 		apply(this: Vector3, func: (value: number, axis: "X" | "Y" | "Z") => number): Vector3;
 
+		/** Return a minimum number from all axes */
+		findMin(this: Vector3): number;
+
+		/** Return a minimum number from all axes */
+		findMax(this: Vector3): number;
+
 		/** Returns a vector that is `math.min` on both of the provided vectors */
 		min(this: Vector3, vector: Vector3): Vector3;
 
@@ -17,6 +23,12 @@ declare global {
 export const Vector3Macros: PropertyMacros<Vector3> = {
 	apply: (vector: Vector3, func): Vector3 => {
 		return new Vector3(func(vector.X, "X"), func(vector.Y, "Y"), func(vector.Z, "Z"));
+	},
+	findMin: (vector: Vector3): number => {
+		return math.min(vector.X, vector.Y, vector.Z);
+	},
+	findMax: (vector: Vector3): number => {
+		return math.max(vector.X, vector.Y, vector.Z);
 	},
 	min: (vector: Vector3, other: Vector3): Vector3 => {
 		return new Vector3(math.min(vector.X, other.X), math.min(vector.Y, other.Y), math.min(vector.Z, other.Z));

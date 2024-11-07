@@ -10,6 +10,15 @@ const rotateSize = (size: Vector3, rotation: CFrame) => {
 
 /** Immutable bounding box */
 export class BB {
+	/** Get the {@link BB} of a {@link BasePart} or {@link Model} */
+	static from(instance: BasePart | Model | readonly Model[]): BB {
+		const isArray = <T>(object: unknown | readonly T[]): object is readonly T[] => typeIs(instance, "table");
+
+		if (isArray(instance)) return this.fromModels(instance);
+		if (instance.IsA("BasePart")) return this.fromPart(instance);
+		return this.fromModel(instance);
+	}
+
 	/** Get the {@link BB} of a {@link BasePart} */
 	static fromPart(part: BasePart): BB {
 		const [center, size] = [part.ExtentsCFrame, part.ExtentsSize];

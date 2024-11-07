@@ -1,6 +1,6 @@
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [SetMacros, MapMacros, ArrayMacros];
+const _ = () => [SetMacros, MapMacros, ArrayMacros, NumberArrayMacros];
 
 /* Basic operations to do:
 
@@ -447,5 +447,42 @@ export const ArrayMacros: PropertyMacros<ReadonlyArray<defined>> = {
 
 	asReadonly: <T extends defined>(array: readonly T[]): readonly T[] => {
 		return array;
+	},
+};
+
+declare global {
+	interface ReadonlyArray<T> {
+		min(this: ReadonlyArray<number>): number | undefined;
+		max(this: ReadonlyArray<number>): number | undefined;
+	}
+}
+export const NumberArrayMacros: PropertyMacros<ReadonlyArray<number>> = {
+	min: (array: readonly number[]): number | undefined => {
+		if (array.size() === 0) {
+			return undefined;
+		}
+
+		let min: number | undefined = undefined;
+		for (const item of array) {
+			if (!min || min > item) {
+				min = item;
+			}
+		}
+
+		return min;
+	},
+	max: (array: readonly number[]): number | undefined => {
+		if (array.size() === 0) {
+			return undefined;
+		}
+
+		let min: number | undefined = undefined;
+		for (const item of array) {
+			if (!min || min < item) {
+				min = item;
+			}
+		}
+
+		return min;
 	},
 };

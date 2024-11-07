@@ -8,7 +8,10 @@ export class NumberObservableValue<T extends number | undefined = number> extend
 	readonly step;
 
 	constructor(value: T, min: number, max: number, step?: number) {
-		super(value);
+		super(value, (value) => {
+			if (value === undefined) return value;
+			return MathUtils.clamp(value, this.min, this.max, this.step) as T;
+		});
 
 		this.min = min;
 		this.max = max;
@@ -17,10 +20,5 @@ export class NumberObservableValue<T extends number | undefined = number> extend
 
 	getRange() {
 		return this.max - this.min;
-	}
-
-	protected processValue(value: T) {
-		if (value === undefined) return value;
-		return MathUtils.clamp(value, this.min, this.max, this.step) as T;
 	}
 }

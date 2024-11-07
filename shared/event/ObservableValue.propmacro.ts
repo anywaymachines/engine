@@ -51,6 +51,11 @@ declare global {
 
 		withDefault(defval: T & defined): ObservableValue<T & defined>;
 		waitUntil<U extends T>(func: (value: T) => value is U): U;
+
+		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
+		createBackwardBased<TNew>(defaultValue: TNew, func: (value: TNew) => T): ObservableValue<TNew>;
+
+		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -91,5 +96,38 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		}
 
 		return ret!;
+	},
+
+	createBothWayBased: <T, TNew>(
+		selv: ObservableValue<T>,
+		toOld: (value: TNew) => T,
+		toNew: (value: T) => TNew,
+	): ObservableValue<TNew> => {
+		const observable = new ObservableValue<TNew>(toNew(selv.get()));
+		observable.subscribe((value) => {
+			selv.set(toOld(value));
+			observable.set(toNew(selv.get()));
+		});
+		selv.subscribe((value) => observable.set(toNew(value)));
+
+		return observable;
+	},
+	createBackwardBased: <T, TNew>(
+		selv: ObservableValue<T>,
+		defaultValue: TNew,
+		func: (value: TNew) => T,
+	): ObservableValue<TNew> => {
+		const observable = new ObservableValue<TNew>(defaultValue);
+		observable.subscribe((value) => selv.set(func(value)));
+
+		return observable;
+	},
+
+	withMiddleware: <T>(selv: ObservableValue<T>, middleware: (value: T) => T): ObservableValue<T> => {
+		const observable = new ObservableValue<T>(middleware(selv.get()), middleware);
+		observable.subscribe((value) => selv.set(value));
+		selv.subscribe((value) => observable.set(value));
+
+		return observable;
 	},
 };
