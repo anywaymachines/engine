@@ -56,9 +56,20 @@ export class ComponentEvents {
 		this.sub(this.events, [signal, callback]);
 	}
 	/** Register an event */
-	subscribeRegistration(func: () => SignalConnection): void {
+	subscribeRegistration(func: () => SignalConnection | readonly SignalConnection[] | undefined): void {
 		if (this.state.isDestroyed()) return;
-		this.onEnable(() => this.eventHandler.register(func()));
+		this.onEnable(() => {
+			const sub = func();
+			if (!sub) return;
+
+			if ("Disconnect" in sub) {
+				this.eventHandler.register(sub);
+			} else {
+				for (const connection of sub) {
+					this.eventHandler.register(connection);
+				}
+			}
+		});
 	}
 
 	/** Register an event and call the callback function on enable or immediately */
@@ -81,7 +92,7 @@ export class ComponentEvents {
 
 	/** Subscribe to an observable value changed event */
 	subscribeObservable<T>(
-		observable: ReadonlySubscribeObservableValue<T>,
+		observable: ReadonlyObservableValue<T>,
 		callback: (value: T, prev: T) => void,
 		executeOnEnable = false,
 		executeImmediately = false,
