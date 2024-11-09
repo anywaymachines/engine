@@ -8,14 +8,14 @@ export namespace TransformService {
 
 	const transforms = new Map<object, TransformRunner>();
 
-	export function run(
-		key: object,
-		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder) => void),
+	export function run<T extends object>(
+		key: T,
+		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder, instance: T) => void),
 	): RunningTransform {
 		if (typeIs(transform, "function") || !("finish" in transform)) {
 			if (typeIs(transform, "function")) {
 				const empty = Transforms.create();
-				transform(empty);
+				transform(empty, key);
 				transform = empty.buildSequence();
 			} else {
 				transform = transform.buildSequence();
