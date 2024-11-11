@@ -1,7 +1,6 @@
 import { Players, RunService } from "@rbxts/services";
 import { ComponentDisabler } from "engine/shared/component/ComponentDisabler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
-import { Objects } from "engine/shared/fixes/Objects";
 import type { Switches } from "engine/shared/Switches";
 
 declare global {
@@ -58,7 +57,7 @@ const lvls = {
 
 export namespace Logger {
 	export const levels = lvls;
-	export const enabledLevels = new ComponentDisabler(Objects.values(levels));
+	export const enabledLevels = new ComponentDisabler<LogLevel>();
 
 	const scopeStack: string[] = [];
 
