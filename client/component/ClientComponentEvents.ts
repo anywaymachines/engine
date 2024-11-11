@@ -6,7 +6,7 @@ import type { EventHandler } from "engine/shared/event/EventHandler";
 export class ClientComponentEvents extends ComponentEvents {
 	readonly inputHandler = new InputHandler();
 
-	constructor(state: IComponent | (IReadonlyDestroyableComponent & IReadonlyEnableableComponent)) {
+	constructor(state: Component | (IReadonlyDestroyableComponent & IReadonlyEnableableComponent)) {
 		super(state);
 
 		if ("onDisable" in state) {

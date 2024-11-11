@@ -1,7 +1,6 @@
 import { ComponentChild } from "engine/shared/component/ComponentChild";
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
-import type { Control } from "engine/client/gui/Control";
 
 declare global {
 	interface IReadonlyEnableableComponent {
@@ -31,7 +30,7 @@ declare global {
 	}
 	interface IWriteonlyComponent extends IEnableableComponent, IDisableableComponent, IDestroyableComponent {}
 
-	interface IComponent extends IReadonlyComponent, IWriteonlyComponent {}
+	interface Component extends IReadonlyComponent, IWriteonlyComponent {}
 
 	interface IDebuggableComponent {
 		getDebugChildren(): readonly object[];
@@ -98,7 +97,7 @@ class ComponentBase {
 }
 
 /** Base of any component. Handles events and signals which can be enabled or disabled. */
-export class Component extends ComponentBase implements IComponent, IDebuggableComponent {
+class _Component extends ComponentBase implements IReadonlyComponent, IWriteonlyComponent, IDebuggableComponent {
 	readonly event = new ComponentEvents(this);
 	protected readonly eventHandler = this.event.eventHandler;
 
@@ -121,16 +120,10 @@ export class Component extends ComponentBase implements IComponent, IDebuggableC
 		return () => template.Clone();
 	}
 
-	with(func: (tis: this) => void): this {
-		func(this);
-		return this;
-	}
-	readonly setEnabled = (enable: boolean) => (enable ? this.enable() : this.disable());
-
 	private parented?: IDebuggableComponent[];
 
 	/** Subscribe a child to this component state. Return the child. */
-	protected parent<T extends IComponent | IDebuggableComponent>(child: T): T {
+	protected parent<T extends Component | IDebuggableComponent>(child: T): T {
 		if ("getDebugChildren" in child) {
 			this.parented ??= [];
 			this.parented.push(child);
@@ -143,17 +136,14 @@ export class Component extends ComponentBase implements IComponent, IDebuggableC
 		return child;
 	}
 
-	/** Equivalent of {@link parent} but shows/hides the provided {@link Control} */
-	protected parentGui<T extends Control>(gui: T): T {
-		this.onEnable(() => gui.show());
-		this.onDisable(() => gui.hide());
-		this.onDestroy(() => gui.destroy());
-
-		if (this.isEnabled()) gui.show();
-		return gui;
-	}
-
 	getDebugChildren(): readonly IDebuggableComponent[] {
 		return this.parented ?? [];
 	}
 }
+
+interface StaticComponent {
+	asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
+
+	new (): _Component & Component;
+}
+export const Component = _Component as unknown as StaticComponent;

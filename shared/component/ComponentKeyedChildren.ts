@@ -1,6 +1,6 @@
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 
-type Constraint = IComponent;
+type Constraint = Component;
 
 /** Stores keyed components. Handles its enabling, disabling and destroying. */
 export class ComponentKeyedChildren<TKey extends defined, T extends Constraint = Constraint>

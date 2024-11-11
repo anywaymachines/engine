@@ -7,7 +7,7 @@ import type { EventHandler } from "engine/shared/event/EventHandler";
 /** @inheritdoc */
 export class ClientInstanceComponent<
 	T extends Instance = Instance,
-	TChild extends IComponent = IComponent,
+	TChild extends Component = Component,
 > extends InstanceComponent<T, TChild> {
 	readonly event = new ClientComponentEvents(this);
 

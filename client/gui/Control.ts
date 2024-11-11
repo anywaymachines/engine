@@ -3,7 +3,7 @@ import { ClientInstanceComponent } from "engine/client/component/ClientInstanceC
 /** A component that is a GUI element */
 export class Control<
 	T extends GuiObject = GuiObject,
-	TChild extends IComponent = IComponent,
+	TChild extends Component = Component,
 > extends ClientInstanceComponent<T, TChild> {
 	private visible;
 	protected readonly gui: T;
@@ -16,7 +16,7 @@ export class Control<
 
 		this.children.onAdded.Connect((instance) => {
 			// needed because `instanceof Control` results in `instance` being `Control<any, any>`
-			const isControl = (instance: IComponent): instance is Control => instance instanceof Control;
+			const isControl = (instance: Component): instance is Control => instance instanceof Control;
 
 			if (isControl(instance) && instance.instance.Parent === this.gui && instance.instance.LayoutOrder === 0) {
 				instance.instance.LayoutOrder = this.getChildren().size();

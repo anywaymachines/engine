@@ -4,7 +4,7 @@ import { ContainerComponent } from "engine/shared/component/ContainerComponent";
 /** Component with an `Instance` and children */
 export class InstanceComponent<
 	T extends Instance,
-	TChild extends IComponent = IComponent,
+	TChild extends Component = Component,
 > extends ContainerComponent<TChild> {
 	readonly instance;
 
