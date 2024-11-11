@@ -2,7 +2,7 @@ import { ArgsSignal } from "engine/shared/event/Signal";
 
 abstract class ObservableCollectionBase<T extends defined> implements ReadonlyObservableCollection<T> {
 	protected readonly _changed = new ArgsSignal<[collectionChangedType: CollectionChangedArgs<T>]>();
-	readonly changed = this._changed.asReadonly();
+	readonly collectionChanged = this._changed.asReadonly();
 
 	abstract size(): number;
 	abstract getArr(): readonly T[];
@@ -49,15 +49,24 @@ abstract class ObservableCollectionBase<T extends defined> implements ReadonlyOb
 	}
 }
 
+export interface ObservableCollectionArr<T extends defined> extends ReadonlyObservableValue<readonly T[]> {}
 export class ObservableCollectionArr<T extends defined>
 	extends ObservableCollectionBase<T>
-	implements ReadonlyObservableCollectionArr<T>
+	implements ReadonlyObservableCollectionArr<T>, ReadonlyObservableValueBase<readonly T[]>
 {
+	readonly changed;
 	private readonly items: T[] = [];
 
 	constructor(items: readonly T[] = []) {
 		super();
 		this.items = [...items];
+
+		const changed = new ArgsSignal<[value: readonly T[], prev: readonly T[]]>();
+		this.changed = changed.asReadonly();
+		this.collectionChanged.Connect(() => {
+			const items = this.get();
+			changed.Fire(items, items);
+		});
 	}
 
 	get(): readonly T[] {
@@ -108,15 +117,24 @@ export class ObservableCollectionArr<T extends defined>
 	}
 }
 
+export interface ObservableCollectionSet<T extends defined> extends ReadonlyObservableValue<ReadonlySet<T>> {}
 export class ObservableCollectionSet<T extends defined>
 	extends ObservableCollectionBase<T>
-	implements ReadonlyObservableCollectionSet<T>
+	implements ReadonlyObservableCollectionSet<T>, ReadonlyObservableValueBase<ReadonlySet<T>>
 {
+	readonly changed;
 	private readonly items: Set<T>;
 
 	constructor(items: readonly T[] = []) {
 		super();
 		this.items = new Set<T>(items);
+
+		const changed = new ArgsSignal<[value: ReadonlySet<T>, prev: ReadonlySet<T>]>();
+		this.changed = changed.asReadonly();
+		this.collectionChanged.Connect(() => {
+			const items = this.get();
+			changed.Fire(items, items);
+		});
 	}
 
 	get(): ReadonlySet<T> {

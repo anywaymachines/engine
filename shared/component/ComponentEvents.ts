@@ -110,7 +110,7 @@ export class ComponentEvents {
 		executeOnEnable = false,
 		executeImmediately = false,
 	): void {
-		this.subscribe(observable.changed, callback);
+		this.subscribe(observable.collectionChanged, callback);
 		if (executeOnEnable) {
 			this.onEnable(() => callback({ kind: "add", added: observable.getArr() }), executeImmediately);
 		}

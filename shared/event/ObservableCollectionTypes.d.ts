@@ -4,7 +4,7 @@ type CollectionChangedArgs<T> =
 	| { readonly kind: "clear" };
 
 interface ReadonlyObservableCollection<T extends defined> {
-	readonly changed: ReadonlyArgsSignal<[collectionChangedType: CollectionChangedArgs<T>]>;
+	readonly collectionChanged: ReadonlyArgsSignal<[collectionChangedType: CollectionChangedArgs<T>]>;
 
 	size(): number;
 	getArr(): readonly T[];
