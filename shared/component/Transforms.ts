@@ -1,11 +1,10 @@
 import { TransformBuilder } from "engine/shared/component/Transform";
 import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
+import { TransformService } from "engine/shared/component/TransformService";
 import type { TransformProps, TweenableProperties } from "engine/shared/component/Transform";
 
 export namespace Transforms {
-	export const commonProps = {
-		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
-	} as const satisfies Record<string, TransformProps>;
+	export const commonProps = TransformService.commonProps;
 
 	export function create(): ITransformBuilder {
 		return new TransformBuilder() as unknown as ITransformBuilder;
