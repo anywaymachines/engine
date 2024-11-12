@@ -1,6 +1,6 @@
-import { ComponentChild } from "engine/shared/component/ComponentChild";
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
+import { Objects } from "engine/shared/fixes/Objects";
 
 declare global {
 	interface IReadonlyEnableableComponent {
@@ -30,7 +30,10 @@ declare global {
 	}
 	interface IWriteonlyComponent extends IEnableableComponent, IDisableableComponent, IDestroyableComponent {}
 
-	interface Component extends IReadonlyComponent, IWriteonlyComponent {}
+	interface Component extends IReadonlyComponent, IWriteonlyComponent, IDebuggableComponent {
+		/** Subscribe a child to this component's enabled state and return it. */
+		parent<T extends Component | IDebuggableComponent>(child: T): T;
+	}
 
 	interface IDebuggableComponent {
 		getDebugChildren(): readonly object[];
@@ -101,10 +104,6 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 	readonly event = new ComponentEvents(this);
 	protected readonly eventHandler = this.event.eventHandler;
 
-	/**
-	 * Return a function that returns a copy of the provided Instance. Destroys the Instance if specified.
-	 * Leaks the memory, use only in static context.
-	 */
 	static asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal = true) {
 		const template = object.Clone();
 		if (destroyOriginal) object.Destroy();
@@ -121,16 +120,22 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 	}
 
 	private parented?: IDebuggableComponent[];
+	protected getParented(): readonly IDebuggableComponent[] {
+		return this.parented ?? Objects.empty;
+	}
 
-	/** Subscribe a child to this component state. Return the child. */
-	protected parent<T extends Component | IDebuggableComponent>(child: T): T {
+	parent<T extends Component | IDebuggableComponent>(child: T): T {
 		if ("getDebugChildren" in child) {
 			this.parented ??= [];
 			this.parented.push(child);
 		}
 
 		if ("isDestroyed" in child || child instanceof ComponentBase) {
-			ComponentChild.init(this, child);
+			this.onEnable(() => child.enable());
+			this.onDisable(() => child.disable());
+			this.onDestroy(() => child.destroy());
+
+			if (this.isEnabled()) child.enable();
 		}
 
 		return child;
@@ -142,6 +147,10 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 }
 
 interface StaticComponent {
+	/**
+	 * Return a function that returns a copy of the provided Instance. Destroys the Instance if specified.
+	 * Leaks the memory, use only in static context.
+	 */
 	asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
 
 	new (): _Component & Component;

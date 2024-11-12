@@ -1,3 +1,5 @@
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
+
 /** Handles the destruction of the provided instance, along with the component. */
 export namespace ComponentInstance {
 	export function init<T extends Instance>(
@@ -41,5 +43,19 @@ export namespace ComponentInstance {
 		if (instance !== parent && instance.Parent === undefined) {
 			instance.Parent = parent;
 		}
+	}
+
+	export function isInstanceComponent(component: Component): component is InstanceComponent<Instance> {
+		return "instance" in component;
+	}
+	export function setInstanceParentIfNeeded(child: Component, parent: Component) {
+		if (!isInstanceComponent(child) || !isInstanceComponent(parent)) {
+			return;
+		}
+
+		if (child.instance === parent.instance) return;
+		if (child.instance.Parent) return;
+
+		child.instance.Parent = parent.instance;
 	}
 }

@@ -1,30 +1,39 @@
 import { ClientInstanceComponent } from "engine/client/component/ClientInstanceComponent";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 
 /** A component that is a GUI element */
-export class Control<
-	T extends GuiObject = GuiObject,
-	TChild extends Component = Component,
-> extends ClientInstanceComponent<T, TChild> {
-	private visible;
+export class Control<T extends GuiObject = GuiObject> extends ClientInstanceComponent<T> {
+	private visible: boolean;
 	protected readonly gui: T;
 
-	constructor(gui: T) {
-		super(gui);
+	constructor(instance: T) {
+		super(instance);
 
-		this.gui = gui;
-		this.visible = gui.Visible;
-
-		this.children.onAdded.Connect((instance) => {
-			// needed because `instanceof Control` results in `instance` being `Control<any, any>`
-			const isControl = (instance: Component): instance is Control => instance instanceof Control;
-
-			if (isControl(instance) && instance.instance.Parent === this.gui && instance.instance.LayoutOrder === 0) {
-				instance.instance.LayoutOrder = this.getChildren().size();
-			}
-		});
+		this.gui = instance;
+		this.visible = instance.Visible;
 	}
 
-	enable() {
+	/** Alias for this.parent() */
+	add<T extends InstanceComponent<GuiObject>>(child: T): T {
+		return this.parent(child);
+	}
+
+	override parent<T extends InstanceComponent<Instance> | Component | IDebuggableComponent>(child: T): T {
+		child = super.parent(child);
+
+		if ("instance" in child) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.instance);
+
+			if (child.instance.IsA("GuiObject")) {
+				child.instance.LayoutOrder = this.getParented().size();
+			}
+		}
+
+		return child;
+	}
+
+	override enable() {
 		if (!this.isVisible()) return;
 		super.enable();
 	}

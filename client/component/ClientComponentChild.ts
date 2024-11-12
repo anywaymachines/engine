@@ -12,7 +12,7 @@ export namespace ClientComponentChild {
 		types: Readonly<Record<InputType, () => T>>,
 		cleanOnDisable = false,
 	): ReadonlyComponentChild<T> {
-		const parent = new ComponentChild<T>(state, cleanOnDisable);
+		const parent = state.parent(new ComponentChild<T>(cleanOnDisable));
 		state.event.onPrepare((inputType) => parent.set(types[inputType]()));
 
 		return parent;

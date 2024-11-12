@@ -1,6 +1,6 @@
 import { Assert } from "engine/shared/Assert";
 import { Component } from "engine/shared/component/Component";
-import { ContainerComponent } from "engine/shared/component/ContainerComponent";
+import { ComponentChildren } from "engine/shared/component/ComponentChildren";
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import { Element } from "engine/shared/Element";
 import type { UnitTests } from "engine/shared/TestFramework";
@@ -32,28 +32,28 @@ namespace ComponentTests {
 	}
 
 	export function children() {
-		const component = new ContainerComponent();
-		component.children.add(new Component());
-		Assert.isTrue(component.children.getAll().size() === 1, "Should not be empty after adding");
-		Assert.isTrue(!component.children.getAll().find((f) => f.isEnabled()), "Should not be enabled yet");
+		const component = new ComponentChildren();
+		component.add(new Component());
+		Assert.isTrue(component.getAll().size() === 1, "Should not be empty after adding");
+		Assert.isTrue(!component.getAll().find((f) => f.isEnabled()), "Should not be enabled yet");
 
 		component.enable();
-		Assert.isTrue(!component.children.getAll().find((f) => !f.isEnabled()), "Should all be enabled (1)");
+		Assert.isTrue(!component.getAll().find((f) => !f.isEnabled()), "Should all be enabled (1)");
 
-		component.children.add(new Component());
+		component.add(new Component());
 		Assert.isTrue(
-			!component.children.getAll().find((f) => !f.isEnabled()),
+			!component.getAll().find((f) => !f.isEnabled()),
 			"Adding a component when already enabled should enable it",
 		);
 
 		component.disable();
-		Assert.isTrue(!component.children.getAll().find((f) => f.isEnabled()), "Should all be disabled");
+		Assert.isTrue(!component.getAll().find((f) => f.isEnabled()), "Should all be disabled");
 
 		component.enable();
-		Assert.isTrue(!component.children.getAll().find((f) => !f.isEnabled()), "Should all be enabled (2)");
+		Assert.isTrue(!component.getAll().find((f) => !f.isEnabled()), "Should all be enabled (2)");
 
 		component.destroy();
-		Assert.isTrue(component.children.getAll().size() === 0, "Should be no children left after destroying");
+		Assert.isTrue(component.getAll().size() === 0, "Should be no children left after destroying");
 	}
 }
 export const _Tests: UnitTests = { ComponentTests };

@@ -1,48 +1,47 @@
+import { Component } from "engine/shared/component/Component";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
+import { Objects } from "engine/shared/fixes/Objects";
+import type { ReadonlySlimSignal } from "engine/shared/event/SlimSignal";
 
-type Constraint = IWriteonlyComponent & IReadonlyDestroyableComponent;
-
-export interface ReadonlyComponentChild<T extends Constraint = Constraint> {
+export interface ReadonlyComponentChild<T extends Component = Component> extends Component {
 	get(): T | undefined;
 }
 
 /** Stores a single component (or zero). Handles its enabling, disabling and destroying. */
-export class ComponentChild<T extends Constraint = Constraint>
+export class ComponentChild<T extends Component = Component>
+	extends Component
 	implements ReadonlyComponentChild<T>, IDebuggableComponent
 {
-	readonly childSet = new SlimSignal<(child: T | undefined) => void>();
+	private readonly _childSet = new SlimSignal<(child: T | undefined) => void>();
+	readonly childSet: ReadonlySlimSignal<(child: T | undefined) => void> = this._childSet;
 
 	private child?: T;
 
-	/** Subscribe a child to a parent state. */
-	static init(state: IReadonlyComponent, child: IWriteonlyComponent) {
-		state.onEnable(() => child.enable());
-		state.onDisable(() => child.disable());
-		state.onDestroy(() => child.destroy());
+	constructor(clearOnDisable = false) {
+		super();
 
-		if (state.isEnabled()) child.enable();
-	}
-	constructor(
-		private readonly state: (IReadonlyEnableableComponent & IReadonlyDestroyableComponent) | IReadonlyComponent,
-		clearOnDisable = false,
-	) {
-		state.onEnable(() => this.child?.enable());
-		state.onDestroy(() => this.clear());
+		this.onEnable(() => this.child?.enable());
+		this.onDestroy(() => this.clear());
 
-		if ("onDisable" in state) {
-			if (!clearOnDisable) {
-				state.onDisable(() => this.child?.disable());
-			} else {
-				state.onDisable(() => this.clear());
-			}
+		if (!clearOnDisable) {
+			this.onDisable(() => this.child?.disable());
+		} else {
+			this.onDisable(() => this.clear());
 		}
 	}
 
-	getDebugChildren(): readonly T[] {
-		return this.child ? [this.child] : [];
+	private parentInstance?: Instance;
+	withParentInstance(parentInstance: Instance): this {
+		if (this.parentInstance) {
+			throw "Instance already set";
+		}
+
+		this.parentInstance = parentInstance;
+		return this;
 	}
 
-	get() {
+	get(): T | undefined {
 		return this.child;
 	}
 
@@ -50,7 +49,7 @@ export class ComponentChild<T extends Constraint = Constraint>
 		const prev = this.child;
 		this.child = child;
 		prev?.destroy();
-		this.childSet.Fire(child);
+		this._childSet.Fire(child);
 
 		if (child && this.child === child) {
 			child.onDestroy(() => {
@@ -58,14 +57,23 @@ export class ComponentChild<T extends Constraint = Constraint>
 				this.set(undefined);
 			});
 
-			if (this.state.isEnabled()) {
+			if (this.isEnabled()) {
 				child.enable();
 			}
+		}
+
+		if (child && this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
 		}
 
 		return child;
 	}
 	clear() {
 		this.set(undefined);
+	}
+
+	override getDebugChildren(): readonly T[] {
+		const child = this.child;
+		return child ? [child] : Objects.empty;
 	}
 }

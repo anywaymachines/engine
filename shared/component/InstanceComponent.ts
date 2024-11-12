@@ -1,11 +1,8 @@
+import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
-import { ContainerComponent } from "engine/shared/component/ContainerComponent";
 
-/** Component with an `Instance` and children */
-export class InstanceComponent<
-	T extends Instance,
-	TChild extends Component = Component,
-> extends ContainerComponent<TChild> {
+/** Component with an `Instance` */
+export class InstanceComponent<T extends Instance> extends Component {
 	readonly instance;
 
 	constructor(instance: T, destroyComponentOnInstanceDestroy = true, destroyInstanceOnComponentDestroy = true) {
@@ -13,12 +10,6 @@ export class InstanceComponent<
 		this.instance = instance;
 
 		ComponentInstance.init(this, instance, destroyComponentOnInstanceDestroy, destroyInstanceOnComponentDestroy);
-
-		this.children.onAdded.Connect((child) => {
-			if (child instanceof InstanceComponent && typeIs(child.instance, "Instance")) {
-				ComponentInstance.setParentIfNeeded(child.instance, this.instance);
-			}
-		});
 	}
 
 	/** Checks if the child exists on an Instance */

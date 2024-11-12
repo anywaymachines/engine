@@ -1,14 +1,11 @@
 import { ClientComponentEvents } from "engine/client/component/ClientComponentEvents";
 import { InputController } from "engine/client/InputController";
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { InputHandler, ReadonlyInputHandler } from "engine/client/event/InputHandler";
+import type { ReadonlyInputHandler, InputHandler } from "engine/client/event/InputHandler";
 import type { EventHandler } from "engine/shared/event/EventHandler";
 
 /** @inheritdoc */
-export class ClientInstanceComponent<
-	T extends Instance = Instance,
-	TChild extends Component = Component,
-> extends InstanceComponent<T, TChild> {
+export class ClientInstanceComponent<T extends Instance = Instance> extends InstanceComponent<T> {
 	readonly event = new ClientComponentEvents(this);
 
 	/** Input handler for use in prepare***() */
