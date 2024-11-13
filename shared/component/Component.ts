@@ -33,6 +33,9 @@ declare global {
 	interface Component extends IReadonlyComponent, IWriteonlyComponent, IDebuggableComponent {
 		/** Subscribe a child to this component's enabled state and return it. */
 		parent<T extends Component | IDebuggableComponent>(child: T): T;
+
+		/** Get all parented components. */
+		getParented(): readonly IDebuggableComponent[];
 	}
 
 	interface IDebuggableComponent {
@@ -120,7 +123,7 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 	}
 
 	private parented?: IDebuggableComponent[];
-	protected getParented(): readonly IDebuggableComponent[] {
+	getParented(): readonly IDebuggableComponent[] {
 		return this.parented ?? Objects.empty;
 	}
 

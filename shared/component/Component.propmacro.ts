@@ -38,11 +38,7 @@ export const ComponentMacros: PropertyMacros<Component> = {
 	},
 
 	parentGui: <T extends Control>(selv: Component, gui: T): T => {
-		selv.onEnable(() => gui.show());
-		selv.onDisable(() => gui.hide());
-		selv.onDestroy(() => gui.destroy());
-
-		if (selv.isEnabled()) gui.show();
-		return gui;
+		gui.setupShowOnEnable();
+		return selv.parent(gui);
 	},
 };

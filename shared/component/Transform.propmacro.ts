@@ -1,7 +1,12 @@
 import { Easing } from "engine/shared/component/Easing";
 import { ParallelTransformSequence } from "engine/shared/component/Transform";
 import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { Transform, TransformProps, TweenableProperties } from "engine/shared/component/Transform";
+import type {
+	RunningTransform,
+	Transform,
+	TransformProps,
+	TweenableProperties,
+} from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -93,6 +98,18 @@ class TweenTransform<T extends object, TKey extends TweenableProperties<T>> impl
 		this.instance[this.key] = this.actualValue ?? (typeIs(this.value, "function") ? this.value() : this.value);
 	}
 }
+class WaitForOtherTransform implements Transform {
+	constructor(private readonly transform: RunningTransform) {}
+
+	runFrame(): boolean {
+		if (!this.transform.isCompleted()) {
+			return false;
+		}
+
+		return true;
+	}
+	finish(): void {}
+}
 
 //
 
@@ -102,6 +119,9 @@ declare global {
 		wait(delay: number): this;
 		parallel(...transforms: readonly ITransformBuilder[]): this;
 		repeat(amount: number, func: (transform: ITransformBuilder) => void): this;
+
+		/** Wait for a transform to finish */
+		waitForTransform(transform: RunningTransform): this;
 
 		transformMulti<T extends object, TKey extends TweenableProperties<T>>(
 			object: T,
@@ -133,6 +153,8 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 
 		return selv.push(transform.buildSequence());
 	},
+
+	waitForTransform: (selv: B, transform: RunningTransform) => selv.push(new WaitForOtherTransform(transform)),
 
 	transformMulti: <T extends object, TKey extends TweenableProperties<T>>(
 		selv: B,

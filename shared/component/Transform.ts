@@ -156,6 +156,7 @@ export class TransformBuilder implements TransformBuilderBase {
 //
 
 export interface RunningTransform {
+	isCompleted(): boolean;
 	cancel(): void;
 	finish(): void;
 }
@@ -191,6 +192,10 @@ export class TransformRunner extends Component implements RunningTransform {
 			run();
 			firstRan = true;
 		});
+	}
+
+	isCompleted() {
+		return this.isDestroyed();
 	}
 
 	/** Immediately finish the transform */

@@ -6,12 +6,14 @@ export namespace TransformService {
 	export const commonProps = {
 		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
 	} as const satisfies Record<string, TransformProps>;
+	export const quadOut02 = commonProps.quadOut02;
 
 	const transforms = new Map<object, TransformRunner>();
 
 	export function run<T extends object>(
 		key: T,
 		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder, instance: T) => void),
+		cancelExisting: boolean = false,
 	): RunningTransform {
 		if (typeIs(transform, "function") || !("finish" in transform)) {
 			if (typeIs(transform, "function")) {
@@ -24,7 +26,11 @@ export namespace TransformService {
 			}
 		}
 
-		transforms.get(key)?.finish();
+		if (cancelExisting) {
+			transforms.get(key)?.cancel();
+		} else {
+			transforms.get(key)?.finish();
+		}
 
 		const tr = new TransformRunner(transform);
 		transforms.set(key, tr);
@@ -35,10 +41,14 @@ export namespace TransformService {
 		return tr;
 	}
 
-	export function finish(key: object) {
+	export function finish(key: object): void {
 		transforms.get(key)?.finish();
 	}
-	export function cancel(key: object) {
+	export function cancel(key: object): void {
 		transforms.get(key)?.cancel();
+	}
+
+	export function getRunning(key: object): TransformRunner | undefined {
+		return transforms.get(key);
 	}
 }

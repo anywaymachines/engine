@@ -83,8 +83,17 @@ const directionToOffset = (direction: Direction, power: number) => {
 
 declare global {
 	interface ITransformBuilder {
-		/** Run this transform in the global {@link TransformService}*/
-		run(key: object): RunningTransform;
+		/**
+		 * Run this transform in the global {@link TransformService}
+		 * @param cancelExisting Cancels any existing transforms for the same key if true, finish otherwise
+		 */
+		run(key: object, cancelExisting?: boolean): RunningTransform;
+
+		/** Wait for the transform of a key to finish  */
+		waitForTransformOf(key: object): ITransformBuilder;
+
+		/** Wait for the transforms of all children to finish */
+		waitForTransformOfChildren(component: Component): ITransformBuilder;
 
 		setText<T extends object, TKey extends ExtractKeys<T, string>>(
 			object: T,
@@ -103,7 +112,22 @@ declare global {
 	}
 }
 export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
-	run: (selv: B, key: object): RunningTransform => TransformService.run(key, selv),
+	run: (selv: B, key: object, cancelExisting: boolean = false): RunningTransform =>
+		TransformService.run(key, selv, cancelExisting),
+
+	waitForTransformOf: (selv: B, key: object): ITransformBuilder => {
+		const transform = TransformService.getRunning(key);
+		if (!transform) return selv;
+
+		return selv.waitForTransform(transform);
+	},
+	waitForTransformOfChildren: (selv: B, component: Component): ITransformBuilder => {
+		for (const child of component.getParented()) {
+			selv.waitForTransformOf(child);
+		}
+
+		return selv;
+	},
 
 	setText: <T extends object, TKey extends ExtractKeys<T, string>>(
 		selv: ITransformBuilder,
@@ -180,7 +204,7 @@ declare global {
 
 		/** Set the visibility of a `GuiObject` */
 		setVisible(instance: GuiObject, visible: boolean): this;
-		/** Set the visibility of a `GuiObject` to tru */
+		/** Set the visibility of a `GuiObject` to true */
 		show(instance: GuiObject): this;
 		/** Set the visibility of a `GuiObject` to false */
 		hide(instance: GuiObject): this;

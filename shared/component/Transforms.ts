@@ -5,6 +5,7 @@ import type { TransformProps, TweenableProperties } from "engine/shared/componen
 
 export namespace Transforms {
 	export const commonProps = TransformService.commonProps;
+	export const quadOut02 = commonProps.quadOut02;
 
 	export function create(): ITransformBuilder {
 		return new TransformBuilder() as unknown as ITransformBuilder;

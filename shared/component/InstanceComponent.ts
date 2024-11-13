@@ -12,6 +12,20 @@ export class InstanceComponent<T extends Instance> extends Component {
 		ComponentInstance.init(this, instance, destroyComponentOnInstanceDestroy, destroyInstanceOnComponentDestroy);
 	}
 
+	override parent<T extends InstanceComponent<Instance> | Component | IDebuggableComponent>(child: T): T {
+		child = super.parent(child);
+
+		if ("instance" in child) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.instance);
+
+			if (child.instance.IsA("GuiObject")) {
+				child.instance.LayoutOrder = this.getParented().size();
+			}
+		}
+
+		return child;
+	}
+
 	/** Checks if the child exists on an Instance */
 	protected static exists<T extends Instance, TKey extends keyof T & string>(
 		gui: T,
