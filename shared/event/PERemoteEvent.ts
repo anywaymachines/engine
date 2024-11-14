@@ -367,7 +367,7 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemote
 		if (RunService.IsServer()) {
 			this.event.OnServerEvent.Connect((sender, arg) => {
 				for (const player of Players.GetPlayers()) {
-					if (player === sender) return;
+					if (player === sender) continue;
 					this.event.FireClient(player, arg);
 				}
 			});
