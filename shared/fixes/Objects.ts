@@ -129,6 +129,21 @@ export namespace Objects {
 		return true;
 	}
 
+	export function deepCombine<T extends object>(...objects: readonly T[]): T {
+		const result = {} as T;
+		for (const obj of objects) {
+			for (const [key, value] of pairs(obj)) {
+				if (typeIs(value, "table") && typeIs(result[key as keyof T], "table")) {
+					result[key as keyof T] = deepCombine(result[key as keyof T] as object, value) as T[keyof T];
+				} else {
+					result[key as keyof T] = value;
+				}
+			}
+		}
+
+		return result;
+	}
+
 	/** Executes the function and throws if it ever yields */
 	export function requireNoYield<TArgs extends unknown[], TRet>(
 		func: (...args: TArgs) => TRet,
