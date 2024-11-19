@@ -52,6 +52,7 @@ declare global {
 		any(this: ReadonlySet<T>, func: (value: T) => boolean): boolean;
 
 		asReadonly(this: ReadonlySet<T>): ReadonlySet<T>;
+		clone(this: ReadonlySet<T>): Set<T>;
 	}
 }
 export const SetMacros: PropertyMacros<ReadonlySet<defined>> = {
@@ -163,6 +164,9 @@ export const SetMacros: PropertyMacros<ReadonlySet<defined>> = {
 
 	asReadonly: <T extends defined>(array: ReadonlySet<T>): ReadonlySet<T> => {
 		return array;
+	},
+	clone: <T extends defined>(array: ReadonlySet<T>): Set<T> => {
+		return asSet({ ...asObject(array as never) }) as never;
 	},
 };
 

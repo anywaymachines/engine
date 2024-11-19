@@ -42,6 +42,7 @@ declare global {
 	interface ObservableValue<T> {
 		asReadonly(): ReadonlyObservableValue<T>;
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
+		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -60,6 +61,14 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 			observable.set(toNew(selv.get()));
 		});
 		selv.subscribe((value) => observable.set(toNew(value)));
+
+		return observable;
+	},
+
+	withMiddleware: <T>(selv: ObservableValue<T>, middleware: (value: T) => T): ObservableValue<T> => {
+		const observable = new ObservableValue<T>(middleware(selv.get()), middleware);
+		observable.subscribe((value) => selv.set(value));
+		selv.subscribe((value) => observable.set(value));
 
 		return observable;
 	},

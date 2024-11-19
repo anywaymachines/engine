@@ -13,10 +13,14 @@ declare global {
 		/** Return a minimum number from all axes */
 		findMax(this: Vector3): number;
 
-		/** Returns a vector that is `math.min` on both of the provided vectors */
+		/** Returns a vector that is `math.min` on both of the provided vectors
+		 * @deprecated use Roblox built-in method
+		 */
 		min(this: Vector3, vector: Vector3): Vector3;
 
-		/** Returns a vector that is `math.max` on both of the provided vectors */
+		/** Returns a vector that is `math.max` on both of the provided vectors
+		 * @deprecated use Roblox built-in method
+		 */
 		max(this: Vector3, vector: Vector3): Vector3;
 	}
 }

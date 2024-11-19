@@ -30,7 +30,7 @@ type CustomRemoteEvent<TArg> = CustomRemoteEventBase<TArg, TArg>;
 
 type RemoteName = string | Instances[CreatableRemoteEvents | CreatableRemoteFunctions];
 
-abstract class PERemoveEvent<TEvent extends Instance> {
+abstract class PERemoteEvent<TEvent extends Instance> {
 	protected readonly event: TEvent;
 
 	protected constructor(name: RemoteName, eventType: CreatableRemoteEvents | CreatableRemoteFunctions) {
@@ -62,7 +62,7 @@ export class BidirectionalRemoteEvent<TArg = undefined> {
 	}
 }
 
-export class C2SRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemoteEvent<TArg>> {
+export class C2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEvent<TArg>> {
 	/** @server */
 	readonly invoked = new ArgsSignal<[player: Player, arg: TArg]>();
 
@@ -88,7 +88,7 @@ export class C2SRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemote
 	}
 }
 
-export class S2CRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemoteEvent<TArg>> {
+export class S2CRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEvent<TArg>> {
 	/** @client */
 	readonly invoked = new ArgsSignal<[arg: TArg]>();
 
@@ -208,7 +208,7 @@ const createWaiter = <TRet extends Response>(middlewares: readonly WaiterMiddlew
 	};
 };
 
-export class S2C2SRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoveEvent<
+export class S2C2SRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoteEvent<
 	CustomRemoteFunctionBase<TArg, TArg, TResp | ErrorResponse>
 > {
 	/** @client */
@@ -272,7 +272,7 @@ export class S2C2SRemoteFunction<TArg = undefined, TResp extends Response = Resp
 	}
 }
 
-export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoveEvent<
+export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Response> extends PERemoteEvent<
 	CustomRemoteFunctionBase<TArg, TArg, TResp | ErrorResponse>
 > {
 	private readonly _sent = new ArgsSignal<[arg: TArg]>();
@@ -357,7 +357,7 @@ export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Resp
  * On client, runs the callback and sends the event to everyone except himself
  * On server, sends the event to all players.
  */
-export class C2CRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemoteEventBase<TArg, TArg>> {
+export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEventBase<TArg, TArg>> {
 	/** @client */
 	readonly invoked = new ArgsSignal<[arg: TArg]>();
 
@@ -367,7 +367,7 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoveEvent<CustomRemote
 		if (RunService.IsServer()) {
 			this.event.OnServerEvent.Connect((sender, arg) => {
 				for (const player of Players.GetPlayers()) {
-					if (player === sender) return;
+					if (player === sender) continue;
 					this.event.FireClient(player, arg);
 				}
 			});
