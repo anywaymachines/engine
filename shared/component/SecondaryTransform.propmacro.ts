@@ -95,6 +95,8 @@ declare global {
 		/** Wait for the transforms of all children to finish */
 		waitForTransformOfChildren(component: Component): ITransformBuilder;
 
+		if(condition: boolean, func: (builder: this) => unknown): this;
+
 		setText<T extends object, TKey extends ExtractKeys<T, string>>(
 			object: T,
 			text: T[TKey],
@@ -126,6 +128,13 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 			selv.waitForTransformOf(child);
 		}
 
+		return selv;
+	},
+
+	if: (selv: B, condition: boolean, func: (builder: ITransformBuilder) => unknown): ITransformBuilder => {
+		if (!condition) return selv;
+
+		func(selv);
 		return selv;
 	},
 

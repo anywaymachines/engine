@@ -3,7 +3,7 @@ declare global {
 		Disconnect(): void;
 	}
 
-	interface ReadonlyArgsSignal<TArgs extends unknown[]> {
+	interface ReadonlyArgsSignal<TArgs extends unknown[] = []> {
 		Connect(callback: (...args: TArgs) => void): SignalConnection;
 	}
 	interface ReadonlySignal<T extends (...args: any[]) => void = () => void>

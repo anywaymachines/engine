@@ -1,4 +1,6 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import { getDIClassSymbol, pathOf } from "engine/shared/di/DIPathFunctions";
+import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
 
@@ -20,39 +22,49 @@ declare global {
 			IReadonlyDestroyableComponent {}
 
 	interface IEnableableComponent {
-		enable(): void;
+		enable(key?: string | object): void;
 	}
 	interface IDisableableComponent {
-		disable(): void;
+		disable(key?: string | object): void;
 	}
 	interface IDestroyableComponent {
 		destroy(): void;
 	}
 	interface IWriteonlyComponent extends IEnableableComponent, IDisableableComponent, IDestroyableComponent {}
 
-	interface Component extends IReadonlyComponent, IWriteonlyComponent, IDebuggableComponent {
-		/** Subscribe a child to this component's enabled state and return it. */
-		parent<T extends Component | IDebuggableComponent>(child: T): T;
-
-		/** Get all parented components. */
-		getParented(): readonly IDebuggableComponent[];
-	}
+	interface Component extends _Component {}
 
 	interface IDebuggableComponent {
 		getDebugChildren(): readonly object[];
 	}
 }
 
-class ComponentBase {
+const mainEnabledKey = "$$_main";
+
+class ComponentBase implements IReadonlyComponent, IWriteonlyComponent {
 	private readonly onEnabled = new SlimSignal();
 	private readonly onDisabled = new SlimSignal();
 	private readonly onDestroyed = new SlimSignal();
 
-	private selfEnabled = false;
+	private readonly selfEnabled = new ObservableSwitchAnd(false);
 	private selfDestroyed = false;
 
-	isEnabled(): boolean {
-		return this.selfEnabled;
+	constructor() {
+		this.selfEnabled.subscribe((enabled) => {
+			if (enabled) {
+				this.onEnabled.Fire();
+			} else {
+				this.onDisabled.Fire();
+			}
+		});
+	}
+
+	isEnabled(key?: string | object): boolean {
+		if (!key) {
+			return this.selfEnabled.get();
+		}
+
+		return this.selfEnabled.getKeyed(key);
 	}
 	isDestroyed(): boolean {
 		return this.selfDestroyed;
@@ -76,17 +88,13 @@ class ComponentBase {
 		this.onDestroyed.Connect(func);
 	}
 
-	enable(): void {
-		if (this.selfDestroyed || this.selfEnabled) return;
-
-		this.selfEnabled = true;
-		this.onEnabled.Fire();
+	enable(key?: string | object): void {
+		if (this.selfDestroyed) return;
+		this.selfEnabled.set(key ?? mainEnabledKey, true);
 	}
-	disable(): void {
-		if (this.selfDestroyed || !this.selfEnabled) return;
-
-		this.selfEnabled = false;
-		this.onDisabled.Fire();
+	disable(key?: string | object): void {
+		if (this.selfDestroyed) return;
+		this.selfEnabled.set(key ?? mainEnabledKey, false);
 	}
 	destroy(): void {
 		if (this.selfDestroyed) return;
@@ -107,6 +115,10 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 	readonly event = new ComponentEvents(this);
 	protected readonly eventHandler = this.event.eventHandler;
 
+	/**
+	 * Return a function that returns a copy of the provided Instance. Destroys the Instance if specified.
+	 * Leaks the memory, use only in static context.
+	 */
 	static asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal = true) {
 		const template = object.Clone();
 		if (destroyOriginal) object.Destroy();
@@ -127,18 +139,61 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 		return this.parented ?? Objects.empty;
 	}
 
-	parent<T extends Component | IDebuggableComponent>(child: T): T {
+	private parentedMap?: Map<string, object>;
+	getComponent<T extends object>(@pathOf("T") path?: string): T {
+		if (!path) {
+			throw "Path is null when getting component";
+		}
+
+		const component = this.parentedMap?.get(path);
+		if (!component) throw `${this} does not contain a component ${path}`;
+
+		return component as T;
+	}
+	getOrAddComponent<T extends IDestroyableComponent>(ctor: () => T, @pathOf("T") path?: string): T {
+		if (!path) {
+			throw "Path is null when getting component";
+		}
+
+		if (!this.parentedMap?.get(path)) {
+			return this.parent(ctor());
+		}
+
+		return this.parentedMap.get(path) as T;
+	}
+
+	parent<T extends Component | IDestroyableComponent>(
+		child: T,
+		config?: { enable?: boolean; disable?: boolean; destroy?: boolean; immediateEnable?: boolean },
+	): T {
 		if ("getDebugChildren" in child) {
 			this.parented ??= [];
 			this.parented.push(child);
 		}
 
-		if ("isDestroyed" in child || child instanceof ComponentBase) {
-			this.onEnable(() => child.enable());
-			this.onDisable(() => child.disable());
-			this.onDestroy(() => child.destroy());
+		this.parentedMap ??= new Map();
+		const symbol = getDIClassSymbol(child);
+		this.parentedMap.set(symbol, child);
 
-			if (this.isEnabled()) child.enable();
+		if ("destroy" in child) {
+			if ("enable" in child) {
+				if (config?.enable ?? true) {
+					this.onEnable(() => child.enable());
+				}
+				if (config?.disable ?? true) {
+					this.onDisable(() => child.disable());
+				}
+
+				if (config?.immediateEnable ?? true) {
+					if (this.isEnabled()) {
+						child.enable();
+					}
+				}
+			}
+
+			if (config?.destroy ?? true) {
+				this.onDestroy(() => child.destroy());
+			}
 		}
 
 		return child;
@@ -149,13 +204,7 @@ class _Component extends ComponentBase implements IReadonlyComponent, IWriteonly
 	}
 }
 
-interface StaticComponent {
-	/**
-	 * Return a function that returns a copy of the provided Instance. Destroys the Instance if specified.
-	 * Leaks the memory, use only in static context.
-	 */
-	asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
-
-	new (): _Component & Component;
+interface StaticComponent extends Pick<typeof _Component, keyof typeof _Component> {
+	new (): Component;
 }
 export const Component = _Component as unknown as StaticComponent;

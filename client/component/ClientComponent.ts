@@ -6,7 +6,7 @@ import type { EventHandler } from "engine/shared/event/EventHandler";
 
 /** @inheritdoc */
 export class ClientComponent extends Component {
-	readonly event = new ClientComponentEvents(this);
+	readonly event: ClientComponentEvents = new ClientComponentEvents(this);
 
 	/** Input handler for use in prepare***() */
 	protected readonly inputHandler: ReadonlyInputHandler;
