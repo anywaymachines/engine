@@ -1,7 +1,10 @@
+import type { Component2 } from "engine/shared/component/Component2";
+import type { InstanceComponent2 } from "engine/shared/component/InstanceComponent2";
+
 /** Handles the destruction of the provided instance, along with the component. */
-export namespace ComponentInstance {
+export namespace Component2Instance {
 	export function init<T extends Instance>(
-		state: IReadonlyDestroyableComponent & IDestroyableComponent,
+		state: ComponentEState,
 		instance: T | undefined,
 		destroyComponentOnInstanceDestroy = true,
 		destroyInstanceOnComponentDestroy = true,
@@ -43,10 +46,10 @@ export namespace ComponentInstance {
 		}
 	}
 
-	export function isInstanceComponent(component: Component): component is InstanceComponent<Instance> {
+	export function isInstanceComponent(component: Component2): component is InstanceComponent2<Instance> {
 		return "instance" in component;
 	}
-	export function setInstanceParentIfNeeded(child: Component, parent: Component) {
+	export function setInstanceParentIfNeeded(child: Component2, parent: Component2) {
 		if (!isInstanceComponent(child) || !isInstanceComponent(parent)) {
 			return;
 		}

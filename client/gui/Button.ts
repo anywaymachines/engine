@@ -1,6 +1,6 @@
 import { ContentProvider, ReplicatedStorage } from "@rbxts/services";
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import { InstanceOverlayStorage } from "engine/shared/component/InstanceOverlayStorage";
+import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { ObjectOverlayStorage } from "engine/shared/component/ObjectOverlayStorage";
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
@@ -17,9 +17,6 @@ ContentProvider.PreloadAsync([clickSound]);
 
 export type ButtonDefinition = GuiButton;
 
-type ButtonComponentDefinition = {
-	readonly Activated: Signal;
-};
 /** Component that handles {@link GuiButton.Activated} event and provides a signal for it. */
 export class ButtonComponent extends InstanceComponent<ButtonDefinition> {
 	readonly activated: ReadonlyArgsSignal;
@@ -47,8 +44,8 @@ export class ButtonInteractabilityComponent extends InstanceComponent<ButtonDefi
 	constructor(gui: ButtonDefinition) {
 		super(gui);
 
-		this.transparencyOverlay = InstanceOverlayStorage.of(gui, ["Transparency"]);
-		this.transparencyOverlay.value.subscribe(({ Transparency: transparency }) => {
+		this.transparencyOverlay = InstanceValueStorage.get(gui, "Transparency");
+		this.transparencyOverlay.value.subscribe((transparency) => {
 			Transforms.create()
 				.if(gui.Transparency === 1 && transparency !== 1, (tr) => tr.show(gui))
 				.transform(gui as GuiObject, "Transparency", transparency, Transforms.quadOut02)
@@ -58,7 +55,7 @@ export class ButtonInteractabilityComponent extends InstanceComponent<ButtonDefi
 
 	setInteractable(interactable: boolean): void {
 		this.instance.Interactable = interactable;
-		this.transparencyOverlay.get(5).Transparency = interactable ? undefined : 0.6;
+		this.transparencyOverlay.overlay(5, interactable ? undefined : 0.6);
 	}
 }
 
