@@ -1,48 +1,82 @@
-import { Component2Children } from "engine/shared/component/Component2Children";
+import { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import { BasicComponentEState } from "engine/shared/component/estate/BasicComponentEState";
 import { ComponentSwitchingEState2 } from "engine/shared/component/estate/ComponentSwitchingEState";
+import { getDIClassSymbol, pathOf } from "engine/shared/di/DIPathFunctions";
 import { Objects } from "engine/shared/fixes/Objects";
+
+export interface DebuggableComponent {
+	getDebugChildren(): readonly DebuggableComponent[];
+}
 
 export interface ComponentConfig {
 	readonly state?: ComponentEState;
 }
+export interface ComponentParentConfig {
+	readonly enable?: boolean;
+	readonly disable?: boolean;
+	readonly destroy?: boolean;
+}
 
-// eslint-disable-next-line roblox-ts/no-global-this
-export interface Component2 extends globalThis.Component2PropMacros {}
-export class Component2 implements DebuggableComponent, BaseComponentTypes.ComponentBase {
-	readonly enabledState: ComponentEState;
-	private readonly c: Component2Children;
+export type { _Component2 };
+/** @deprecated Internal use only */
+class _Component2 implements DebuggableComponent {
+	readonly state: ComponentEState;
+	readonly event: ComponentEvents;
 
 	constructor(config?: ComponentConfig) {
-		this.enabledState = config?.state ?? new BasicComponentEState();
-		this.c = new Component2Children(this.enabledState);
+		this.state = config?.state ?? new BasicComponentEState();
+		this.event = new ComponentEvents(this as unknown as Component2);
 	}
 
-	private parented?: DebuggableComponent[] = [];
-
-	/** Parents the component to the given component. */
-	parent<T extends Component2>(child: T, config?: { enable?: boolean; disable?: boolean; destroy?: boolean }): T {
-		const z = this.c.add(child);
-
-		if ("getDebugChildren" in child) {
-			this.parented ??= [];
-			this.parented.push(child);
+	private parentedMap?: Map<string, object>;
+	getComponent<T extends Component2>(@pathOf("T") path?: string): T {
+		if (!path) {
+			throw "Path is null when getting component";
 		}
 
-		if (child instanceof Component2) {
-			if (config?.enable ?? true) {
-				this.onEnable(() => child.enable());
+		const component = this.parentedMap?.get(path);
+		if (!component) throw `${this} does not contain a component ${path}`;
 
-				if (this.isEnabled()) {
-					child.enable();
-				}
+		return component as T;
+	}
+	getOrAddComponent<T extends Component2>(this: Component2, ctor: () => T, @pathOf("T") path?: string): T {
+		if (!path) {
+			throw "Path is null when getting component";
+		}
+
+		if (!this.parentedMap?.get(path)) {
+			return this.parent(ctor());
+		}
+
+		return this.parentedMap.get(path) as T;
+	}
+
+	private parented?: Component2[];
+	getParented(): readonly Component2[] {
+		return this.parented ?? Objects.empty;
+	}
+
+	/** Parents the component to the given component. */
+	parent<T extends Component2>(this: Component2, child: T, config?: ComponentParentConfig): T {
+		this.parented ??= [];
+		this.parented.push(child);
+
+		this.parentedMap ??= new Map();
+		const symbol = getDIClassSymbol(child);
+		this.parentedMap.set(symbol, child);
+
+		if (config?.enable ?? true) {
+			this.onEnable(() => child.enable());
+
+			if (this.isEnabled()) {
+				child.enable();
 			}
-			if (config?.disable ?? true) {
-				this.onDisable(() => child.disable());
-			}
-			if (config?.destroy ?? true) {
-				this.onDestroy(() => child.destroy());
-			}
+		}
+		if (config?.disable ?? true) {
+			this.onDisable(() => child.disable());
+		}
+		if (config?.destroy ?? true) {
+			this.onDestroy(() => child.destroy());
 		}
 
 		return child;
@@ -53,10 +87,13 @@ export class Component2 implements DebuggableComponent, BaseComponentTypes.Compo
 	}
 }
 
+export interface Component2 extends Component2PropMacros, ComponentEState {}
+export class Component2 extends _Component2 {}
+
 //
 
 interface Control {
-	readonly enabledState: ComponentSwitchingEState2;
+	readonly state: ComponentSwitchingEState2;
 }
 class Control extends Component2 {
 	constructor() {

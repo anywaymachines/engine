@@ -1,5 +1,6 @@
 import { Easing } from "engine/shared/component/Easing";
 import { TransformService } from "engine/shared/component/TransformService";
+import type { Component } from "engine/shared/component/Component";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type {
 	RunningTransform,

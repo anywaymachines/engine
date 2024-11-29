@@ -1,36 +1,37 @@
-import { Component2Instance } from "engine/shared/component/Component2Instance";
-import type { Component2 } from "engine/shared/component/Component2";
+import { Component2 } from "engine/shared/component/Component2";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import type { DebuggableComponent } from "engine/shared/component/Component2";
 
-export interface ReadonlyComponentChildren<T extends Component2 = Component2> {
+export interface ReadonlyComponentChildren<T extends Component2 = Component2> extends Component2 {
 	getAll(): readonly T[];
 }
 
 /** Stores components. Handles its enabling, disabling and destroying. */
 export class Component2Children<T extends Component2 = Component2>
-	implements ReadonlyComponentChildren<T>, DebuggableComponent
+	extends Component2
+	implements ReadonlyComponentChildren<T>
 {
 	private readonly children: T[] = [];
 	private clearing = false;
 
-	constructor(
-		private readonly state: ComponentEState,
-		clearOnDisable = false,
-	) {
-		state.onEnable(() => {
+	constructor(clearOnDisable: boolean = false) {
+		super();
+
+		this.onEnable(() => {
 			for (const child of this.children) {
 				child.enable();
 			}
 		});
-		state.onDestroy(() => this.clear());
+		this.onDestroy(() => this.clear());
 
 		if (!clearOnDisable) {
-			state.onDisable(() => {
+			this.onDisable(() => {
 				for (const child of this.children) {
 					child.disable();
 				}
 			});
 		} else {
-			state.onDisable(() => this.clear());
+			this.onDisable(() => this.clear());
 		}
 	}
 
@@ -51,7 +52,7 @@ export class Component2Children<T extends Component2 = Component2>
 	add<TChild extends T>(child: TChild): TChild {
 		this.children.push(child);
 
-		if (this.state.isEnabled()) {
+		if (this.isEnabled()) {
 			child.enable();
 		}
 
@@ -60,8 +61,8 @@ export class Component2Children<T extends Component2 = Component2>
 			this.remove(child);
 		});
 
-		if (this.parentInstance && Component2Instance.isInstanceComponent(child)) {
-			Component2Instance.setParentIfNeeded(child.instance, this.parentInstance);
+		if (this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
 		}
 
 		return child;
@@ -85,7 +86,7 @@ export class Component2Children<T extends Component2 = Component2>
 		this.clearing = false;
 	}
 
-	getDebugChildren(): readonly T[] {
-		return this.getAll();
+	override getDebugChildren(): readonly DebuggableComponent[] {
+		return [...this.getAll(), ...super.getDebugChildren()];
 	}
 }

@@ -1,11 +1,12 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ObservableSwitch } from "engine/shared/event/ObservableSwitch";
 
 const defaultKey = "$main$$";
 
-export class VisibilityComponent implements IDestroyableComponent {
+export class VisibilityComponent {
 	private enableTransforms?: ITransformBuilder[];
 	private disableTransforms?: ITransformBuilder[];
 

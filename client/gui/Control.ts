@@ -1,9 +1,9 @@
-import { ClientInstanceComponent } from "engine/client/component/ClientInstanceComponent";
+import { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
 import type { ObservableSwitch } from "engine/shared/event/ObservableSwitch";
 
 /** A {@link GuiObject} component that can be hidden or shown */
-export class Control<T extends GuiObject = GuiObject> extends ClientInstanceComponent<T> {
+export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
 	protected readonly gui: T;
 
 	constructor(instance: T) {
@@ -49,7 +49,7 @@ export class Control<T extends GuiObject = GuiObject> extends ClientInstanceComp
 }
 
 /** A {@link GuiObject} component that can be hidden or shown */
-export class Control2<T extends GuiObject = GuiObject> extends ClientInstanceComponent<T> {
+export class Control2<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
 	readonly isVisible: ObservableSwitch;
 	protected readonly gui: T;
 	private readonly visibility;

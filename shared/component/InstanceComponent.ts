@@ -1,11 +1,12 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { InstanceComponent2 } from "engine/shared/component/InstanceComponent2";
 
-declare global {
-	interface InstanceComponent<T extends Instance = Instance> extends Component, _InstanceComponent<T> {
-		parent<T extends InstanceComponent<Instance> | Component | IDebuggableComponent | object>(child: T): T;
-	}
-}
+// declare global {
+// 	interface InstanceComponent<T extends Instance = Instance> extends Component, _InstanceComponent<T> {
+// 		parent<T extends InstanceComponent<Instance> | Component | IDebuggableComponent | object>(child: T): T;
+// 	}
+// }
 
 /** Component with an `Instance` */
 class _InstanceComponent<T extends Instance = Instance> extends Component {
@@ -53,11 +54,14 @@ class _InstanceComponent<T extends Instance = Instance> extends Component {
 	}
 }
 
-export interface StaticInstanceComponent extends Pick<typeof _InstanceComponent, keyof typeof _InstanceComponent> {
-	new <T extends Instance>(
-		instance: T,
-		destroyComponentOnInstanceDestroy?: boolean,
-		destroyInstanceOnComponentDestroy?: boolean,
-	): InstanceComponent<T>;
-}
-export const InstanceComponent = _InstanceComponent as unknown as StaticInstanceComponent;
+// export interface StaticInstanceComponent extends Pick<typeof _InstanceComponent, keyof typeof _InstanceComponent> {
+// 	new <T extends Instance>(
+// 		instance: T,
+// 		destroyComponentOnInstanceDestroy?: boolean,
+// 		destroyInstanceOnComponentDestroy?: boolean,
+// 	): InstanceComponent<T>;
+// }
+// export const InstanceComponent = _InstanceComponent as unknown as StaticInstanceComponent;
+
+export type InstanceComponent<T extends Instance> = InstanceComponent2<T>;
+export const InstanceComponent = InstanceComponent2;

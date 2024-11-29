@@ -1,7 +1,10 @@
+import type { Component } from "engine/shared/component/Component";
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
+
 /** Handles the destruction of the provided instance, along with the component. */
 export namespace ComponentInstance {
 	export function init<T extends Instance>(
-		state: IReadonlyDestroyableComponent & IDestroyableComponent,
+		state: ComponentEState,
 		instance: T | undefined,
 		destroyComponentOnInstanceDestroy = true,
 		destroyInstanceOnComponentDestroy = true,

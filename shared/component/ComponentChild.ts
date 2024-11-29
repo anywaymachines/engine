@@ -1,18 +1,15 @@
-import { Component } from "engine/shared/component/Component";
+import { Component2 } from "engine/shared/component/Component2";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
 import type { ReadonlySlimSignal } from "engine/shared/event/SlimSignal";
 
-export interface ReadonlyComponentChild<T extends Component = Component> extends Component {
+export interface ReadonlyComponentChild<T extends Component2 = Component2> extends Component2 {
 	get(): T | undefined;
 }
 
 /** Stores a single component (or zero). Handles its enabling, disabling and destroying. */
-export class ComponentChild<T extends Component = Component>
-	extends Component
-	implements ReadonlyComponentChild<T>, IDebuggableComponent
-{
+export class ComponentChild<T extends Component2 = Component2> extends Component2 implements ReadonlyComponentChild<T> {
 	private readonly _childSet = new SlimSignal<(child: T | undefined) => void>();
 	readonly childSet: ReadonlySlimSignal<(child: T | undefined) => void> = this._childSet;
 

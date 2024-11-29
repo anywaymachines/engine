@@ -11,7 +11,7 @@ export class PlayerInfo extends InstanceComponent<Player> {
 	readonly diedEvent = new Signal();
 
 	constructor(player: Player) {
-		super(player, true, false);
+		super(player, { destroyInstanceOnComponentDestroy: false });
 
 		const playerSpawned = () => {
 			const char = player.Character!;

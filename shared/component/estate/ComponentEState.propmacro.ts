@@ -32,6 +32,9 @@ declare global {
 
 		/** Switch the state of the component */
 		switchEnabled(): void;
+
+		/** Automatically set the current state from the provided one */
+		subscribeFrom(state: ComponentEState): void;
 	}
 }
 export const EStateMacros: PropertyMacros<ComponentEState> = {
@@ -41,5 +44,14 @@ export const EStateMacros: PropertyMacros<ComponentEState> = {
 	},
 	switchEnabled: (selv) => {
 		selv.setEnabled(!selv.isEnabled());
+	},
+	subscribeFrom: (selv, state) => {
+		state.onEnabledStateChange((enabled) => selv.setEnabled(enabled));
+		state.onDestroy(() => selv.destroy());
+
+		selv.setEnabled(state.isEnabled());
+		if (state.isDestroyed()) {
+			selv.destroy();
+		}
 	},
 };
