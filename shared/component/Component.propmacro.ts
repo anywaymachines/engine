@@ -9,13 +9,11 @@ const _ = () => [ComponentMacros, InstanceComponentMacros];
 
 declare global {
 	interface ComponentPropMacros extends _Component {
-
 		/** Set the state of the component */
 		setEnabled(enabled: boolean): void;
 
 		/** Switch the state of the component */
 		switchEnabled(): void;
-
 
 		/** Subscribes to the enabled state change event.
 		 * @param executeImmediately If true, the function will be called immediately with the current state. False by default
@@ -35,13 +33,14 @@ declare global {
 		parentGui<T extends InstanceComponent<GuiObject>>(child: T): T;
 	}
 }
-export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {	setEnabled: (selv, enabled) => {
-	if (enabled) selv.enable();
-	else selv.disable();
-},
-switchEnabled: (selv) => {
-	selv.setEnabled(!selv.isEnabled());
-},
+export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
+	setEnabled: (selv, enabled) => {
+		if (enabled) selv.enable();
+		else selv.disable();
+	},
+	switchEnabled: (selv) => {
+		selv.setEnabled(!selv.isEnabled());
+	},
 
 	onEnabledStateChange: (selv, func, executeImmediately = false) => {
 		selv.onEnable(() => func(true));
@@ -56,7 +55,7 @@ switchEnabled: (selv) => {
 		return selv;
 	},
 	withParented: <T extends ComponentPropMacros>(selv: T, child: Component): T => {
-		(selv as unknown as Component).parent(child);
+		selv.parent(child);
 		return selv;
 	},
 	asTemplate: <T extends Instance>(selv: ComponentPropMacros, object: T, destroyOriginal = true): (() => T) => {
@@ -81,17 +80,10 @@ declare global {
 	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
 		/** Get an attribute value on the Instance */
 		getAttribute<T extends AttributeValue>(name: string): T | undefined;
-
-		/** Parents a child component to `this` and returns `this` */
-		withParentedWithInstance(func: (instance: T) => Component): this;
 	}
 }
 export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
 	/** Get an attribute value on the Instance */
 	getAttribute: <T extends AttributeValue>(selv: InstanceComponentPropMacros<Instance>, name: string) =>
 		selv.instance.GetAttribute(name) as T | undefined,
-
-	withParentedWithInstance: (selv, func) => {
-		return selv.withParented(func(selv.instance));
-	},
 };

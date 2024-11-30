@@ -15,3 +15,5 @@ type AbstractConstructorOf<T = unknown, TArgs extends any[] = any[]> = abstract 
 type ArgsOf<T = AbstractConstructorOf> =
 	T extends AbstractConstructorOf<unknown, infer A extends unknown[]> ? A : never;
 type InstanceOf<T extends AbstractConstructorOf> = T extends AbstractConstructorOf<infer R extends object> ? R : never;
+
+type ConstructorToFunction<T extends ConstructorOf> = (...args: ConstructorParameters<T>) => InstanceOf<T>;

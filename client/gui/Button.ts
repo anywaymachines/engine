@@ -1,4 +1,5 @@
 import { ContentProvider, ReplicatedStorage } from "@rbxts/services";
+import { Component } from "engine/shared/component/Component";
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { ObjectOverlayStorage } from "engine/shared/component/ObjectOverlayStorage";
@@ -17,12 +18,79 @@ ContentProvider.PreloadAsync([clickSound]);
 
 export type ButtonDefinition = GuiButton;
 
+class ChildComponent<T extends Component> extends Component {
+	constructor(readonly parentComponent: T) {
+		super();
+	}
+}
+
 /** Component that handles {@link GuiButton.Activated} event and provides a signal for it. */
-export class ButtonComponent extends InstanceComponent<ButtonDefinition> {
+export class ButtonComponent2 extends ChildComponent<InstanceComponent<ButtonComponentDefinition>> {
 	readonly activated: ReadonlyArgsSignal;
 
-	constructor(gui: ButtonDefinition, func?: () => void) {
-		super(gui);
+	constructor(parent: InstanceComponent<ButtonComponentDefinition>) {
+		super(parent);
+
+		const activated = new ArgsSignal();
+		this.activated = activated;
+
+		const silent = parent.getAttribute<boolean>("silent") === true;
+		this.event.subscribe(parent.instance.Activated, () => {
+			if (!silent) clickSound.Play();
+			activated.Fire();
+		});
+	}
+}
+
+export class ButtonInteractabilityComponent2 extends ChildComponent<InstanceComponent<ButtonDefinition>> {
+	private readonly transparencyOverlay;
+
+	constructor(parent: InstanceComponent<ButtonDefinition>) {
+		super(parent);
+
+		this.transparencyOverlay = InstanceValueStorage.get(parent.instance, "Transparency");
+		this.transparencyOverlay.value.subscribe((transparency) => {
+			Transforms.create()
+				.if(parent.instance.Transparency === 1 && transparency !== 1, (tr) => tr.show(parent.instance))
+				.transform(parent.instance, "Transparency", transparency, Transforms.quadOut02)
+				.if(transparency === 1, (tr) => tr.then().hide(parent.instance));
+		});
+	}
+
+	setInteractable(interactable: boolean): void {
+		this.parentComponent.instance.Interactable = interactable;
+		this.transparencyOverlay.overlay(5, interactable ? undefined : 0.6);
+	}
+}
+
+export type ButtonTextComponentDefinition = Instance &
+	({ readonly TextLabel: Instance & { Text: string } } | { Text: string });
+/** Component that handles {@link GuiButton.Activated} event and provides a signal for it. */
+export class ButtonTextComponent2 extends ChildComponent<InstanceComponent<ButtonTextComponentDefinition>> {
+	readonly text;
+
+	constructor(parent: InstanceComponent<ButtonTextComponentDefinition>) {
+		super(parent);
+
+		const isTextButton = (button: ButtonTextComponentDefinition): button is Instance & { Text: string } =>
+			!button.FindFirstChild("TextLabel");
+
+		this.text = this.event.observableFromInstanceParam(
+			isTextButton(parent.instance) ? (parent.instance as TextButton) : parent.instance.TextLabel!,
+			"Text",
+		);
+	}
+}
+
+//
+
+export type ButtonComponentDefinition = Instance & Pick<GuiButton, "Activated">;
+/** Component that handles {@link GuiButton.Activated} event and provides a signal for it. */
+export class ButtonComponent extends InstanceComponent<ButtonComponentDefinition> {
+	readonly activated: ReadonlyArgsSignal;
+
+	constructor(instance: ButtonComponentDefinition, func?: () => void) {
+		super(instance);
 
 		const activated = new ArgsSignal();
 		this.activated = activated;
@@ -31,7 +99,29 @@ export class ButtonComponent extends InstanceComponent<ButtonDefinition> {
 		}
 
 		const silent = this.getAttribute<boolean>("silent") === true;
-		this.event.subscribe(gui.Activated, () => {
+		this.event.subscribe(instance.Activated, () => {
+			if (!silent) clickSound.Play();
+			activated.Fire();
+		});
+	}
+}
+
+export type ButtonControlDefinition = Instance & Pick<GuiButton, "Activated">;
+/** Component that handles {@link GuiButton.Activated} event and provides a signal for it. */
+export class ButtonControl extends InstanceComponent<ButtonComponentDefinition> {
+	readonly activated: ReadonlyArgsSignal;
+
+	constructor(instance: ButtonComponentDefinition, func?: () => void) {
+		super(instance);
+
+		const activated = new ArgsSignal();
+		this.activated = activated;
+		if (func) {
+			activated.Connect(func);
+		}
+
+		const silent = this.getAttribute<boolean>("silent") === true;
+		this.event.subscribe(instance.Activated, () => {
 			if (!silent) clickSound.Play();
 			activated.Fire();
 		});
@@ -59,7 +149,7 @@ export class ButtonInteractabilityComponent extends InstanceComponent<ButtonDefi
 	}
 }
 
-export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extends InstanceComponent<T> {
+class _ButtonControl<T extends ButtonDefinition = ButtonDefinition> extends InstanceComponent<T> {
 	readonly activated = new Signal();
 	private readonly transparencyOverlay;
 
@@ -98,9 +188,11 @@ export class ButtonControl<T extends ButtonDefinition = ButtonDefinition> extend
 		this.transparencyOverlay.get(0).transparency = interactable ? undefined : 0.6;
 	}
 }
+export type ButtonControll<T extends ButtonDefinition = ButtonDefinition> = _ButtonControl<T>;
+export const ButtonControll = _ButtonControl;
 
 export type TextButtonDefinition = (GuiButton & { readonly TextLabel: TextLabel }) | TextButton;
-export class TextButtonControl<T extends TextButtonDefinition = TextButtonDefinition> extends ButtonControl<T> {
+export class TextButtonControl<T extends TextButtonDefinition = TextButtonDefinition> extends ButtonControll<T> {
 	readonly text;
 
 	constructor(gui: T, activated?: () => void) {

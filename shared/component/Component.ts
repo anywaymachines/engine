@@ -1,8 +1,7 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
-import { getDIClassSymbol } from "engine/shared/di/DIPathFunctions";
-import { pathOf } from "engine/shared/di/DIPathFunctions";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
+import { Reflection } from "engine/shared/fixes/Reflection";
 
 export interface DebuggableComponent {
 	getDebugChildren(): readonly DebuggableComponent[];
@@ -73,27 +72,16 @@ class _Component extends ComponentState implements DebuggableComponent {
 		this.event = new ComponentEvents(this as unknown as Component);
 	}
 
-	private parentedMap?: Map<string, object>;
-	getComponent<T extends Component>(@pathOf("T") path?: string): T {
-		if (!path) {
-			throw "Path is null when getting component";
+	private parentedMap?: Map<ConstructorOf<Component>, Component>;
+	getComponent<T extends new (parent: this, ...rest: unknown[]) => Component>(
+		clazz: T,
+		...args: T extends new (...args: [unknown, ...infer rest extends unknown[]]) => unknown ? rest : []
+	): InstanceOf<T> {
+		if (!this.parentedMap?.get(clazz)) {
+			return this.parent(new clazz(this, ...args)) as InstanceOf<T>;
 		}
 
-		const component = this.parentedMap?.get(path);
-		if (!component) throw `${this} does not contain a component ${path}`;
-
-		return component as T;
-	}
-	getOrAddComponent<T extends Component>(this: Component, ctor: () => T, @pathOf("T") path?: string): T {
-		if (!path) {
-			throw "Path is null when getting component";
-		}
-
-		if (!this.parentedMap?.get(path)) {
-			return this.parent(ctor());
-		}
-
-		return this.parentedMap.get(path) as T;
+		return this.parentedMap.get(clazz) as InstanceOf<T>;
 	}
 
 	private parented?: Component[];
@@ -102,13 +90,17 @@ class _Component extends ComponentState implements DebuggableComponent {
 	}
 
 	/** Parents the component to the given component. */
-	parent<T extends Component>(this: Component, child: T, config?: ComponentParentConfig): T {
+	parent<T extends Component>(child: T, config?: ComponentParentConfig): T {
 		this.parented ??= [];
 		this.parented.push(child);
 
-		this.parentedMap ??= new Map();
-		const symbol = getDIClassSymbol(child);
-		this.parentedMap.set(symbol, child);
+		const clazz = Reflection.getClass(child);
+		if (clazz) {
+			print("adding class of clazz flasdlas0");
+
+			this.parentedMap ??= new Map();
+			this.parentedMap.set(clazz as unknown as ConstructorOf<Component>, child);
+		}
 
 		if (config?.enable ?? true) {
 			this.onEnable(() => child.enable());

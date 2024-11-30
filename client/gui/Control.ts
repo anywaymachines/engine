@@ -12,7 +12,7 @@ export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<
 	}
 
 	/** Alias for this.parent() */
-	add<T extends InstanceComponent<GuiObject>>(child: T): T {
+	add<T extends InstanceComponent<Instance>>(child: T): T {
 		return this.parent(child);
 	}
 
@@ -48,6 +48,19 @@ export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<
 	}
 }
 
+// export class GuiComponent<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
+// 	/** Enable and show */
+// 	enableShow(): void {
+// 		this.enable();
+// 		this.setInstanceVisibility(true);
+// 	}
+// 	/** Disable and hide  */
+// 	disableHide(): void {
+// 		this.disable();
+// 		this.setInstanceVisibility(false);
+// 	}
+// }
+
 /** A {@link GuiObject} component that can be hidden or shown */
 export class Control2<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
 	readonly isVisible: ObservableSwitch;
@@ -68,7 +81,7 @@ export class Control2<T extends GuiObject = GuiObject> extends InstanceComponent
 	}
 
 	/** Alias for this.parent(); Do not override. */
-	add<T extends InstanceComponent<GuiObject>>(child: T): T {
+	add<T extends InstanceComponent<Instance>>(child: T): T {
 		return this.parent(child);
 	}
 

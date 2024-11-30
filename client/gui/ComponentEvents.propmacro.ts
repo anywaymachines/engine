@@ -60,8 +60,7 @@ declare global {
 	}
 }
 
-const getInputHandler = (component: Component) =>
-	component.getOrAddComponent(() => new InputHandlerComponent(component)).inputHandler;
+const getInputHandler = (component: Component) => component.getComponent(InputHandlerComponent).inputHandler;
 
 export const ComponentEventsMacros: PropertyMacros<ComponentEventsPropMacros> = {
 	onPrepare: (
