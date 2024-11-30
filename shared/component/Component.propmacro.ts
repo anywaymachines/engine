@@ -3,39 +3,20 @@ import type { _InstanceComponent, InstanceComponent } from "engine/shared/compon
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [BaseComponentMacros, ComponentMacros, InstanceComponentMacros];
+const _ = () => [ComponentMacros, InstanceComponentMacros];
 
 //
 
 declare global {
 	interface ComponentPropMacros extends _Component {
-		isEnabled(): boolean;
-		isDestroyed(): boolean;
 
-		enable(): void;
-		disable(): void;
-		destroy(): void;
+		/** Set the state of the component */
+		setEnabled(enabled: boolean): void;
 
-		onEnable(func: () => void): void;
-		onDisable(func: () => void): void;
-		onDestroy(func: () => void): void;
-	}
-}
-export const BaseComponentMacros: PropertyMacros<ComponentPropMacros> = {
-	isEnabled: (selv): boolean => selv.state.isEnabled(),
-	isDestroyed: (selv): boolean => selv.state.isDestroyed(),
-	onEnable: (selv, func): void => selv.state.onEnable(func),
-	onDisable: (selv, func): void => selv.state.onDisable(func),
-	onDestroy: (selv, func): void => selv.state.onDestroy(func),
-	enable: (selv): void => selv.state.enable(),
-	disable: (selv): void => selv.state.disable(),
-	destroy: (selv): void => selv.state.destroy(),
-};
+		/** Switch the state of the component */
+		switchEnabled(): void;
 
-//
 
-declare global {
-	interface ComponentPropMacros extends _Component {
 		/** Subscribes to the enabled state change event.
 		 * @param executeImmediately If true, the function will be called immediately with the current state. False by default
 		 */
@@ -54,7 +35,14 @@ declare global {
 		parentGui<T extends InstanceComponent<GuiObject>>(child: T): T;
 	}
 }
-export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
+export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {	setEnabled: (selv, enabled) => {
+	if (enabled) selv.enable();
+	else selv.disable();
+},
+switchEnabled: (selv) => {
+	selv.setEnabled(!selv.isEnabled());
+},
+
 	onEnabledStateChange: (selv, func, executeImmediately = false) => {
 		selv.onEnable(() => func(true));
 		selv.onDisable(() => func(false));

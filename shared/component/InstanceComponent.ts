@@ -1,8 +1,8 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
-import type { ComponentConfig, ComponentParentConfig } from "engine/shared/component/Component";
+import type { ComponentParentConfig } from "engine/shared/component/Component";
 
-export interface InstanceComponentConfig extends ComponentConfig {
+export interface InstanceComponentConfig {
 	readonly destroyComponentOnInstanceDestroy?: boolean;
 	readonly destroyInstanceOnComponentDestroy?: boolean;
 }
@@ -17,7 +17,7 @@ class _InstanceComponent<T extends Instance> extends Component {
 		readonly instance: T,
 		config?: InstanceComponentConfig,
 	) {
-		super(config);
+		super();
 
 		ComponentInstance.init(
 			this,
