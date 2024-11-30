@@ -1,14 +1,14 @@
-import type { _Component2, Component2 } from "engine/shared/component/Component2";
-import type { _InstanceComponent2 } from "engine/shared/component/InstanceComponent2";
+import type { _Component, Component } from "engine/shared/component/Component";
+import type { _InstanceComponent, InstanceComponent } from "engine/shared/component/InstanceComponent";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [BaseComponent2Macros, Component2Macros, InstanceComponent2Macros];
+const _ = () => [BaseComponentMacros, ComponentMacros, InstanceComponentMacros];
 
 //
 
 declare global {
-	interface Component2PropMacros extends _Component2 {
+	interface ComponentPropMacros extends _Component {
 		isEnabled(): boolean;
 		isDestroyed(): boolean;
 
@@ -21,7 +21,7 @@ declare global {
 		onDestroy(func: () => void): void;
 	}
 }
-export const BaseComponent2Macros: PropertyMacros<Component2PropMacros> = {
+export const BaseComponentMacros: PropertyMacros<ComponentPropMacros> = {
 	isEnabled: (selv): boolean => selv.state.isEnabled(),
 	isDestroyed: (selv): boolean => selv.state.isDestroyed(),
 	onEnable: (selv, func): void => selv.state.onEnable(func),
@@ -35,49 +35,59 @@ export const BaseComponent2Macros: PropertyMacros<Component2PropMacros> = {
 //
 
 declare global {
-	interface Component2PropMacros extends _Component2 {
+	interface ComponentPropMacros extends _Component {
 		/** Executes a function on `this` and returns `this` */
 		with(func: (selv: this) => void): this;
 
 		/** Parents a child component to `this` and returns `this`  */
-		withParented(child: Component2): this;
+		withParented(child: Component): this;
 
 		/** Return a function that returns a copy of the provided Instance; Destroys the original if specified */
 		asTemplate<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
+
+		/** Parents a child component to `this` and returns `this` */
+		parentGui<T extends InstanceComponent<GuiObject>>(child: T): T;
 	}
 }
-export const Component2Macros: PropertyMacros<Component2PropMacros> = {
-	with: <T extends Component2PropMacros>(selv: T, func: (selv: T) => void): T => {
+export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
+	with: <T extends ComponentPropMacros>(selv: T, func: (selv: T) => void): T => {
 		func(selv);
 		return selv;
 	},
-	withParented: <T extends Component2PropMacros>(selv: T, child: Component2): T => {
-		(selv as unknown as Component2).parent(child);
+	withParented: <T extends ComponentPropMacros>(selv: T, child: Component): T => {
+		(selv as unknown as Component).parent(child);
 		return selv;
 	},
-	asTemplate: <T extends Instance>(selv: Component2PropMacros, object: T, destroyOriginal = true): (() => T) => {
+	asTemplate: <T extends Instance>(selv: ComponentPropMacros, object: T, destroyOriginal = true): (() => T) => {
 		const template = object.Clone();
 		if (destroyOriginal) object.Destroy();
 		selv.onDestroy(() => template.Destroy());
 
 		return () => template.Clone();
 	},
+
+	parentGui: (selv, child) => {
+		(selv as Component).parent(child);
+		child.onEnabledStateChange((enabled) => (child.instance.Visible = enabled));
+
+		return child;
+	},
 };
 
 //
 
 declare global {
-	interface InstanceComponent2PropMacros<T extends Instance> extends _InstanceComponent2<T> {
+	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
 		/** Get an attribute value on the Instance */
 		getAttribute<T extends AttributeValue>(name: string): T | undefined;
 
-		/** Parents a child component to `this` and returns `this`  */
-		withParentedWithInstance(func: (instance: T) => Component2): this;
+		/** Parents a child component to `this` and returns `this` */
+		withParentedWithInstance(func: (instance: T) => Component): this;
 	}
 }
-export const InstanceComponent2Macros: PropertyMacros<InstanceComponent2PropMacros<Instance>> = {
+export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
 	/** Get an attribute value on the Instance */
-	getAttribute: <T extends AttributeValue>(selv: InstanceComponent2PropMacros<Instance>, name: string) =>
+	getAttribute: <T extends AttributeValue>(selv: InstanceComponentPropMacros<Instance>, name: string) =>
 		selv.instance.GetAttribute(name) as T | undefined,
 
 	withParentedWithInstance: (selv, func) => {

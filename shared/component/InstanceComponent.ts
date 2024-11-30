@@ -1,39 +1,39 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
-import { InstanceComponent2 } from "engine/shared/component/InstanceComponent2";
+import type { ComponentConfig, ComponentParentConfig } from "engine/shared/component/Component";
 
-// declare global {
-// 	interface InstanceComponent<T extends Instance = Instance> extends Component, _InstanceComponent<T> {
-// 		parent<T extends InstanceComponent<Instance> | Component | IDebuggableComponent | object>(child: T): T;
-// 	}
-// }
+export interface InstanceComponentConfig extends ComponentConfig {
+	readonly destroyComponentOnInstanceDestroy?: boolean;
+	readonly destroyInstanceOnComponentDestroy?: boolean;
+}
+export interface InstanceComponentParentConfig extends ComponentParentConfig {
+	readonly parent: boolean;
+}
 
-/** Component with an `Instance` */
-class _InstanceComponent<T extends Instance = Instance> extends Component {
-	readonly instance;
+export type { _InstanceComponent };
+/** @deprecated Internal use only */
+class _InstanceComponent<T extends Instance> extends Component {
+	constructor(
+		readonly instance: T,
+		config?: InstanceComponentConfig,
+	) {
+		super(config);
 
-	constructor(instance: T, destroyComponentOnInstanceDestroy = true, destroyInstanceOnComponentDestroy = true) {
-		super();
-		this.instance = instance;
-
-		ComponentInstance.init(this, instance, destroyComponentOnInstanceDestroy, destroyInstanceOnComponentDestroy);
+		ComponentInstance.init(
+			this,
+			instance,
+			config?.destroyComponentOnInstanceDestroy,
+			config?.destroyInstanceOnComponentDestroy,
+		);
 	}
 
-	/** Parent the child to the component. If the child is an InstanceComponent, parent its instance to this instance. */
-	override parent<T extends InstanceComponent<Instance> | Component | IDestroyableComponent>(child: T): T {
-		child = super.parent(child);
+	/** Return a function that returns a copy of the provided Instance. Destroys the Instance if specified. Leaks the memory, use only in static context. */
+	static asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal = true) {
+		const template = object.Clone();
+		if (destroyOriginal) object.Destroy();
 
-		if ("instance" in child) {
-			ComponentInstance.setParentIfNeeded(child.instance, this.instance);
-
-			if (child.instance.IsA("GuiObject") && child.instance.LayoutOrder === 0) {
-				child.instance.LayoutOrder = this.getParented().size();
-			}
-		}
-
-		return child;
+		return () => template.Clone();
 	}
-
 	/** Checks if the child exists on an Instance */
 	static exists<T extends Instance, TKey extends keyof T & string>(
 		gui: T,
@@ -48,20 +48,19 @@ class _InstanceComponent<T extends Instance = Instance> extends Component {
 		return gui.WaitForChild(name) as defined as T[TKey] & defined;
 	}
 
-	/** Get an attribute value on the Instance */
-	getAttribute<T extends AttributeValue>(name: string) {
-		return this.instance.GetAttribute(name) as T | undefined;
+	override parent<T extends Component>(child: T, config?: InstanceComponentParentConfig): T {
+		if (config?.parent ?? true) {
+			ComponentInstance.setInstanceParentIfNeeded(child, this);
+		}
+		if (ComponentInstance.isInstanceComponent(child)) {
+			if (child.instance.IsA("GuiObject") && child.instance.LayoutOrder === 0) {
+				child.instance.LayoutOrder = this.instance.GetChildren().size();
+			}
+		}
+
+		return super.parent(child, config);
 	}
 }
 
-// export interface StaticInstanceComponent extends Pick<typeof _InstanceComponent, keyof typeof _InstanceComponent> {
-// 	new <T extends Instance>(
-// 		instance: T,
-// 		destroyComponentOnInstanceDestroy?: boolean,
-// 		destroyInstanceOnComponentDestroy?: boolean,
-// 	): InstanceComponent<T>;
-// }
-// export const InstanceComponent = _InstanceComponent as unknown as StaticInstanceComponent;
-
-export type InstanceComponent<T extends Instance> = InstanceComponent2<T>;
-export const InstanceComponent = InstanceComponent2;
+export interface InstanceComponent<T extends Instance> extends InstanceComponentPropMacros<T> {}
+export class InstanceComponent<T extends Instance> extends _InstanceComponent<T> {}

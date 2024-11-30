@@ -1,6 +1,6 @@
 import { InputHandler } from "engine/client/event/InputHandler";
 import { InputController } from "engine/client/InputController";
-import { Component2 } from "engine/shared/component/Component2";
+import { Component } from "engine/shared/component/Component";
 import type { _ComponentEvents2 } from "engine/shared/component/ComponentEvents";
 import type { EventHandler } from "engine/shared/event/EventHandler";
 
@@ -10,10 +10,10 @@ const _ = () => [ComponentEvents2Macros];
 
 //
 
-class InputHandlerComponent extends Component2 {
+class InputHandlerComponent extends Component {
 	readonly inputHandler = new InputHandler();
 
-	constructor(parent: Component2) {
+	constructor(parent: Component) {
 		super();
 
 		parent.onDisable(() => this.inputHandler.unsubscribeAll());
@@ -56,11 +56,11 @@ declare global {
 		/** Register an InputEnded event, filtered by a keyboard key */
 		onKeyUp(key: KeyCode, callback: (input: InputObject) => void): void;
 
-		subInput(setup: (inputHandler: InputHandler) => void): void;
+		subInput(setup: (inputHandler: InputHandler, eventHandler: EventHandler) => void): void;
 	}
 }
 
-const getInputHandler = (component: Component2) =>
+const getInputHandler = (component: Component) =>
 	component.getOrAddComponent(() => new InputHandlerComponent(component)).inputHandler;
 
 export const ComponentEvents2Macros: PropertyMacros<ComponentEvents2PropMacros> = {
@@ -101,7 +101,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents2PropMacros> 
 	onKeyUp: (selv, key: KeyCode, callback: (input: InputObject) => void) => {
 		selv.subInput((ih) => ih.onKeyUp(key, callback));
 	},
-	subInput: (selv, setup: (inputHandler: InputHandler) => void) => {
-		selv.onEnable(() => setup(getInputHandler(selv.state)));
+	subInput: (selv, setup) => {
+		selv.onEnable(() => setup(getInputHandler(selv.state), selv.eventHandler));
 	},
 };

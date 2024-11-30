@@ -1,4 +1,4 @@
-import { InstanceComponent2 } from "engine/shared/component/InstanceComponent2";
+import { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { ArgsSignal } from "engine/shared/event/Signal";
 
@@ -63,7 +63,7 @@ class InstanceValue<T> {
 	}
 }
 
-class _InstanceValueStorage<T extends Instance> extends InstanceComponent2<T> implements InstanceValueStorage<T> {
+class _InstanceValueStorage<T extends Instance> extends InstanceComponent<T> implements InstanceValueStorage<T> {
 	private readonly values = new Map<keyof T, InstanceValue<T[keyof T]>>();
 	private readonly _changed;
 	readonly changed;

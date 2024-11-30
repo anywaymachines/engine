@@ -1,11 +1,11 @@
-import { Component2 } from "engine/shared/component/Component2";
+import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
 import { Objects } from "engine/shared/fixes/Objects";
-import type { DebuggableComponent } from "engine/shared/component/Component2";
+import type { DebuggableComponent } from "engine/shared/component/Component";
 
 /** Stores keyed components. Handles its enabling, disabling and destroying. */
-export class ComponentKeyedChildren<TKey extends defined, T extends Component2 = Component2>
-	extends Component2
+export class ComponentKeyedChildren<TKey extends defined, T extends Component = Component>
+	extends Component
 	implements DebuggableComponent
 {
 	private readonly children = new Map<TKey, T>();

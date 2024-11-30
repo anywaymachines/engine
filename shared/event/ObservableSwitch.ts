@@ -1,8 +1,12 @@
 import { ArgsSignal } from "engine/shared/event/Signal";
 
+export type ObservableSwitchKey = string | object | number;
+
 interface ObservableSwitchBase extends ReadonlyObservableValueBase<boolean> {
-	getKeyed(key: string | object): boolean;
-	set(key: string | object, enabled: boolean): void;
+	getKeyed(key: ObservableSwitchKey): boolean;
+	set(key: ObservableSwitchKey, enabled: boolean): void;
+
+	switch(key: ObservableSwitchKey): void;
 }
 export interface ObservableSwitch extends ObservableSwitchBase, ReadonlyObservableValue<boolean> {}
 
@@ -10,8 +14,8 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 	private readonly _changed = new ArgsSignal<[value: boolean, prev: boolean]>();
 	readonly changed: ReadonlyArgsSignal<[value: boolean, prev: boolean]> = this._changed;
 
-	private trueValues?: Set<string | object>;
-	private falseValues?: Set<string | object>;
+	private trueValues?: Set<ObservableSwitchKey>;
+	private falseValues?: Set<ObservableSwitchKey>;
 	private readonly defaultValue: boolean;
 
 	constructor(
@@ -35,13 +39,13 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 		}
 	}
 
-	getKeyed(key: string | object): boolean {
+	getKeyed(key: ObservableSwitchKey): boolean {
 		if (this.trueValues?.has(key)) return true;
 		if (this.falseValues?.has(key)) return false;
 		return this.defaultValue;
 	}
 
-	set(key: string | object, enabled: boolean): void {
+	set(key: ObservableSwitchKey, enabled: boolean): void {
 		const prev = this.get();
 
 		if (enabled) {
@@ -60,6 +64,10 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 		if (value !== prev) {
 			this._changed.Fire(value, prev);
 		}
+	}
+
+	switch(key: ObservableSwitchKey): void {
+		this.set(key, !this.getKeyed(key));
 	}
 }
 

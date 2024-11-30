@@ -1,12 +1,12 @@
 import { EventHandler } from "engine/shared/event/EventHandler";
-import type { Component2 } from "engine/shared/component/Component2";
+import type { Component } from "engine/shared/component/Component";
 
 export type { _ComponentEvents as _ComponentEvents2 };
 /** @deprecated Internal use only */
 class _ComponentEvents {
 	readonly eventHandler = new EventHandler();
 
-	constructor(readonly state: Component2) {
+	constructor(readonly state: Component) {
 		state.onDisable(() => this.eventHandler.unsubscribeAll());
 	}
 }
