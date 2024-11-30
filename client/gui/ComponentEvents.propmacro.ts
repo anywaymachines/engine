@@ -6,7 +6,7 @@ import type { EventHandler } from "engine/shared/event/EventHandler";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [ComponentEvents2Macros];
+const _ = () => [ComponentEventsMacros];
 
 //
 
@@ -27,7 +27,7 @@ class InputHandlerComponent extends Component {
 }
 
 declare global {
-	interface ComponentEvents2PropMacros extends _ComponentEvents2 {
+	interface ComponentEventsPropMacros extends _ComponentEvents2 {
 		/** Register an event that fires on enable and input type change
 		 * @client
 		 */
@@ -63,7 +63,7 @@ declare global {
 const getInputHandler = (component: Component) =>
 	component.getOrAddComponent(() => new InputHandlerComponent(component)).inputHandler;
 
-export const ComponentEvents2Macros: PropertyMacros<ComponentEvents2PropMacros> = {
+export const ComponentEventsMacros: PropertyMacros<ComponentEventsPropMacros> = {
 	onPrepare: (
 		selv,
 		callback: (inputType: InputType, eventHandler: EventHandler, inputHandler: InputHandler) => void,

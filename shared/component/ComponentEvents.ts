@@ -12,5 +12,5 @@ class _ComponentEvents {
 }
 
 /** Event handler with the ability to disable event processing */
-export interface ComponentEvents extends ComponentEvents2PropMacros {}
+export interface ComponentEvents extends ComponentEventsPropMacros {}
 export class ComponentEvents extends _ComponentEvents {}

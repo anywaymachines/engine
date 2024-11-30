@@ -36,6 +36,11 @@ export const BaseComponentMacros: PropertyMacros<ComponentPropMacros> = {
 
 declare global {
 	interface ComponentPropMacros extends _Component {
+		/** Subscribes to the enabled state change event.
+		 * @param executeImmediately If true, the function will be called immediately with the current state. False by default
+		 */
+		onEnabledStateChange(func: (enabled: boolean) => void, executeImmediately?: boolean): void;
+
 		/** Executes a function on `this` and returns `this` */
 		with(func: (selv: this) => void): this;
 
@@ -50,6 +55,14 @@ declare global {
 	}
 }
 export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
+	onEnabledStateChange: (selv, func, executeImmediately = false) => {
+		selv.onEnable(() => func(true));
+		selv.onDisable(() => func(false));
+
+		if (executeImmediately) {
+			func(selv.isEnabled());
+		}
+	},
 	with: <T extends ComponentPropMacros>(selv: T, func: (selv: T) => void): T => {
 		func(selv);
 		return selv;
