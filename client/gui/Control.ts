@@ -48,20 +48,6 @@ export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<
 	}
 }
 
-// export class GuiComponent<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
-// 	/** Enable and show */
-// 	enableShow(): void {
-// 		this.enable();
-// 		this.setInstanceVisibility(true);
-// 	}
-// 	/** Disable and hide  */
-// 	disableHide(): void {
-// 		this.disable();
-// 		this.setInstanceVisibility(false);
-// 	}
-// }
-
-/** A {@link GuiObject} component that can be hidden or shown */
 export class Control2<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
 	readonly isVisible: ObservableSwitch;
 	protected readonly gui: T;
