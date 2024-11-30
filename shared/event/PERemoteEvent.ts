@@ -357,7 +357,9 @@ export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Resp
  * On client, runs the callback and sends the event to everyone except himself
  * On server, sends the event to all players.
  */
-export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEventBase<TArg, TArg>> {
+export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<
+	CustomRemoteEventBase<TArg, { players: readonly Player[]; arg: TArg }>
+> {
 	/** @client */
 	readonly invoked = new ArgsSignal<[arg: TArg]>();
 
@@ -365,8 +367,8 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemote
 		super(name, eventType);
 
 		if (RunService.IsServer()) {
-			this.event.OnServerEvent.Connect((sender, arg) => {
-				for (const player of Players.GetPlayers()) {
+			this.event.OnServerEvent.Connect((sender, { arg, players }) => {
+				for (const player of players) {
 					if (player === sender) continue;
 					this.event.FireClient(player, arg);
 				}
@@ -378,16 +380,20 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemote
 		}
 	}
 
-	send(this: C2CRemoteEvent<undefined>): void;
-	send(arg: TArg): void;
-	send(arg?: TArg) {
+	send(arg: TArg, players?: Player | readonly Player[] | "everyone") {
+		if (!players || players === "everyone") {
+			players = Players.GetPlayers();
+		} else if (typeIs(players, "Instance")) {
+			players = [players];
+		}
+
 		if (RunService.IsServer()) {
-			for (const player of Players.GetPlayers()) {
-				this.event.FireClient(player, arg!);
+			for (const player of players) {
+				this.event.FireClient(player, arg);
 			}
 		} else if (RunService.IsClient()) {
 			this.invoked.Fire(arg!);
-			this.event.FireServer(arg!);
+			this.event.FireServer({ players, arg });
 		}
 	}
 }
