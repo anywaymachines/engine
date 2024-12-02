@@ -1,7 +1,12 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
-import { Reflection } from "engine/shared/fixes/Reflection";
+
+export namespace ComponentTypes {
+	export interface DestroyableComponent {
+		destroy(): void;
+	}
+}
 
 export interface DebuggableComponent {
 	getDebugChildren(): readonly DebuggableComponent[];
@@ -72,16 +77,26 @@ class _Component extends ComponentState implements DebuggableComponent {
 		this.event = new ComponentEvents(this as unknown as Component);
 	}
 
-	private parentedMap?: Map<ConstructorOf<Component>, Component>;
-	getComponent<T extends new (parent: this, ...rest: unknown[]) => Component>(
+	private components?: Map<ConstructorOf<ComponentTypes.DestroyableComponent>, ComponentTypes.DestroyableComponent>;
+	getComponent<T extends new (parent: this, ...rest: unknown[]) => Component | ComponentTypes.DestroyableComponent>(
 		clazz: T,
 		...args: T extends new (...args: [unknown, ...infer rest extends unknown[]]) => unknown ? rest : []
 	): InstanceOf<T> {
-		if (!this.parentedMap?.get(clazz)) {
-			return this.parent(new clazz(this, ...args)) as InstanceOf<T>;
+		if (!this.components?.get(clazz)) {
+			const instance = new clazz(this, ...args) as InstanceOf<T>;
+
+			this.components ??= new Map();
+			this.components.set(clazz as unknown as ConstructorOf<Component>, instance);
+
+			if ("enable" in instance) {
+				return this.parent(instance) as InstanceOf<T>;
+			}
+
+			this.onDestroy(() => instance.destroy());
+			return instance;
 		}
 
-		return this.parentedMap.get(clazz) as InstanceOf<T>;
+		return this.components.get(clazz) as InstanceOf<T>;
 	}
 
 	private parented?: Component[];
@@ -93,14 +108,6 @@ class _Component extends ComponentState implements DebuggableComponent {
 	parent<T extends Component>(child: T, config?: ComponentParentConfig): T {
 		this.parented ??= [];
 		this.parented.push(child);
-
-		const clazz = Reflection.getClass(child);
-		if (clazz) {
-			print("adding class of clazz flasdlas0");
-
-			this.parentedMap ??= new Map();
-			this.parentedMap.set(clazz as unknown as ConstructorOf<Component>, child);
-		}
 
 		if (config?.enable ?? true) {
 			this.onEnable(() => child.enable());
@@ -120,7 +127,12 @@ class _Component extends ComponentState implements DebuggableComponent {
 	}
 
 	getDebugChildren(): readonly DebuggableComponent[] {
-		return this.parented ?? Objects.empty;
+		return [
+			...(this.parented ?? Objects.empty),
+			...(Objects.values(this.components ?? Objects.empty).filter(
+				(c) => "getDebugChildren" in c,
+			) as DebuggableComponent[]),
+		];
 	}
 }
 

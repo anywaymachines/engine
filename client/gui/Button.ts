@@ -1,5 +1,5 @@
 import { ContentProvider, ReplicatedStorage } from "@rbxts/services";
-import { Control2 } from "engine/client/gui/Control";
+import { Control } from "engine/client/gui/Control";
 import { Component } from "engine/shared/component/Component";
 import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { Transforms } from "engine/shared/component/Transforms";
@@ -79,7 +79,7 @@ export class ButtonTextComponent extends Component {
 
 export type ButtonDefinition = GuiButton;
 /** Simple Control wrapper for {@link ButtonComponent}. */
-export class ButtonControl extends Control2<ButtonDefinition> {
+export class ButtonControl extends Control<ButtonDefinition> {
 	readonly activated: ReadonlyArgsSignal;
 
 	constructor(instance: ButtonDefinition, activated?: () => void) {
@@ -94,7 +94,7 @@ export class ButtonControl extends Control2<ButtonDefinition> {
 
 export type TextButtonDefinition = (GuiButton & { readonly TextLabel: TextLabel }) | TextButton;
 /** Simple Control wrapper for {@link ButtonComponent} and {@link ButtonTextComponent}. */
-export class TextButtonControl<T extends TextButtonDefinition = TextButtonDefinition> extends Control2<T> {
+export class TextButtonControl<T extends TextButtonDefinition = TextButtonDefinition> extends Control<T> {
 	static create(props: ElementProperties<TextButton>, activated?: () => void) {
 		const gui = Element.create("TextButton", props);
 		return new TextButtonControl(gui, activated);

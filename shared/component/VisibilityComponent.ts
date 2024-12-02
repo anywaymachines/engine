@@ -1,12 +1,13 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
+import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ObservableSwitch } from "engine/shared/event/ObservableSwitch";
+import type { ObservableSwitch, ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
 const defaultKey = "$main$$";
 
-export class VisibilityComponent {
+export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
 	private enableTransforms?: ITransformBuilder[];
 	private disableTransforms?: ITransformBuilder[];
 
@@ -41,20 +42,24 @@ export class VisibilityComponent {
 		transforms.push(transform);
 	}
 
-	isVisible(): boolean {
-		return this.component.instance.Visible;
+	isVisible(key?: ObservableSwitchKey): boolean {
+		if (!key) {
+			return this.visibility.get();
+		}
+
+		return this.visibility.getKeyed(key);
 	}
 
-	setVisible(visible: boolean, key?: string | object): void {
+	setVisible(visible: boolean, key?: ObservableSwitchKey): void {
 		if (visible) this.show(key);
 		else this.hide(key);
 	}
 
-	show(key?: string | object): void {
+	show(key?: ObservableSwitchKey): void {
 		key ??= defaultKey;
 		this.visibility.set(key, true);
 	}
-	hide(key?: string | object): void {
+	hide(key?: ObservableSwitchKey): void {
 		key ??= defaultKey;
 		this.visibility.set(key, false);
 	}
