@@ -1,3 +1,4 @@
+import { AnimationComponent } from "engine/client/gui/AnimationComponent";
 import { ButtonComponent, ButtonInteractabilityComponent } from "engine/client/gui/Button";
 import { ButtonTextComponent } from "engine/client/gui/Button";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
@@ -7,7 +8,7 @@ import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [Macros1, Macros2, Macros3];
+const _ = () => [Macros1, Macros2, Macros3, Macros4];
 
 //
 
@@ -77,7 +78,7 @@ declare global {
 		isInstanceVisible(this: icpm<GuiObject>, key?: ObservableSwitchKey): boolean;
 	}
 }
-export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
 	visibilityComponent: (selv) => selv.getComponent(VisibilityComponent),
 	show_: (selv, key) => selv.setVisibleAndEnabled(true, key),
 	hide_: (selv, key) => selv.setVisibleAndEnabled(false, key),
@@ -87,4 +88,14 @@ export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	},
 	setInstanceVisibility: (selv, visible, key) => selv.visibilityComponent().setVisible(visible, key),
 	isInstanceVisible: (selv, key) => selv.visibilityComponent().isVisible(key),
+};
+
+declare global {
+	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+		/** Add or get the animation component. */
+		animationComponent(this: icpm<GuiObject>): AnimationComponent;
+	}
+}
+export const Macros4: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
+	animationComponent: (selv) => selv.getComponent(AnimationComponent),
 };
