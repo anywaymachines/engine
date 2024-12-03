@@ -38,6 +38,10 @@ InputTypeChangeEvent.subscribe();
 export namespace InputController {
 	export const inputType = new ObservableValue<InputType>(InputController.getPhysicalInputType());
 
+	export const isDesktop = inputType.createBased((inputType) => inputType === "Desktop");
+	export const isGamepad = inputType.createBased((inputType) => inputType === "Gamepad");
+	export const isTouch = inputType.createBased((inputType) => inputType === "Touch");
+
 	/** Returns the input type based on the device the client is playing from */
 	export function getPhysicalInputType(): InputType {
 		if (GuiService.IsTenFootInterface()) {

@@ -1,10 +1,12 @@
 import { ArgsSignal } from "engine/shared/event/Signal";
+import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 
 export type ObservableSwitchKey = string | object | number;
 
 interface ObservableSwitchBase extends ReadonlyObservableValueBase<boolean> {
 	getKeyed(key: ObservableSwitchKey): boolean;
 	set(key: ObservableSwitchKey, enabled: boolean): void;
+	subscribeFrom(events: ComponentEvents, values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void;
 
 	switch(key: ObservableSwitchKey): void;
 }
@@ -36,6 +38,12 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 			return falses === 0;
 		} else {
 			return trues !== 0;
+		}
+	}
+
+	subscribeFrom(events: ComponentEvents, values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
+		for (const [k, v] of pairs(values)) {
+			events.subscribeObservable(v, (enabled) => this.set(k, enabled), true, true);
 		}
 	}
 

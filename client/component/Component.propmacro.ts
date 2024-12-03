@@ -1,14 +1,16 @@
 import { AnimationComponent } from "engine/client/gui/AnimationComponent";
-import { ButtonComponent, ButtonInteractabilityComponent } from "engine/client/gui/Button";
-import { ButtonTextComponent } from "engine/client/gui/Button";
+import { ButtonComponent } from "engine/client/gui/ButtonComponent";
+import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
+import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
+import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
 import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [Macros1, Macros2, Macros3, Macros4];
+const _ = () => [Macros1, Macros2, Macros3, Macros4, Macros5];
 
 //
 
@@ -19,11 +21,8 @@ declare global {
 		/** Add or get the button component */
 		buttonComponent(this: icpm<GuiButton>): ButtonComponent;
 
-		/** Subscribe a button action, return the connection. */
-		addButtonAction(this: icpm<GuiButton>, func: () => void): SignalConnection;
-
 		/** Subscribe a button action, return this. */
-		withButtonAction(this: icpm<GuiButton>, func: () => void): this;
+		addButtonAction(this: icpm<GuiButton>, func: () => void): this;
 
 		/** Add or get the button interactability component */
 		buttonInteractabilityComponent(this: icpm<GuiButton>): ButtonInteractabilityComponent;
@@ -40,9 +39,8 @@ declare global {
 }
 export const Macros1: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	buttonComponent: (selv) => selv.getComponent(ButtonComponent),
-	addButtonAction: (selv, func) => selv.buttonComponent().activated.Connect(func),
-	withButtonAction: (selv, func) => {
-		selv.addButtonAction(func);
+	addButtonAction: (selv, func) => {
+		selv.buttonComponent().activated.Connect(func);
 		return selv;
 	},
 
@@ -98,4 +96,27 @@ declare global {
 }
 export const Macros4: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
 	animationComponent: (selv) => selv.getComponent(AnimationComponent),
+};
+
+declare global {
+	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+		subscribeVisibilityFrom(
+			this: icpm<GuiButton>,
+			values: { readonly [k in string]: ReadonlyObservableValue<boolean> },
+		): this;
+
+		/** Subscribes the button to execute the given action when clicked and hide itself if the action can't execute. */
+		subscribeToAction(this: icpm<GuiButton>, action: Action): this;
+	}
+}
+export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+	subscribeVisibilityFrom: (selv, values) => {
+		selv.visibilityComponent().visibility.subscribeFrom(selv.event, values);
+		return selv;
+	},
+	subscribeToAction: (selv, action) => {
+		return selv //
+			.addButtonAction(() => action.execute())
+			.subscribeVisibilityFrom({ main: action.canExecute });
+	},
 };

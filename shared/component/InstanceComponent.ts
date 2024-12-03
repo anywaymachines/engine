@@ -54,7 +54,7 @@ class _InstanceComponent<T extends Instance> extends Component {
 		}
 		if (ComponentInstance.isInstanceComponent(child)) {
 			if (child.instance.IsA("GuiObject") && child.instance.LayoutOrder === 0) {
-				child.instance.LayoutOrder = this.instance.GetChildren().size();
+				child.instance.LayoutOrder = this.getParented().size();
 			}
 		}
 

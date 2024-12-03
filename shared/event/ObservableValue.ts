@@ -25,6 +25,10 @@ class _ObservableValue<T> {
 	get() {
 		return this.value;
 	}
+
+	destroy(): void {
+		this.changed.destroy();
+	}
 }
 
 /** Stores a value and provides and event of it being changed */

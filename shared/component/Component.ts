@@ -1,4 +1,5 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
 
@@ -19,25 +20,29 @@ export interface ComponentParentConfig {
 }
 
 class ComponentState {
-	private readonly onEnabled = new SlimSignal();
-	private readonly onDisabled = new SlimSignal();
 	private readonly onDestroyed = new SlimSignal();
 
-	private selfEnabled = false;
+	readonly enabledState = new ObservableValue<boolean>(false);
 	private selfDestroyed = false;
 
 	isEnabled(): boolean {
-		return this.selfEnabled;
+		return this.enabledState.get();
 	}
 	isDestroyed(): boolean {
 		return this.selfDestroyed;
 	}
 
 	onEnable(func: () => void): void {
-		this.onEnabled.Connect(func);
+		this.enabledState.subscribe((enabled) => {
+			if (!enabled) return;
+			func();
+		});
 	}
 	onDisable(func: () => void): void {
-		this.onDisabled.Connect(func);
+		this.enabledState.subscribe((enabled) => {
+			if (enabled) return;
+			func();
+		});
 	}
 	onDestroy(func: () => void): void {
 		this.onDestroyed.Connect(func);
@@ -45,13 +50,11 @@ class ComponentState {
 
 	enable(): void {
 		if (this.selfDestroyed || this.isEnabled()) return;
-		this.selfEnabled = true;
-		this.onEnabled.Fire();
+		this.enabledState.set(true);
 	}
 	disable(): void {
 		if (this.selfDestroyed || !this.isEnabled()) return;
-		this.selfEnabled = false;
-		this.onDisabled.Fire();
+		this.enabledState.set(false);
 	}
 	destroy(): void {
 		if (this.selfDestroyed) return;
@@ -61,8 +64,7 @@ class ComponentState {
 		this.selfDestroyed = true;
 		this.onDestroyed.Fire();
 
-		this.onEnabled.destroy();
-		this.onDisabled.destroy();
+		this.enabledState.destroy();
 		this.onDestroyed.destroy();
 	}
 }

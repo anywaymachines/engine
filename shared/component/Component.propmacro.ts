@@ -43,12 +43,7 @@ export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
 	},
 
 	onEnabledStateChange: (selv, func, executeImmediately = false) => {
-		selv.onEnable(() => func(true));
-		selv.onDisable(() => func(false));
-
-		if (executeImmediately) {
-			func(selv.isEnabled());
-		}
+		selv.enabledState.subscribe(func, executeImmediately);
 	},
 	with: <T extends ComponentPropMacros>(selv: T, func: (selv: T) => void): T => {
 		func(selv);

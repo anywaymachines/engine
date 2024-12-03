@@ -6,10 +6,12 @@ const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros];
 
 declare global {
 	interface ReadonlyObservableValue<T> {
-		subscribe(func: (value: T, prev: T) => void): SignalConnection;
-		subscribe(func: (value: T, prev: T) => void, executeImmediately: boolean | undefined): SignalConnection;
+		subscribe(func: (value: T, prev: T) => void, executeImmediately?: boolean): SignalConnection;
 
 		createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
+
+		/** Creates a new ObservableValue that always has the opposite value. */
+		not(this: ReadonlyObservableValue<boolean>): ReadonlyObservableValue<boolean>;
 	}
 }
 export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableValue<unknown>> = {
@@ -36,6 +38,8 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 
 		return sub;
 	},
+
+	not: (selv) => selv.createBased((v) => !v),
 };
 
 declare global {
