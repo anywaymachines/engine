@@ -15,7 +15,7 @@ export class ButtonInteractabilityComponent extends Component {
 		this.parentComponent = parent;
 
 		this.transparencyOverlay = InstanceValueStorage.get(parent.instance, "Transparency");
-		this.transparencyOverlay.value.subscribe((transparency) => {
+		this.transparencyOverlay.transforms.addTransform((transparency) => {
 			Transforms.create()
 				.if(parent.instance.Transparency === 1 && transparency !== 1, (tr) => tr.show(parent.instance))
 				.transform(parent.instance, "Transparency", transparency, Transforms.quadOut02)

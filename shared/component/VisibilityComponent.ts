@@ -1,3 +1,4 @@
+import { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
@@ -8,48 +9,36 @@ import type { ObservableSwitch, ObservableSwitchKey } from "engine/shared/event/
 const defaultKey = "$main$$";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
-	private transforms?: ((enabling: boolean) => ITransformBuilder)[];
-
+	private readonly transforming: InstanceValueTransformContainer<boolean>;
 	readonly visibility: ObservableSwitch;
 	readonly instance: GuiObject;
 
 	constructor(readonly component: InstanceComponent<GuiObject>) {
 		this.instance = component.instance;
-		this.visibility = new ObservableSwitchAnd(component.instance.Visible);
 
-		this.visibility.subscribe((visible: boolean) => {
-			const transforms = this.transforms;
-			if (!transforms) {
-				this.instance.Visible = visible;
-				return;
-			}
-
-			Transforms.create()
-				.if(visible, (tr) => tr.show(this.instance))
-				.push(Transforms.parallel(...transforms.map((t) => t(visible))))
-				.waitForTransformOfChildren(component)
-				.if(!visible, (tr) => tr.then().hide(this.instance))
-				.run(this, true);
+		this.transforming = new InstanceValueTransformContainer<boolean>(
+			component.instance.Visible,
+			(value) => (component.instance.Visible = value),
+		);
+		this.transforming.addTransform((value, tr) => {
+			if (!value) return;
+			return tr.show(this.instance);
 		});
+
+		this.visibility = new ObservableSwitchAnd(component.instance.Visible);
+		this.visibility.subscribe((visible) => this.transforming.value.set(visible));
 	}
 
+	addTransformFunc(func: (enabling: boolean, builder: ITransformBuilder) => unknown): void {
+		this.transforming.addTransform(func);
+	}
 	addTransform(onEnable: boolean, transform: ITransformBuilder): void {
-		this.transforms ??= [];
-		this.transforms.push((enabling) => {
+		this.addTransformFunc((enabling) => {
 			if (enabling !== onEnable) {
 				return Transforms.create();
 			}
 
 			return transform;
-		});
-	}
-	addTransformFunc(func: (enabling: boolean, builder: ITransformBuilder) => unknown): void {
-		this.transforms ??= [];
-		this.transforms.push((enabling) => {
-			const builder = Transforms.create();
-			func(enabling, builder);
-
-			return builder;
 		});
 	}
 

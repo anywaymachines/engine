@@ -28,6 +28,9 @@ declare global {
 
 		/** Return a function that returns a copy of the provided Instance; Destroys the original if specified */
 		asTemplate<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
+
+		/** Parents the component to the given component with the config of destroying only. */
+		parentDestroyOnly<T extends Component>(child: T): T;
 	}
 }
 export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
@@ -56,6 +59,9 @@ export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
 		selv.onDestroy(() => template.Destroy());
 
 		return () => template.Clone();
+	},
+	parentDestroyOnly: <T extends Component>(selv: ComponentPropMacros, child: T): T => {
+		return selv.parent(child, { enable: false, disable: false });
 	},
 };
 

@@ -2,6 +2,7 @@ import { AnimationComponent } from "engine/client/gui/AnimationComponent";
 import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
+import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
@@ -131,7 +132,7 @@ declare global {
 		): this;
 
 		/** Subscribes the button to execute the given action when clicked and hide itself if the action can't execute. */
-		subscribeToAction(this: icpm<GuiButton>, action: Action): this;
+		subscribeToAction(this: icpm<GuiButton>, action: Action, indicator?: "hide" | "transparency"): this;
 	}
 }
 export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
@@ -139,9 +140,21 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 		selv.visibilityComponent().visibility.subscribeFrom(values);
 		return selv;
 	},
-	subscribeToAction: (selv, action) => {
-		return selv //
-			.addButtonAction(() => action.execute())
-			.subscribeVisibilityFrom({ main: action.canExecute });
+	subscribeToAction: (selv, action, indicator = "hide") => {
+		selv.addButtonAction(() => action.execute());
+
+		if (indicator === "hide") {
+			selv.subscribeVisibilityFrom({ main: action.canExecute });
+		} else if (indicator === "transparency") {
+			action.canExecute.subscribe(
+				(canExecute) =>
+					InstanceValueStorage.get(selv.instance, "Transparency").overlay(-1, canExecute ? 0 : 0.5),
+				true,
+			);
+		} else {
+			indicator satisfies never;
+		}
+
+		return selv;
 	},
 };
