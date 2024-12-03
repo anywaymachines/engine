@@ -1,6 +1,5 @@
 import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
 import { ArgsSignal } from "engine/shared/event/Signal";
-import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 
 /** Represents an action that can be executed. */
 export class Action {
@@ -23,10 +22,7 @@ export class Action {
 		return this.action.Connect(func);
 	}
 
-	subCanExecuteFrom(
-		events: ComponentEvents,
-		values: { readonly [k in string]: ReadonlyObservableValue<boolean> },
-	): void {
-		this.canExecute.subscribeFrom(events, values);
+	subCanExecuteFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
+		return this.canExecute.subscribeFrom(values);
 	}
 }

@@ -8,8 +8,7 @@ import type { ObservableSwitch, ObservableSwitchKey } from "engine/shared/event/
 const defaultKey = "$main$$";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
-	private enableTransforms?: ITransformBuilder[];
-	private disableTransforms?: ITransformBuilder[];
+	private transforms?: ((enabling: boolean) => ITransformBuilder)[];
 
 	readonly visibility: ObservableSwitch;
 	readonly instance: GuiObject;
@@ -19,7 +18,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		this.visibility = new ObservableSwitchAnd(component.instance.Visible);
 
 		this.visibility.subscribe((visible: boolean) => {
-			const transforms = visible ? this.enableTransforms : this.disableTransforms;
+			const transforms = this.transforms;
 			if (!transforms) {
 				this.instance.Visible = visible;
 				return;
@@ -27,19 +26,31 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 
 			Transforms.create()
 				.if(visible, (tr) => tr.show(this.instance))
-				.push(Transforms.parallel(...transforms))
+				.push(Transforms.parallel(...transforms.map((t) => t(visible))))
 				.waitForTransformOfChildren(component)
-				.if(!visible, (tr) => tr.hide(this.instance))
+				.if(!visible, (tr) => tr.then().hide(this.instance))
 				.run(this, true);
 		});
 	}
 
 	addTransform(onEnable: boolean, transform: ITransformBuilder): void {
-		let transforms: ITransformBuilder[];
-		if (onEnable) transforms = this.enableTransforms ??= [];
-		else transforms = this.disableTransforms ??= [];
+		this.transforms ??= [];
+		this.transforms.push((enabling) => {
+			if (enabling !== onEnable) {
+				return Transforms.create();
+			}
 
-		transforms.push(transform);
+			return transform;
+		});
+	}
+	addTransformFunc(func: (enabling: boolean, builder: ITransformBuilder) => unknown): void {
+		this.transforms ??= [];
+		this.transforms.push((enabling) => {
+			const builder = Transforms.create();
+			func(enabling, builder);
+
+			return builder;
+		});
 	}
 
 	isVisible(key?: ObservableSwitchKey): boolean {

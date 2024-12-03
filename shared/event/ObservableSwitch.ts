@@ -1,12 +1,11 @@
-import { ArgsSignal } from "engine/shared/event/Signal";
-import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import { ArgsSignal, Signal } from "engine/shared/event/Signal";
 
 export type ObservableSwitchKey = string | object | number;
 
 interface ObservableSwitchBase extends ReadonlyObservableValueBase<boolean> {
 	getKeyed(key: ObservableSwitchKey): boolean;
 	set(key: ObservableSwitchKey, enabled: boolean): void;
-	subscribeFrom(events: ComponentEvents, values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void;
+	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection;
 
 	switch(key: ObservableSwitchKey): void;
 }
@@ -41,10 +40,14 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 		}
 	}
 
-	subscribeFrom(events: ComponentEvents, values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
+	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
+		const connections: SignalConnection[] = [];
 		for (const [k, v] of pairs(values)) {
-			events.subscribeObservable(v, (enabled) => this.set(k, enabled), true, true);
+			const c = v.subscribe((enabled) => this.set(k, enabled), true);
+			connections.push(c);
 		}
+
+		return Signal.multiConnection(...connections);
 	}
 
 	getKeyed(key: ObservableSwitchKey): boolean {

@@ -111,7 +111,7 @@ declare global {
 }
 export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	subscribeVisibilityFrom: (selv, values) => {
-		selv.visibilityComponent().visibility.subscribeFrom(selv.event, values);
+		selv.visibilityComponent().visibility.subscribeFrom(values);
 		return selv;
 	},
 	subscribeToAction: (selv, action) => {
