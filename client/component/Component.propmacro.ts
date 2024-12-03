@@ -10,14 +10,32 @@ import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [Macros1, Macros2, Macros3, Macros4, Macros5];
+const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5];
 
 //
+
+declare global {
+	interface ComponentPropMacros {
+		/** Parents a child component to `this` and returns `this` */
+		parentGui<T extends icpm<GuiObject>>(child: T): T;
+	}
+}
+export const CMacros: PropertyMacros<ComponentPropMacros> = {
+	parentGui: (selv, child) => {
+		selv.parent(child);
+		child.onEnabledStateChange((enabled) => child.visibilityComponent().setVisible(enabled));
+
+		return child;
+	},
+};
 
 type icpm<T extends Instance> = InstanceComponentPropMacros<T>;
 
 declare global {
 	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+		/** Parents a child component to `this` and returns `this` */
+		parentGui<T extends icpm<GuiObject>>(child: T): T;
+
 		/** Add or get the button component */
 		buttonComponent(this: icpm<GuiButton>): ButtonComponent;
 
@@ -38,6 +56,13 @@ declare global {
 	}
 }
 export const Macros1: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+	parentGui: (selv, child) => {
+		selv.parent(child);
+		child.onEnabledStateChange((enabled) => child.visibilityComponent().setVisible(enabled));
+
+		return child;
+	},
+
 	buttonComponent: (selv) => selv.getComponent(ButtonComponent),
 	addButtonAction: (selv, func) => {
 		selv.buttonComponent().activated.Connect(func);

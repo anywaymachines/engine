@@ -1,5 +1,5 @@
 import type { _Component, Component } from "engine/shared/component/Component";
-import type { _InstanceComponent, InstanceComponent } from "engine/shared/component/InstanceComponent";
+import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -28,9 +28,6 @@ declare global {
 
 		/** Return a function that returns a copy of the provided Instance; Destroys the original if specified */
 		asTemplate<T extends Instance>(object: T, destroyOriginal?: boolean): () => T;
-
-		/** Parents a child component to `this` and returns `this` */
-		parentGui<T extends InstanceComponent<GuiObject>>(child: T): T;
 	}
 }
 export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
@@ -59,13 +56,6 @@ export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
 		selv.onDestroy(() => template.Destroy());
 
 		return () => template.Clone();
-	},
-
-	parentGui: (selv, child) => {
-		(selv as Component).parent(child);
-		child.onEnabledStateChange((enabled) => (child.instance.Visible = enabled));
-
-		return child;
 	},
 };
 
