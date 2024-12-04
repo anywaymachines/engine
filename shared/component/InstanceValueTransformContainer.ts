@@ -1,8 +1,9 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 
-export class InstanceValueTransformContainer<T> {
-	private transforms?: ((enabling: T) => ITransformBuilder)[];
+export class InstanceValueTransformContainer<out T> {
+	// unknown to fix contrvariativity
+	private transforms?: ((enabling: unknown) => ITransformBuilder)[];
 	readonly value: ObservableValue<T>;
 
 	constructor(defaultValue: T, set: (value: T) => void) {
@@ -23,6 +24,6 @@ export class InstanceValueTransformContainer<T> {
 
 	addTransform(func: (value: T) => ITransformBuilder): void {
 		this.transforms ??= [];
-		this.transforms.push(func);
+		this.transforms.push((v) => func(v as T));
 	}
 }

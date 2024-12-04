@@ -1,3 +1,4 @@
+import { InstanceValuesComponent } from "engine/shared/component/InstanceValuesComponent";
 import type { _Component, Component } from "engine/shared/component/Component";
 import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
 
@@ -71,10 +72,15 @@ declare global {
 	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
 		/** Get an attribute value on the Instance */
 		getAttribute<T extends AttributeValue>(name: string): T | undefined;
+
+		/** Get or add the InstanceValuesComponent */
+		valuesComponent(): InstanceValuesComponent<T>;
 	}
 }
 export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
 	/** Get an attribute value on the Instance */
 	getAttribute: <T extends AttributeValue>(selv: InstanceComponentPropMacros<Instance>, name: string) =>
 		selv.instance.GetAttribute(name) as T | undefined,
+
+	valuesComponent: (selv) => selv.getComponent(InstanceValuesComponent),
 };

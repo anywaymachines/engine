@@ -1,36 +1,45 @@
-import { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
-import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
+import { Signal } from "engine/shared/event/Signal";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ObservableSwitch, ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
-
-const defaultKey = "$main$$";
+import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
+import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
 	private readonly transforming: InstanceValueTransformContainer<boolean>;
-	readonly visibility: ObservableSwitch;
+	private readonly value;
 	readonly instance: GuiObject;
 
 	constructor(readonly component: InstanceComponent<GuiObject>) {
 		this.instance = component.instance;
+		this.value = component.valuesComponent().get("Visible");
 
-		this.transforming = new InstanceValueTransformContainer<boolean>(
-			component.instance.Visible,
-			(value) => (component.instance.Visible = value),
-		);
+		this.transforming = this.value.transforms;
 		this.transforming.addTransform((value) => {
 			if (!value) return Transforms.create();
 			return Transforms.create().show(this.instance);
 		});
+	}
 
-		this.visibility = new ObservableSwitchAnd(component.instance.Visible);
-		this.visibility.subscribe((visible) => this.transforming.value.set(visible));
+	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
+		const connections: SignalConnection[] = [];
+		for (const [k, v] of pairs(values)) {
+			const c = v.subscribe((enabled) => this.value.and(k, enabled), true);
+			connections.push(c);
+		}
+
+		return Signal.multiConnection(...connections);
 	}
 
 	waitForTransform(): ITransformBuilder {
 		return Transforms.create().waitForTransformOf(this.transforming);
+	}
+	waitForTransformThenDestroy() {
+		this.waitForTransform()
+			.then()
+			.func(() => this.component.destroy())
+			.run(this);
 	}
 
 	addTransformFunc(func: (enabling: boolean) => ITransformBuilder): void {
@@ -46,12 +55,8 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		});
 	}
 
-	isVisible(key?: ObservableSwitchKey): boolean {
-		if (!key) {
-			return this.visibility.get();
-		}
-
-		return this.visibility.getKeyed(key);
+	isVisible(): boolean {
+		return this.value.value.get();
 	}
 
 	setVisible(visible: boolean, key?: ObservableSwitchKey): void {
@@ -60,12 +65,10 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	show(key?: ObservableSwitchKey): void {
-		key ??= defaultKey;
-		this.visibility.set(key, true);
+		this.value.and(key, true);
 	}
 	hide(key?: ObservableSwitchKey): void {
-		key ??= defaultKey;
-		this.visibility.set(key, false);
+		this.value.and(key, false);
 	}
 
 	private initializedShowOnEnable = false;

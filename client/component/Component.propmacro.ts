@@ -2,7 +2,6 @@ import { AnimationComponent } from "engine/client/gui/AnimationComponent";
 import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
-import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
@@ -90,7 +89,7 @@ declare global {
 		/** Set visibility of the GuiObject using the main key. Might trigger animations. */
 		setInstanceVisibility(this: icpm<GuiObject>, visible: boolean, key?: ObservableSwitchKey): void;
 		/** Returns whether the component's VisibilityComponent is visible or not. Does not check the actual GuiObject visibility. */
-		isInstanceVisible(this: icpm<GuiObject>, key?: ObservableSwitchKey): boolean;
+		isInstanceVisible(this: icpm<GuiObject>): boolean;
 	}
 }
 export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
@@ -102,7 +101,7 @@ export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
 		selv.setEnabled(visible);
 	},
 	setInstanceVisibility: (selv, visible, key) => selv.visibilityComponent().setVisible(visible, key),
-	isInstanceVisible: (selv, key) => selv.visibilityComponent().isVisible(key),
+	isInstanceVisible: (selv) => selv.visibilityComponent().isVisible(),
 };
 
 declare global {
@@ -128,7 +127,7 @@ declare global {
 }
 export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	subscribeVisibilityFrom: (selv, values) => {
-		selv.visibilityComponent().visibility.subscribeFrom(values);
+		selv.visibilityComponent().subscribeFrom(values);
 		return selv;
 	},
 	subscribeToAction: (selv, action, indicator = "hide") => {
@@ -139,7 +138,10 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 		} else if (indicator === "transparency") {
 			action.canExecute.subscribe(
 				(canExecute) =>
-					InstanceValueStorage.get(selv.instance, "Transparency").overlay(-1, canExecute ? 0 : 0.5),
+					selv
+						.valuesComponent()
+						.get("Transparency")
+						.overlay(-1, canExecute ? 0 : 0.5),
 				true,
 			);
 		} else {

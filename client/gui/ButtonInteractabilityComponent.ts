@@ -1,5 +1,4 @@
 import { Component } from "engine/shared/component/Component";
-import { InstanceValueStorage } from "engine/shared/component/InstanceValueStorage";
 import { Transforms } from "engine/shared/component/Transforms";
 import type { ButtonDefinition } from "engine/client/gui/Button";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
@@ -14,7 +13,7 @@ export class ButtonInteractabilityComponent extends Component {
 
 		this.parentComponent = parent;
 
-		this.transparencyOverlay = InstanceValueStorage.get(parent.instance, "Transparency");
+		this.transparencyOverlay = parent.valuesComponent().get("Transparency");
 		this.transparencyOverlay.transforms.addTransform((transparency) =>
 			Transforms.create()
 				.if(parent.instance.Transparency === 1 && transparency !== 1, (tr) => tr.show(parent.instance))
