@@ -18,13 +18,6 @@ export namespace Transforms {
 		return create().push(new TransformSequence(transforms.map((t) => t.buildSequence())));
 	}
 
-	export function transform(...args: Parameters<ITransformBuilder["transform"]>): ITransformBuilder {
-		return create().transform(...args);
-	}
-	export function transformMulti(...args: Parameters<ITransformBuilder["transformMulti"]>): ITransformBuilder {
-		return create().transformMulti(...args);
-	}
-
 	export function func(func: () => void | ITransformBuilder): ITransformBuilder {
 		return create().func(func);
 	}

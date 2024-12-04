@@ -35,9 +35,6 @@ type icpm<T extends Instance> = InstanceComponentPropMacros<T>;
 
 declare global {
 	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
-		/** Parents a child component to `this` and returns `this` */
-		parentGui<T extends icpm<GuiObject>>(child: T): T;
-
 		/** Add or get the button component */
 		buttonComponent(this: icpm<GuiButton>): ButtonComponent;
 
@@ -58,13 +55,6 @@ declare global {
 	}
 }
 export const Macros1: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
-	parentGui: (selv, child) => {
-		selv.parent(child);
-		child.onEnabledStateChange((enabled) => child.visibilityComponent().setVisible(enabled));
-
-		return child;
-	},
-
 	buttonComponent: (selv) => selv.getComponent(ButtonComponent),
 	addButtonAction: (selv, func) => {
 		selv.buttonComponent().activated.Connect(func);

@@ -21,13 +21,8 @@ export class InstanceValueTransformContainer<T> {
 		});
 	}
 
-	addTransform(func: (value: T, builder: ITransformBuilder) => unknown): void {
+	addTransform(func: (value: T) => ITransformBuilder): void {
 		this.transforms ??= [];
-		this.transforms.push((value) => {
-			const builder = Transforms.create();
-			func(value, builder);
-
-			return builder;
-		});
+		this.transforms.push(func);
 	}
 }

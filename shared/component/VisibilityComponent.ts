@@ -20,16 +20,20 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 			component.instance.Visible,
 			(value) => (component.instance.Visible = value),
 		);
-		this.transforming.addTransform((value, tr) => {
-			if (!value) return;
-			return tr.show(this.instance);
+		this.transforming.addTransform((value) => {
+			if (!value) return Transforms.create();
+			return Transforms.create().show(this.instance);
 		});
 
 		this.visibility = new ObservableSwitchAnd(component.instance.Visible);
 		this.visibility.subscribe((visible) => this.transforming.value.set(visible));
 	}
 
-	addTransformFunc(func: (enabling: boolean, builder: ITransformBuilder) => unknown): void {
+	waitForTransform(): ITransformBuilder {
+		return Transforms.create().waitForTransformOf(this.transforming);
+	}
+
+	addTransformFunc(func: (enabling: boolean) => ITransformBuilder): void {
 		this.transforming.addTransform(func);
 	}
 	addTransform(onEnable: boolean, transform: ITransformBuilder): void {

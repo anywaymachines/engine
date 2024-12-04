@@ -97,6 +97,7 @@ declare global {
 		waitForTransformOfChildren(component: Component): ITransformBuilder;
 
 		if(condition: boolean, func: (builder: this) => unknown): this;
+		for<K, V>(items: ReadonlyMap<K, V>, func: (key: K, item: V, builder: this) => unknown): this;
 
 		setText<T extends object, TKey extends ExtractKeys<T, string>>(
 			object: T,
@@ -136,6 +137,18 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		if (!condition) return selv;
 
 		func(selv);
+		return selv;
+	},
+
+	for: <K, V>(
+		selv: B,
+		items: ReadonlyMap<K, V>,
+		func: (key: K, item: V, builder: ITransformBuilder) => unknown,
+	): ITransformBuilder => {
+		for (const [key, item] of items) {
+			func(key, item, selv);
+		}
+
 		return selv;
 	},
 
@@ -229,6 +242,9 @@ declare global {
 		/** Set the `GuiObject` transparency to 0, and then transform to 1 */
 		fadeOutFrom1(instance: GuiObject, props: TransformProps): this;
 
+		/** Transform the `GuiObject` transparency to 1, along with any related properties of the object and its descendands */
+		fullFadeOut(instance: GuiObject, props?: TransformProps): this;
+
 		flashColor<T extends GuiObject>(
 			instance: T,
 			color: Color3,
@@ -283,6 +299,39 @@ export const GuiObjectTransformBuilderMacros: PropertyMacros<ITransformBuilder> 
 		selv.fadeOut(instance).then().fadeIn(instance, params),
 	fadeOutFrom1: (selv: B, instance: GuiObject, params?: TransformProps) =>
 		selv.fadeIn(instance).then().fadeOut(instance, params),
+
+	fullFadeOut: (selv: B, instance: GuiObject, params?: TransformProps) => {
+		const target = 1;
+
+		const init = (instance: GuiObject) => {
+			selv.transform(instance, "BackgroundTransparency", target, params);
+
+			if (instance.IsA("TextButton") || instance.IsA("TextBox") || instance.IsA("TextLabel")) {
+				selv.transform(instance, "TextTransparency", target, params);
+				selv.transform(instance, "TextStrokeTransparency", target, params);
+			}
+			if (instance.IsA("ImageButton") || instance.IsA("ImageLabel")) {
+				selv.transform(instance, "ImageTransparency", target, params);
+			}
+			if (instance.IsA("ScrollingFrame")) {
+				selv.transform(instance, "ScrollBarImageTransparency", target, params);
+			}
+			if (instance.IsA("ViewportFrame")) {
+				selv.transform(instance, "ImageTransparency", target, params);
+			}
+			if (instance.IsA("CanvasGroup")) {
+				selv.transform(instance, "GroupTransparency", target, params);
+			}
+		};
+
+		init(instance);
+		for (const child of instance.GetDescendants()) {
+			if (!child.IsA("GuiObject")) continue;
+			init(child);
+		}
+
+		return selv;
+	},
 
 	flashColor: <T extends GuiObject>(
 		selv: ITransformBuilder,
