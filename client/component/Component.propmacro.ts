@@ -6,6 +6,7 @@ import { InstanceValueStorage } from "engine/shared/component/InstanceValueStora
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
+import type { ComponentParentConfig } from "engine/shared/component/Component";
 import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
@@ -18,12 +19,12 @@ const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5];
 declare global {
 	interface ComponentPropMacros {
 		/** Parents a child component to `this` and returns `this` */
-		parentGui<T extends icpm<GuiObject>>(child: T): T;
+		parentGui<T extends icpm<GuiObject>>(child: T, config?: ComponentParentConfig): T;
 	}
 }
 export const CMacros: PropertyMacros<ComponentPropMacros> = {
-	parentGui: (selv, child) => {
-		selv.parent(child);
+	parentGui: (selv, child, config) => {
+		selv.parent(child, config);
 		child.onEnabledStateChange((enabled) => child.visibilityComponent().setVisible(enabled));
 
 		return child;
