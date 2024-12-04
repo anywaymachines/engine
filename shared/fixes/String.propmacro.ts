@@ -50,7 +50,7 @@ export namespace Strings {
 
 		if (typeIs(value, "table")) {
 			if (1 in value) {
-				return `[ ${Objects.values(value).join()} ]`;
+				return `[ ${Objects.values(value).map(pretty).join()} ]`;
 			}
 
 			return `{ ${Objects.entriesArray(value)
