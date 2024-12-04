@@ -4,6 +4,15 @@ import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
 import { ArgsSignal } from "engine/shared/event/Signal";
 import type { KeybindRegistration } from "client/Keybinds";
 
+export interface ActionKeybindConfig {
+	readonly sink?: boolean;
+	readonly priority?: number;
+}
+const defaultConfig: ActionKeybindConfig = {
+	sink: true,
+	priority: undefined,
+};
+
 /** Represents an action that can be executed by a player using a GuiButton or a key. */
 export class Action extends Component {
 	readonly canExecute = new ObservableSwitchAnd(false);
@@ -35,11 +44,16 @@ export class Action extends Component {
 		return this.canExecute.subscribeFrom(values);
 	}
 
-	initKeybind(keybind: KeybindRegistration, priority?: number) {
+	initKeybind(keybind: KeybindRegistration, config?: ActionKeybindConfig) {
 		const tooltip = this.parentDestroyOnly(TooltipsHolder.createComponent(keybind.displayPath[0]));
 		tooltip.setFromKeybinds(keybind);
 		this.canExecute.subscribe((enabled) => tooltip.setEnabled(enabled));
 
-		this.event.subscribeRegistration(() => keybind.onDown(() => this.execute(), priority));
+		this.event.subscribeRegistration(() =>
+			keybind.onDown(() => {
+				this.execute();
+				return (config?.sink ?? defaultConfig.sink) ? "Sink" : "Pass";
+			}, config?.priority ?? defaultConfig.priority),
+		);
 	}
 }
