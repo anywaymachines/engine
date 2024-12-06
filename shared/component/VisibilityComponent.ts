@@ -3,7 +3,7 @@ import { TransformService } from "engine/shared/component/TransformService";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
-import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
+import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
 	private readonly transforming: InstanceValueTransformContainer<boolean>;
@@ -23,9 +23,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
-		for (const [k, v] of pairs(values)) {
-			this.value.and(k, v);
-		}
+		this.value.subscribeFrom(values);
 	}
 
 	waitForTransform(): ITransformBuilder {
@@ -55,15 +53,15 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		return this.value.value.get();
 	}
 
-	setVisible(visible: boolean, key?: ObservableSwitchKey): void {
+	setVisible(visible: boolean, key?: ValueOverlayKey): void {
 		if (visible) this.show(key);
 		else this.hide(key);
 	}
 
-	show(key?: ObservableSwitchKey): void {
+	show(key?: ValueOverlayKey): void {
 		this.value.and(key, true);
 	}
-	hide(key?: ObservableSwitchKey): void {
+	hide(key?: ValueOverlayKey): void {
 		this.value.and(key, false);
 	}
 

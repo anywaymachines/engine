@@ -2,37 +2,19 @@ import { InstanceValueTransformContainer } from "engine/shared/component/Instanc
 import { OverlayValueStorage } from "engine/shared/component/OverlayValueStorage";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
-class Value<T> implements ComponentTypes.DestroyableComponent {
-	private readonly valueStorage;
+class Value<T> extends OverlayValueStorage<T> {
 	readonly transforms: InstanceValueTransformContainer<T>;
-	readonly value;
 
 	constructor(defaultValue: T, set: (value: T) => void) {
-		this.valueStorage = new OverlayValueStorage<T>(defaultValue);
-		this.value = this.valueStorage.value;
+		super(defaultValue);
 
 		this.transforms = new InstanceValueTransformContainer(defaultValue, set);
 		this.value.subscribe((value) => this.transforms.value.set(value));
 	}
 
-	setDefaultComputingValue(value: T): void {
-		this.valueStorage.setDefaultComputingValue(value);
-	}
-
-	overlay(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.valueStorage.overlay(key, value);
-	}
-	or(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.valueStorage.or(key, value);
-	}
-	and(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.valueStorage.and(key, value);
-	}
-
-	destroy(): void {
-		this.valueStorage.destroy();
+	override destroy(): void {
+		super.destroy();
 		this.transforms.destroy();
 	}
 }

@@ -1,7 +1,8 @@
 import { EventHandler } from "engine/shared/event/EventHandler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import type { ComponentTypes } from "engine/shared/component/Component";
-import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
+
+export type ValueOverlayKey = string | object | number;
 
 class OrderedMap<T extends defined> {
 	private readonly valuesOrder: number[] = [];
@@ -18,7 +19,7 @@ class OrderedMap<T extends defined> {
 		}
 	}
 
-	set(key: ObservableSwitchKey, value: T) {
+	set(key: ValueOverlayKey, value: T) {
 		if (!typeIs(key, "number")) {
 			key = this.minIndex;
 			this.minIndex--;
@@ -39,17 +40,21 @@ const isObservableValue = (v: unknown): v is ReadonlyObservableValue<unknown> =>
 
 interface Value<T> {
 	value: T | ReadonlyObservableValue<T> | undefined;
-	readonly key: ObservableSwitchKey;
+	readonly key: ValueOverlayKey;
 	readonly combineType: "or" | "and" | "overlay";
 }
 
 export interface OverlayValueStorage<T> extends ReadonlyObservableValue<T> {}
 /** Storage for a single value that can be set from multiple places */
 export class OverlayValueStorage<T> implements ComponentTypes.DestroyableComponent, ReadonlyObservableValueBase<T> {
+	static bool(): OverlayValueStorage<boolean> {
+		return new OverlayValueStorage<boolean>(false, true);
+	}
+
 	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
 
 	private readonly valuesOrdered = new OrderedMap<Value<T>>();
-	private readonly values = new Map<ObservableSwitchKey, Value<T>>();
+	private readonly values = new Map<ValueOverlayKey, Value<T>>();
 	private readonly eventHandler = new EventHandler();
 
 	private readonly _value;
@@ -67,12 +72,27 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		this.defaultComputingValue = defaultComputingValue ?? defaultValue;
 	}
 
+	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<T> }): void {
+		for (const [k, v] of pairs(values)) {
+			this.and(k, v);
+		}
+	}
+
 	setDefaultComputingValue(value: T): void {
 		this.defaultComputingValue = value;
 		this.update();
 	}
 	get(): T {
 		return this.value.get();
+	}
+	getKeyed(key: ValueOverlayKey): T | undefined {
+		const val = this.values.get(key);
+		if (!val) return val;
+
+		if (isObservableValue(val.value)) {
+			return val.value.get();
+		}
+		return val.value;
 	}
 
 	private calculate(): T {
@@ -124,13 +144,13 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		this.update();
 	}
 
-	overlay(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
+	overlay(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
 		this.sub(key, value, "overlay");
 	}
-	or(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
+	or(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
 		this.sub(key, value, "or");
 	}
-	and(key: ObservableSwitchKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
+	and(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
 		this.sub(key, value, "and");
 	}
 

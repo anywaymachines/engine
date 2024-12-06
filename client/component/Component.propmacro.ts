@@ -7,7 +7,7 @@ import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
 import type { ComponentParentConfig } from "engine/shared/component/Component";
 import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
+import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -80,14 +80,14 @@ declare global {
 		/** Add or get the visibility component. */
 		visibilityComponent(this: icpm<GuiObject>): VisibilityComponent;
 		/** Enable and show the component using the main key. Might trigger animations. */
-		show_(this: icpm<GuiObject>, key?: ObservableSwitchKey): void;
+		show_(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
 		/** Disable and hide the component using the main key. Might trigger animations. */
-		hide_(this: icpm<GuiObject>, key?: ObservableSwitchKey): void;
+		hide_(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
 		/** Set enabled state and visibility of the component using the main key. Might trigger animations. */
-		setVisibleAndEnabled(this: icpm<GuiObject>, visible: boolean, key?: ObservableSwitchKey): void;
+		setVisibleAndEnabled(this: icpm<GuiObject>, visible: boolean, key?: ValueOverlayKey): void;
 
 		/** Set visibility of the GuiObject using the main key. Might trigger animations. */
-		setInstanceVisibility(this: icpm<GuiObject>, visible: boolean, key?: ObservableSwitchKey): void;
+		setInstanceVisibility(this: icpm<GuiObject>, visible: boolean, key?: ValueOverlayKey): void;
 		/** Returns whether the component's VisibilityComponent is visible or not. Does not check the actual GuiObject visibility. */
 		isInstanceVisible(this: icpm<GuiObject>): boolean;
 	}

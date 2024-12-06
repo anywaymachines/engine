@@ -1,20 +1,20 @@
 import { TransformRunner } from "engine/shared/component/Transform";
 import { Transforms } from "engine/shared/component/Transforms";
 import type { Component, ComponentTypes } from "engine/shared/component/Component";
+import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { RunningTransform, Transform } from "engine/shared/component/Transform";
-import type { ObservableSwitchKey } from "engine/shared/event/ObservableSwitch";
 
-const mainKey: ObservableSwitchKey = "main_$";
+const mainKey: ValueOverlayKey = "main_$";
 
 // TODO: is it even needed?
 export class AnimationComponent implements ComponentTypes.DestroyableComponent {
-	private readonly transforms = new Map<ObservableSwitchKey, TransformRunner>();
+	private readonly transforms = new Map<ValueOverlayKey, TransformRunner>();
 
 	constructor(component: Component) {
 		//
 	}
 
-	run<T extends ObservableSwitchKey>(
+	run<T extends ValueOverlayKey>(
 		key: T | undefined,
 		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder, key: T) => void),
 		cancelExisting: boolean = false,
