@@ -80,6 +80,10 @@ class _ObservableSwitch implements ObservableSwitchBase, ReadonlyObservableValue
 	switch(key: ObservableSwitchKey): void {
 		this.set(key, !this.getKeyed(key));
 	}
+
+	destroy(): void {
+		this._changed.destroy();
+	}
 }
 
 export const ObservableSwitch = _ObservableSwitch as unknown as new (defaultValue?: boolean) => ObservableSwitch;

@@ -1,7 +1,8 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
+import type { ComponentTypes } from "engine/shared/component/Component";
 
-export class InstanceValueTransformContainer<out T> {
+export class InstanceValueTransformContainer<out T> implements ComponentTypes.DestroyableComponent {
 	// unknown to fix contrvariativity
 	private transforms?: ((enabling: unknown) => ITransformBuilder)[];
 	readonly value: ObservableValue<T>;
@@ -25,5 +26,9 @@ export class InstanceValueTransformContainer<out T> {
 	addTransform(func: (value: T) => ITransformBuilder): void {
 		this.transforms ??= [];
 		this.transforms.push((v) => func(v as T));
+	}
+
+	destroy(): void {
+		this.transforms = [];
 	}
 }

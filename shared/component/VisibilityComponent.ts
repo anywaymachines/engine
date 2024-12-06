@@ -14,6 +14,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	constructor(readonly component: InstanceComponent<GuiObject>) {
 		this.instance = component.instance;
 		this.value = component.valuesComponent().get("Visible");
+		this.value.setDefaultComputingValue(true);
 
 		this.transforming = this.value.transforms;
 		this.transforming.addTransform((value) => {
@@ -25,8 +26,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
 		const connections: SignalConnection[] = [];
 		for (const [k, v] of pairs(values)) {
-			const c = v.subscribe((enabled) => this.value.and(k, enabled), true);
-			connections.push(c);
+			this.value.and(k, v);
 		}
 
 		return Signal.multiConnection(...connections);
