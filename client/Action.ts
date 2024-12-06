@@ -1,6 +1,6 @@
 import { TooltipsHolder } from "client/gui/static/TooltipsControl";
 import { Component } from "engine/shared/component/Component";
-import { ObservableSwitchAnd } from "engine/shared/event/ObservableSwitch";
+import { OverlayValueStorage } from "engine/shared/component/OverlayValueStorage";
 import { ArgsSignal } from "engine/shared/event/Signal";
 import type { KeybindRegistration } from "client/Keybinds";
 
@@ -15,7 +15,7 @@ const defaultConfig: ActionKeybindConfig = {
 
 /** Represents an action that can be executed by a player using a GuiButton or a key. */
 export class Action extends Component {
-	readonly canExecute = new ObservableSwitchAnd(false);
+	readonly canExecute = new OverlayValueStorage<boolean>(false, true);
 	private readonly action = new ArgsSignal();
 
 	constructor(func?: () => void) {
@@ -40,8 +40,10 @@ export class Action extends Component {
 	}
 
 	/** Adds checks to the action's can execute state. */
-	subCanExecuteFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
-		return this.canExecute.subscribeFrom(values);
+	subCanExecuteFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
+		for (const [k, v] of pairs(values)) {
+			this.canExecute.and(k, v);
+		}
 	}
 
 	initKeybind(keybind: KeybindRegistration, config?: ActionKeybindConfig) {

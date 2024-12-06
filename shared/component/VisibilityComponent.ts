@@ -1,6 +1,5 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
-import { Signal } from "engine/shared/event/Signal";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
@@ -23,13 +22,10 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		});
 	}
 
-	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): SignalConnection {
-		const connections: SignalConnection[] = [];
+	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
 		for (const [k, v] of pairs(values)) {
 			this.value.and(k, v);
 		}
-
-		return Signal.multiConnection(...connections);
 	}
 
 	waitForTransform(): ITransformBuilder {
