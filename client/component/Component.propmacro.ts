@@ -122,7 +122,7 @@ declare global {
 		): this;
 
 		/** Subscribes the button to execute the given action when clicked and hide itself if the action can't execute. */
-		subscribeToAction(this: icpm<GuiButton>, action: Action, indicator?: "hide" | "transparency"): this;
+		subscribeToAction(this: icpm<GuiButton>, action: Action, indicator?: GuiButtonActionIndicator.Func): this;
 	}
 }
 export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
@@ -130,24 +130,25 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 		selv.visibilityComponent().subscribeFrom(values);
 		return selv;
 	},
-	subscribeToAction: (selv, action, indicator = "hide") => {
+	subscribeToAction: (selv, action, indicator = GuiButtonActionIndicator.hide) => {
 		selv.addButtonAction(() => action.execute());
-
-		if (indicator === "hide") {
-			selv.subscribeVisibilityFrom({ main: action.canExecute });
-		} else if (indicator === "transparency") {
-			action.canExecute.subscribe(
-				(canExecute) =>
-					selv
-						.valuesComponent()
-						.get("Transparency")
-						.overlay(-1, canExecute ? 0 : 0.5),
-				true,
-			);
-		} else {
-			indicator satisfies never;
-		}
+		indicator(selv, action);
 
 		return selv;
 	},
 };
+
+//
+
+/** List of functions to provide into {@link InstanceComponentPropMacros.subscribeToAction} */
+export namespace GuiButtonActionIndicator {
+	export type Func = (selv: InstanceComponentPropMacros<GuiButton>, action: Action) => void;
+
+	/** Show or hide the button based on action canExecute */
+	export const hide: Func = (selv, action) => selv.subscribeVisibilityFrom({ main: action.canExecute });
+
+	/** Set button interactability to action canExecute */
+	export const interactability: Func = (selv, action) => {
+		action.canExecute.subscribe((canExecute) => selv.setButtonInteractable(canExecute), true);
+	};
+}
