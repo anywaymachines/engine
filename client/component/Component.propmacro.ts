@@ -130,7 +130,7 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 		selv.visibilityComponent().subscribeFrom(values);
 		return selv;
 	},
-	subscribeToAction: (selv, action, indicator = GuiButtonActionIndicator.hide) => {
+	subscribeToAction: (selv, action, indicator = GuiButtonActionIndicator.interactability) => {
 		selv.addButtonAction(() => action.execute());
 		indicator(selv, action);
 
