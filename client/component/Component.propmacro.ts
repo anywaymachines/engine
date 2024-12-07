@@ -3,6 +3,7 @@ import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
+import type { Theme, ThemeKeys } from "client/Theme";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
 import type { ComponentParentConfig } from "engine/shared/component/Component";
@@ -136,6 +137,18 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 
 		return selv;
 	},
+};
+
+declare global {
+	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+		themeButton(this: icpm<GuiButton>, theme: Theme, key: ThemeKeys): this;
+	}
+}
+export const Macros6: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+	themeButton: (selv, theme, key) => selv.overlayValue("BackgroundColor3", theme.get(key)),
+};
+export const Macros7: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
+	//
 };
 
 //

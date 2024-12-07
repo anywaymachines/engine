@@ -82,9 +82,9 @@ declare global {
 		/** Shorthand for `this.valuesComponent().get(key).overlay(overlayKey, value);` */
 		overlayValue<K extends keyof T>(
 			key: K,
-			overlayKey: ValueOverlayKey | undefined,
 			value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
-		): void;
+			overlayKey?: ValueOverlayKey | undefined,
+		): this;
 
 		/** Initialize a simple transform for the provided key with Transforms.quadOut02 by default */
 		initializeSimpleTransform(key: keyof T, props?: TransformProps): this;
@@ -100,12 +100,14 @@ export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros
 	overlayValue: <T extends Instance, K extends keyof T & string>(
 		selv: InstanceComponentPropMacros<T>,
 		key: K,
-		overlayKey: ValueOverlayKey | undefined,
 		value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
-	): void => {
+		overlayKey: ValueOverlayKey | undefined,
+	) => {
 		selv.valuesComponent() //
 			.get(key)
 			.overlay(overlayKey, value);
+
+		return selv;
 	},
 
 	initializeSimpleTransform: (selv, key, props = Transforms.quadOut02) => {
