@@ -12,7 +12,7 @@ import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorag
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5];
+const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5, Macros6, Macros7];
 
 //
 
@@ -141,11 +141,19 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 
 declare global {
 	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
-		themeButton(this: icpm<GuiButton>, theme: Theme, key: ThemeKeys): this;
+		themeButton(this: icpm<GuiButton>, theme: Theme, key: ThemeKeys | ReadonlyObservableValue<ThemeKeys>): this;
 	}
 }
 export const Macros6: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
-	themeButton: (selv, theme, key) => selv.overlayValue("BackgroundColor3", theme.get(key)),
+	themeButton: (selv, theme, key) => {
+		if (typeIs(key, "table")) {
+			key.subscribe((key) => selv.themeButton(theme, key), true);
+		} else {
+			selv.overlayValue("BackgroundColor3", theme.get(key));
+		}
+
+		return selv;
+	},
 };
 export const Macros7: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
 	//
