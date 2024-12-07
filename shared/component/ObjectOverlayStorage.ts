@@ -4,6 +4,7 @@ import type { TransformProps } from "engine/shared/component/Transform";
 
 const defaultIndex = 9999999999;
 
+/** @deprecated Use OverlayValueStorage instead */
 export class ObjectOverlayStorage<T extends object> {
 	private readonly _value;
 	readonly value;
