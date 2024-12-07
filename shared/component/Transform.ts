@@ -1,6 +1,6 @@
 import { RunService } from "@rbxts/services";
 import { Component } from "engine/shared/component/Component";
-import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
+import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 
 export interface Transform {
 	/** @returns True if completed */
@@ -10,7 +10,6 @@ export interface Transform {
 	finish(): void;
 }
 
-export type TweenableProperties<T> = string & ExtractKeys<Required<T>, Easable>;
 export interface TransformProps {
 	readonly duration?: number;
 	readonly style?: EasingStyle;

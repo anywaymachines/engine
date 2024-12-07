@@ -2,12 +2,7 @@ import { Easing } from "engine/shared/component/Easing";
 import { TransformService } from "engine/shared/component/TransformService";
 import type { Component } from "engine/shared/component/Component";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type {
-	RunningTransform,
-	Transform,
-	TransformProps,
-	TweenableProperties,
-} from "engine/shared/component/Transform";
+import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform {
 	constructor(
@@ -106,7 +101,7 @@ declare global {
 			params?: TransformProps,
 		): this;
 
-		flash<T extends object, TKey extends TweenableProperties<T>>(
+		flash<T extends object, TKey extends keyof T>(
 			this: ITransformBuilder,
 			object: T,
 			value: T[TKey] & defined,
@@ -170,7 +165,7 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 			),
 		);
 	},
-	flash: <T extends object, TKey extends TweenableProperties<T>>(
+	flash: <T extends object, TKey extends keyof T>(
 		selv: ITransformBuilder,
 		object: T,
 		value: T[TKey] & defined,

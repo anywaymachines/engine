@@ -1,12 +1,7 @@
 import { Easing } from "engine/shared/component/Easing";
 import { ParallelTransformSequence } from "engine/shared/component/Transform";
-import type { Easable, EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type {
-	RunningTransform,
-	Transform,
-	TransformProps,
-	TweenableProperties,
-} from "engine/shared/component/Transform";
+import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
+import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -57,7 +52,7 @@ class DelayTransform implements Transform {
 	}
 	finish() {}
 }
-class TweenTransform<T extends object, TKey extends TweenableProperties<T>> implements Transform {
+class TweenTransform<T extends object, TKey extends keyof T> implements Transform {
 	constructor(
 		private readonly instance: T,
 		private readonly key: TKey,
@@ -85,8 +80,8 @@ class TweenTransform<T extends object, TKey extends TweenableProperties<T>> impl
 
 		this.instance[this.key] = Easing.easeValue(
 			time / this.duration,
-			this.startValue as Easable,
-			this.actualValue as Easable,
+			this.startValue,
+			this.actualValue,
 			this.style,
 			this.direction,
 		) as T[TKey];
@@ -123,15 +118,15 @@ declare global {
 		/** Wait for a transform to finish */
 		waitForTransform(transform: RunningTransform): this;
 
-		transformMulti<T extends object, TKey extends TweenableProperties<T>>(
+		transformMulti<T extends object, TKey extends keyof T>(
 			object: T,
-			value: { readonly [k in TKey]?: T[TKey] & defined },
+			value: { readonly [k in TKey]?: T[TKey] },
 			params?: TransformProps,
 		): this;
-		transform<T extends object, TKey extends TweenableProperties<T>>(
+		transform<T extends object, TKey extends keyof T>(
 			object: T,
 			key: TKey,
-			value: (T[TKey] & defined) | (() => T[TKey] & defined),
+			value: T[TKey] | (() => T[TKey]),
 			params?: TransformProps,
 		): this;
 
@@ -156,7 +151,7 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 
 	waitForTransform: (selv: B, transform: RunningTransform) => selv.push(new WaitForOtherTransform(transform)),
 
-	transformMulti: <T extends object, TKey extends TweenableProperties<T>>(
+	transformMulti: <T extends object, TKey extends keyof T>(
 		selv: B,
 		object: T,
 		value: { readonly [k in TKey]?: T[TKey] & defined },
@@ -169,7 +164,7 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		return selv;
 	},
 
-	transform: <T extends object, TKey extends TweenableProperties<T>>(
+	transform: <T extends object, TKey extends keyof T>(
 		selv: B,
 		object: T,
 		key: TKey,

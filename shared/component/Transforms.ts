@@ -1,7 +1,7 @@
 import { TransformBuilder } from "engine/shared/component/Transform";
 import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
 import { TransformService } from "engine/shared/component/TransformService";
-import type { TransformProps, TweenableProperties } from "engine/shared/component/Transform";
+import type { TransformProps } from "engine/shared/component/Transform";
 
 export namespace Transforms {
 	export const commonProps = TransformService.commonProps;
@@ -22,7 +22,7 @@ export namespace Transforms {
 		return create().func(func);
 	}
 
-	type State<T extends object> = { readonly [k in TweenableProperties<T>]?: T[k] & defined };
+	type State<T extends object> = { readonly [k in keyof T]?: T[k] };
 	export function boolStateMachine<T extends object>(
 		instance: T,
 		props: TransformProps,

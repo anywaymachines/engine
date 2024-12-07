@@ -1,6 +1,9 @@
 import { InstanceValuesComponent } from "engine/shared/component/InstanceValuesComponent";
+import { Transforms } from "engine/shared/component/Transforms";
 import type { _Component, Component } from "engine/shared/component/Component";
 import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
+import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
+import type { TransformProps } from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -69,12 +72,22 @@ export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
 //
 
 declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+	interface InstanceComponentPropMacros<out T extends Instance> extends _InstanceComponent<T> {
 		/** Get an attribute value on the Instance */
 		getAttribute<T extends AttributeValue>(name: string): T | undefined;
 
 		/** Get or add the InstanceValuesComponent */
 		valuesComponent(): InstanceValuesComponent<T>;
+
+		/** Shorthand for `this.valuesComponent().get(key).overlay(overlayKey, value);` */
+		overlayValue<K extends keyof T>(
+			key: K,
+			overlayKey: ValueOverlayKey | undefined,
+			value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
+		): void;
+
+		/** Initialize a simple transform for the provided key with Transforms.quadOut02 by default */
+		initializeSimpleTransform(key: keyof T, props?: TransformProps): this;
 	}
 }
 export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
@@ -83,4 +96,23 @@ export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros
 		selv.instance.GetAttribute(name) as T | undefined,
 
 	valuesComponent: (selv) => selv.getComponent(InstanceValuesComponent),
+
+	overlayValue: <T extends Instance, K extends keyof T & string>(
+		selv: InstanceComponentPropMacros<T>,
+		key: K,
+		overlayKey: ValueOverlayKey | undefined,
+		value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
+	): void => {
+		selv.valuesComponent() //
+			.get(key)
+			.overlay(overlayKey, value);
+	},
+
+	initializeSimpleTransform: (selv, key, props = Transforms.quadOut02) => {
+		selv.valuesComponent()
+			.get(key)
+			.transforms.addTransform((value) => Transforms.create().transform(selv.instance, key, value, props));
+
+		return selv;
+	},
 };

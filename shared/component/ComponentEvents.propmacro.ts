@@ -82,6 +82,12 @@ declare global {
 		/** Create an `ObservableValue` from an `Instance` attribute, using JSON.ts */
 		observableFromAttributeJson<TType>(instance: Instance, name: string): ObservableValue<TType | undefined>;
 
+		/** Create an `ObservableValue` based on another's value, delete on events deletion. */
+		createBasedObservable<T1, T2>(
+			source: ReadonlyObservableValue<T1>,
+			func: (value: T1) => T2,
+		): ObservableValue<T2>;
+
 		/** Create an infinite loop that would only loop when this event holder is enabled */
 		loop(interval: number, func: (dt: number) => void): SignalConnection;
 	}
@@ -267,6 +273,17 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 		);
 
 		return observable;
+	},
+
+	createBasedObservable: <T1, T2>(
+		selv: ComponentEventsPropMacros,
+		source: ReadonlyObservableValue<T1>,
+		func: (value: T1) => T2,
+	): ObservableValue<T2> => {
+		const result = new ObservableValue<T2>(func(source.get()));
+		selv.subscribeRegistration(() => source.subscribe((value) => result.set(func(value))));
+
+		return result;
 	},
 
 	loop: (selv: ComponentEventsPropMacros, interval: number, func: (dt: number) => void): SignalConnection => {
