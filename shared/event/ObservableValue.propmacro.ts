@@ -1,10 +1,11 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
 const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros];
 
-declare global {
+declare module "engine/shared/event/ObservableValue" {
 	interface ReadonlyObservableValue<T> {
 		subscribe(func: (value: T, prev: T) => void, executeImmediately?: boolean): SignalConnection;
 
@@ -42,7 +43,7 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 	not: (selv) => selv.createBased((v) => !v),
 };
 
-declare global {
+declare module "engine/shared/event/ObservableValue" {
 	interface ObservableValue<T> {
 		asReadonly(): ReadonlyObservableValue<T>;
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;

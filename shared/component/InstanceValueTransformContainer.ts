@@ -1,8 +1,9 @@
 import { Transforms } from "engine/shared/component/Transforms";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import type { ComponentTypes } from "engine/shared/component/Component";
+import type { ITransformBuilder } from "engine/shared/component/Transform";
 
-export class InstanceValueTransformContainer<out T> implements ComponentTypes.DestroyableComponent {
+export class InstanceValueTransformContainer<T> implements ComponentTypes.DestroyableComponent {
 	// unknown to fix contrvariativity
 	private transforms?: ((enabling: unknown) => ITransformBuilder)[];
 	readonly value: ObservableValue<T>;

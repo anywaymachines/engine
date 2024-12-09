@@ -2,7 +2,7 @@ import { TransformRunner } from "engine/shared/component/Transform";
 import { Transforms } from "engine/shared/component/Transforms";
 import type { Component, ComponentTypes } from "engine/shared/component/Component";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
-import type { RunningTransform, Transform } from "engine/shared/component/Transform";
+import type { ITransformBuilder, RunningTransform, Transform } from "engine/shared/component/Transform";
 
 const mainKey: ValueOverlayKey = "main_$";
 

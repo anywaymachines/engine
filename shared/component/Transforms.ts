@@ -1,7 +1,7 @@
 import { TransformBuilder } from "engine/shared/component/Transform";
 import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
 import { TransformService } from "engine/shared/component/TransformService";
-import type { TransformProps } from "engine/shared/component/Transform";
+import type { ITransformBuilder, TransformProps } from "engine/shared/component/Transform";
 
 export namespace Transforms {
 	export const commonProps = TransformService.commonProps;

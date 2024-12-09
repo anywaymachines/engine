@@ -4,6 +4,8 @@ import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
+import type { ITransformBuilder } from "engine/shared/component/Transform";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
 	private readonly transforming: InstanceValueTransformContainer<boolean>;

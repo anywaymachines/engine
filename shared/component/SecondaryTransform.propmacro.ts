@@ -2,7 +2,7 @@ import { Easing } from "engine/shared/component/Easing";
 import { TransformService } from "engine/shared/component/TransformService";
 import type { Component } from "engine/shared/component/Component";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform {
 	constructor(
@@ -77,7 +77,7 @@ const directionToOffset = (direction: Direction, power: number) => {
 
 //
 
-declare global {
+declare module "engine/shared/component/Transform" {
 	interface ITransformBuilder {
 		/**
 		 * Run this transform in the global {@link TransformService}
@@ -189,7 +189,7 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 
 //
 
-declare global {
+declare module "engine/shared/component/Transform" {
 	interface ITransformBuilder {
 		/** Destroy an `Instance` */
 		destroy(instance: Instance): this;
@@ -201,7 +201,7 @@ export const InstanceTransformBuilderMacros: PropertyMacros<ITransformBuilder> =
 
 //
 
-declare global {
+declare module "engine/shared/component/Transform" {
 	interface ITransformBuilder {
 		/** Move a `GuiObject` */
 		move(instance: GuiObject, position: UDim2, params?: TransformProps): this;

@@ -1,9 +1,10 @@
 import { InstanceValuesComponent } from "engine/shared/component/InstanceValuesComponent";
 import { Transforms } from "engine/shared/component/Transforms";
-import type { _Component, Component } from "engine/shared/component/Component";
-import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
+import type { Component } from "engine/shared/component/Component";
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { TransformProps } from "engine/shared/component/Transform";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -11,8 +12,8 @@ const _ = () => [ComponentMacros, InstanceComponentMacros];
 
 //
 
-declare global {
-	interface ComponentPropMacros extends _Component {
+declare module "engine/shared/component/Component" {
+	interface Component {
 		/** Set the state of the component */
 		setEnabled(enabled: boolean): void;
 
@@ -37,7 +38,7 @@ declare global {
 		parentDestroyOnly<T extends Component>(child: T): T;
 	}
 }
-export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
+export const ComponentMacros: PropertyMacros<Component> = {
 	setEnabled: (selv, enabled) => {
 		if (enabled) selv.enable();
 		else selv.disable();
@@ -49,30 +50,30 @@ export const ComponentMacros: PropertyMacros<ComponentPropMacros> = {
 	onEnabledStateChange: (selv, func, executeImmediately = false) => {
 		selv.enabledState.subscribe(func, executeImmediately);
 	},
-	with: <T extends ComponentPropMacros>(selv: T, func: (selv: T) => void): T => {
+	with: <T extends Component>(selv: T, func: (selv: T) => void): T => {
 		func(selv);
 		return selv;
 	},
-	withParented: <T extends ComponentPropMacros>(selv: T, child: Component): T => {
+	withParented: <T extends Component>(selv: T, child: Component): T => {
 		selv.parent(child);
 		return selv;
 	},
-	asTemplate: <T extends Instance>(selv: ComponentPropMacros, object: T, destroyOriginal = true): (() => T) => {
+	asTemplate: <T extends Instance>(selv: Component, object: T, destroyOriginal = true): (() => T) => {
 		const template = object.Clone();
 		if (destroyOriginal) object.Destroy();
 		selv.onDestroy(() => template.Destroy());
 
 		return () => template.Clone();
 	},
-	parentDestroyOnly: <T extends Component>(selv: ComponentPropMacros, child: T): T => {
+	parentDestroyOnly: <T extends Component>(selv: Component, child: T): T => {
 		return selv.parent(child, { enable: false, disable: false });
 	},
 };
 
 //
 
-declare global {
-	interface InstanceComponentPropMacros<out T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<out T extends Instance> {
 		/** Get an attribute value on the Instance */
 		getAttribute<T extends AttributeValue>(name: string): T | undefined;
 
@@ -90,15 +91,15 @@ declare global {
 		initializeSimpleTransform(key: keyof T, props?: TransformProps): this;
 	}
 }
-export const InstanceComponentMacros: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
+export const InstanceComponentMacros: PropertyMacros<InstanceComponent<Instance>> = {
 	/** Get an attribute value on the Instance */
-	getAttribute: <T extends AttributeValue>(selv: InstanceComponentPropMacros<Instance>, name: string) =>
+	getAttribute: <T extends AttributeValue>(selv: InstanceComponent<Instance>, name: string) =>
 		selv.instance.GetAttribute(name) as T | undefined,
 
 	valuesComponent: (selv) => selv.getComponent(InstanceValuesComponent),
 
 	overlayValue: <T extends Instance, K extends keyof T & string>(
-		selv: InstanceComponentPropMacros<T>,
+		selv: InstanceComponent<T>,
 		key: K,
 		value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
 		overlayKey: ValueOverlayKey | undefined,

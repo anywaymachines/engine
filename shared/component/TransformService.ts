@@ -1,5 +1,5 @@
 import { TransformBuilder, TransformRunner } from "engine/shared/component/Transform";
-import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 export type TransformSetup<T extends object> = (transform: ITransformBuilder, instance: T) => void;
 export namespace TransformService {

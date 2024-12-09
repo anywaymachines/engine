@@ -1,6 +1,7 @@
 import { Component } from "engine/shared/component/Component";
 import { OverlayValueStorage } from "engine/shared/component/OverlayValueStorage";
 import { ArgsSignal } from "engine/shared/event/Signal";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 /** Represents an action that can be executed by a player using a GuiButton or a key. */
 export class Action<TArgs extends unknown[] = []> extends Component {

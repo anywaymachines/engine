@@ -1,6 +1,19 @@
 import { Signal } from "engine/shared/event/Signal";
 
-class _ObservableValue<T> {
+export interface ReadonlyObservableValueBase<T> {
+	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
+
+	get(): T;
+}
+export interface ObservableValueBase<T> extends ReadonlyObservableValueBase<T> {
+	set(value: T, forceSet?: boolean): void;
+	destroy(): void;
+}
+
+export interface ReadonlyObservableValue<T> extends ReadonlyObservableValueBase<T> {}
+export interface ObservableValue<T> extends ReadonlyObservableValue<T>, ObservableValueBase<T> {}
+
+class _ObservableValue<T> implements ObservableValueBase<T> {
 	readonly changed = new Signal<(value: T, prev: T) => void>();
 	private value: T;
 	private readonly _middleware?: (value: T) => T;

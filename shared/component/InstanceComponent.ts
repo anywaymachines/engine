@@ -10,9 +10,7 @@ export interface InstanceComponentParentConfig extends ComponentParentConfig {
 	readonly parent: boolean;
 }
 
-export type { _InstanceComponent };
-/** @deprecated Internal use only */
-class _InstanceComponent<T extends Instance> extends Component {
+export class InstanceComponent<T extends Instance> extends Component {
 	constructor(
 		readonly instance: T,
 		config?: InstanceComponentConfig,
@@ -61,6 +59,3 @@ class _InstanceComponent<T extends Instance> extends Component {
 		return super.parent(child, config);
 	}
 }
-
-export interface InstanceComponent<T extends Instance> extends InstanceComponentPropMacros<T> {}
-export class InstanceComponent<T extends Instance> extends _InstanceComponent<T> {}

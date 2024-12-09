@@ -1,6 +1,8 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { JSON } from "engine/shared/fixes/Json";
-import type { _ComponentEvents2 } from "engine/shared/component/ComponentEvents";
+import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -8,8 +10,8 @@ const _ = () => [ComponentEvents2Macros];
 
 //
 
-declare global {
-	interface ComponentEventsPropMacros extends _ComponentEvents2 {
+declare module "engine/shared/component/ComponentEvents" {
+	interface ComponentEvents {
 		onEnable(func: () => void, executeImmediately?: boolean): void;
 
 		/** Register an event */
@@ -92,14 +94,14 @@ declare global {
 		loop(interval: number, func: (dt: number) => void): SignalConnection;
 	}
 }
-export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> = {
+export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 	onEnable: (selv, func, executeImmediately = false): void => {
 		selv.state.onEnable(func);
 		if (executeImmediately) func();
 	},
 
 	subscribe: <TArgs extends unknown[]>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		signal: ReadonlyArgsSignal<TArgs>,
 		callback: (...args: TArgs) => void,
 	): void => {
@@ -112,7 +114,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeRegistration: (
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		func: () => SignalConnection | readonly SignalConnection[] | undefined,
 	): void => {
 		if (selv.state.isDestroyed()) return;
@@ -132,7 +134,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeImmediately: <TArgs extends unknown[]>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		signal: ReadonlyArgsSignal<TArgs>,
 		callback: () => void,
 		executeOnEnable = true,
@@ -150,7 +152,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeObservable: <T>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		observable: ReadonlyObservableValue<T>,
 		callback: (value: T, prev: T) => void,
 		executeOnEnable = false,
@@ -163,7 +165,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeCollection: <T extends defined>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		observable: ReadonlyObservableCollection<T>,
 		callback: (update: CollectionChangedArgs<T>) => void,
 		executeOnEnable = false,
@@ -176,7 +178,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeCollectionAdded: <T extends defined>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		observable: ReadonlyObservableCollection<T>,
 		callback: (item: T) => void,
 		executeOnEnable = false,
@@ -196,7 +198,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	subscribeMap: <K extends defined, V extends defined>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		observable: ReadonlyObservableMap<K, V>,
 		callback: (key: K, value: V | undefined) => void,
 		executeOnEnable = false,
@@ -214,7 +216,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	readonlyObservableFromInstanceParam: <TInstance extends Instance, TParam extends InstancePropertyNames<TInstance>>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		instance: TInstance,
 		param: TParam,
 	): ReadonlyObservableValue<TInstance[TParam]> => {
@@ -225,7 +227,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	observableFromInstanceParam: <TInstance extends Instance, TParam extends InstancePropertyNames<TInstance>>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		instance: TInstance,
 		param: TParam,
 	): ObservableValue<TInstance[TParam]> => {
@@ -237,7 +239,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	observableFromAttribute: <TType extends AttributeValue>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		instance: Instance,
 		name: string,
 	): ObservableValue<TType | undefined> => {
@@ -251,7 +253,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	observableFromAttributeJson: <TType>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		instance: Instance,
 		name: string,
 	): ObservableValue<TType | undefined> => {
@@ -276,7 +278,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 	},
 
 	createBasedObservable: <T1, T2>(
-		selv: ComponentEventsPropMacros,
+		selv: ComponentEvents,
 		source: ReadonlyObservableValue<T1>,
 		func: (value: T1) => T2,
 	): ObservableValue<T2> => {
@@ -286,7 +288,7 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEventsPropMacros> =
 		return result;
 	},
 
-	loop: (selv: ComponentEventsPropMacros, interval: number, func: (dt: number) => void): SignalConnection => {
+	loop: (selv: ComponentEvents, interval: number, func: (dt: number) => void): SignalConnection => {
 		let stop = false;
 
 		task.spawn(() => {

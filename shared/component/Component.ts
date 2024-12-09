@@ -69,9 +69,9 @@ class ComponentState {
 	}
 }
 
-export type { _Component };
-/** @deprecated Internal use only */
-class _Component extends ComponentState implements DebuggableComponent {
+export interface Component extends ComponentState {}
+// /** @deprecated Internal use only */
+export class Component extends ComponentState implements DebuggableComponent {
 	readonly event: ComponentEvents;
 
 	constructor() {
@@ -137,6 +137,3 @@ class _Component extends ComponentState implements DebuggableComponent {
 		];
 	}
 }
-
-export interface Component extends ComponentPropMacros {}
-export class Component extends _Component {}

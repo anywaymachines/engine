@@ -1,6 +1,7 @@
 import { EventHandler } from "engine/shared/event/EventHandler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import type { ComponentTypes } from "engine/shared/component/Component";
+import type { ReadonlyObservableValue, ReadonlyObservableValueBase } from "engine/shared/event/ObservableValue";
 
 export type ValueOverlayKey = string | object | number;
 

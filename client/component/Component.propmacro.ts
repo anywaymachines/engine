@@ -6,9 +6,10 @@ import { VisibilityComponent } from "engine/shared/component/VisibilityComponent
 import type { Theme, ThemeKeys } from "client/Theme";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
-import type { ComponentParentConfig } from "engine/shared/component/Component";
-import type { _InstanceComponent } from "engine/shared/component/InstanceComponent";
+import type { Component, ComponentParentConfig } from "engine/shared/component/Component";
+import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -16,13 +17,13 @@ const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5, Macros6, 
 
 //
 
-declare global {
-	interface ComponentPropMacros {
+declare module "engine/shared/component/Component" {
+	interface Component {
 		/** Parents a child component to `this` and returns `this` */
 		parentGui<T extends icpm<GuiObject>>(child: T, config?: ComponentParentConfig): T;
 	}
 }
-export const CMacros: PropertyMacros<ComponentPropMacros> = {
+export const CMacros: PropertyMacros<Component> = {
 	parentGui: (selv, child, config) => {
 		selv.parent(child, config);
 		child.onEnabledStateChange((enabled) => child.visibilityComponent().setVisible(enabled));
@@ -31,10 +32,10 @@ export const CMacros: PropertyMacros<ComponentPropMacros> = {
 	},
 };
 
-type icpm<T extends Instance> = InstanceComponentPropMacros<T>;
+type icpm<T extends Instance> = InstanceComponent<T>;
 
-declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<T extends Instance> {
 		/** Add or get the button component */
 		buttonComponent(this: icpm<GuiButton>): ButtonComponent;
 
@@ -54,7 +55,7 @@ declare global {
 		setButtonText(this: icpm<TextButtonDefinition>, text: string): this;
 	}
 }
-export const Macros1: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+export const Macros1: PropertyMacros<InstanceComponent<GuiButton>> = {
 	buttonComponent: (selv) => selv.getComponent(ButtonComponent),
 	addButtonAction: (selv, func) => {
 		selv.buttonComponent().activated.Connect(func);
@@ -68,7 +69,7 @@ export const Macros1: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	},
 };
 
-export const Macros2: PropertyMacros<InstanceComponentPropMacros<TextButtonDefinition>> = {
+export const Macros2: PropertyMacros<InstanceComponent<TextButtonDefinition>> = {
 	buttonTextComponent: (selv) => selv.getComponent(ButtonTextComponent),
 	setButtonText: (selv, interactable) => {
 		selv.buttonTextComponent().text.set(interactable);
@@ -76,8 +77,8 @@ export const Macros2: PropertyMacros<InstanceComponentPropMacros<TextButtonDefin
 	},
 };
 
-declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<T extends Instance> {
 		/** Add or get the visibility component. */
 		visibilityComponent(this: icpm<GuiObject>): VisibilityComponent;
 		/** Enable and show the component using the main key. Might trigger animations. */
@@ -93,7 +94,7 @@ declare global {
 		isInstanceVisible(this: icpm<GuiObject>): boolean;
 	}
 }
-export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
+export const Macros3: PropertyMacros<InstanceComponent<GuiObject>> = {
 	visibilityComponent: (selv) => selv.getComponent(VisibilityComponent),
 	show_: (selv, key) => selv.setVisibleAndEnabled(true, key),
 	hide_: (selv, key) => selv.setVisibleAndEnabled(false, key),
@@ -105,18 +106,18 @@ export const Macros3: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
 	isInstanceVisible: (selv) => selv.visibilityComponent().isVisible(),
 };
 
-declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<T extends Instance> {
 		/** Add or get the animation component. */
 		animationComponent(this: icpm<GuiObject>): AnimationComponent;
 	}
 }
-export const Macros4: PropertyMacros<InstanceComponentPropMacros<GuiObject>> = {
+export const Macros4: PropertyMacros<InstanceComponent<GuiObject>> = {
 	animationComponent: (selv) => selv.getComponent(AnimationComponent),
 };
 
-declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<T extends Instance> {
 		subscribeVisibilityFrom(
 			this: icpm<GuiButton>,
 			values: { readonly [k in string]: ReadonlyObservableValue<boolean> },
@@ -126,7 +127,7 @@ declare global {
 		subscribeToAction(this: icpm<GuiButton>, action: Action, indicator?: GuiButtonActionIndicator.Func): this;
 	}
 }
-export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+export const Macros5: PropertyMacros<InstanceComponent<GuiButton>> = {
 	subscribeVisibilityFrom: (selv, values) => {
 		selv.visibilityComponent().subscribeFrom(values);
 		return selv;
@@ -139,12 +140,12 @@ export const Macros5: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 	},
 };
 
-declare global {
-	interface InstanceComponentPropMacros<T extends Instance> extends _InstanceComponent<T> {
+declare module "engine/shared/component/InstanceComponent" {
+	interface InstanceComponent<T extends Instance> {
 		themeButton(this: icpm<GuiButton>, theme: Theme, key: ThemeKeys | ReadonlyObservableValue<ThemeKeys>): this;
 	}
 }
-export const Macros6: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
+export const Macros6: PropertyMacros<InstanceComponent<GuiButton>> = {
 	themeButton: (selv, theme, key) => {
 		if (typeIs(key, "table")) {
 			key.subscribe((key) => selv.themeButton(theme, key), true);
@@ -155,15 +156,15 @@ export const Macros6: PropertyMacros<InstanceComponentPropMacros<GuiButton>> = {
 		return selv;
 	},
 };
-export const Macros7: PropertyMacros<InstanceComponentPropMacros<Instance>> = {
+export const Macros7: PropertyMacros<InstanceComponent<Instance>> = {
 	//
 };
 
 //
 
-/** List of functions to provide into {@link InstanceComponentPropMacros.subscribeToAction} */
+/** List of functions to provide into {@link InstanceComponent.subscribeToAction} */
 export namespace GuiButtonActionIndicator {
-	export type Func = (selv: InstanceComponentPropMacros<GuiButton>, action: Action) => void;
+	export type Func = (selv: InstanceComponent<GuiButton>, action: Action) => void;
 
 	/** Show or hide the button based on action canExecute */
 	export const hide: Func = (selv, action) => selv.subscribeVisibilityFrom({ main: action.canExecute });

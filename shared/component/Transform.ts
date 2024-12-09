@@ -109,10 +109,6 @@ export class TransformSequence implements Transform {
 
 //
 
-declare global {
-	interface ITransformBuilder extends TransformBuilderBase {}
-}
-
 interface TransformBuilderBase {
 	buildSequence(): TransformSequence;
 
@@ -125,6 +121,8 @@ interface TransformBuilderBase {
 	/** Create another empty builder */
 	create(): ITransformBuilder;
 }
+
+export interface ITransformBuilder extends TransformBuilderBase {}
 
 /** @deprecated Internal use only */
 export class TransformBuilder implements TransformBuilderBase {

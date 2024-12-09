@@ -1,7 +1,7 @@
 import { Easing } from "engine/shared/component/Easing";
 import { ParallelTransformSequence } from "engine/shared/component/Transform";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -108,7 +108,7 @@ class WaitForOtherTransform implements Transform {
 
 //
 
-declare global {
+declare module "engine/shared/component/Transform" {
 	interface ITransformBuilder {
 		func(func: () => void): this;
 		wait(delay: number): this;

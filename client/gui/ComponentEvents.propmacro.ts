@@ -1,7 +1,7 @@
 import { InputHandler } from "engine/client/event/InputHandler";
 import { InputController } from "engine/client/InputController";
 import { Component } from "engine/shared/component/Component";
-import type { _ComponentEvents2 } from "engine/shared/component/ComponentEvents";
+import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import type { EventHandler } from "engine/shared/event/EventHandler";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -26,8 +26,8 @@ class InputHandlerComponent extends Component {
 	}
 }
 
-declare global {
-	interface ComponentEventsPropMacros extends _ComponentEvents2 {
+declare module "engine/shared/component/ComponentEvents" {
+	interface ComponentEvents {
 		/** Register an event that fires on enable and input type change
 		 * @client
 		 */
@@ -62,7 +62,7 @@ declare global {
 
 const getInputHandler = (component: Component) => component.getComponent(InputHandlerComponent).inputHandler;
 
-export const ComponentEventsMacros: PropertyMacros<ComponentEventsPropMacros> = {
+export const ComponentEventsMacros: PropertyMacros<ComponentEvents> = {
 	onPrepare: (
 		selv,
 		callback: (inputType: InputType, eventHandler: EventHandler, inputHandler: InputHandler) => void,

@@ -22,7 +22,7 @@ class Value<T> extends OverlayValueStorage<T> {
 //
 
 /** Stores Instance properties, provides methods to change them, with native support for transforms */
-export class InstanceValuesComponent<out T extends Instance> implements ComponentTypes.DestroyableComponent {
+export class InstanceValuesComponent<T extends Instance> implements ComponentTypes.DestroyableComponent {
 	private readonly values = new Map<string, Value<unknown>>();
 	private readonly instance: T;
 
