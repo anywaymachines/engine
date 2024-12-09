@@ -1,5 +1,6 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { ObservableCollectionArr } from "engine/shared/event/ObservableCollection";
 
 export interface ReadonlyComponentChildren<T extends Component = Component> extends Component {
 	getAll(): readonly T[];
@@ -10,14 +11,15 @@ export class ComponentChildren<T extends Component = Component>
 	extends Component
 	implements ReadonlyComponentChildren<T>
 {
-	private readonly children: T[] = [];
+	private readonly _children = new ObservableCollectionArr<T>();
+	readonly children = this._children.asReadonly();
 	private clearing = false;
 
 	constructor(clearOnDisable = false) {
 		super();
 
 		this.onEnable(() => {
-			for (const child of this.children) {
+			for (const child of this._children.get()) {
 				child.enable();
 			}
 		});
@@ -25,7 +27,7 @@ export class ComponentChildren<T extends Component = Component>
 
 		if (!clearOnDisable) {
 			this.onDisable(() => {
-				for (const child of this.children) {
+				for (const child of this._children.get()) {
 					child.disable();
 				}
 			});
@@ -45,11 +47,11 @@ export class ComponentChildren<T extends Component = Component>
 	}
 
 	getAll(): readonly T[] {
-		return this.children;
+		return this._children.get();
 	}
 
 	add<TChild extends T>(child: TChild): TChild {
-		this.children.push(child);
+		this._children.push(child);
 
 		if (this.isEnabled()) {
 			child.enable();
@@ -68,20 +70,17 @@ export class ComponentChildren<T extends Component = Component>
 	}
 
 	remove(child: T) {
-		const index = this.children.indexOf(child);
-		if (index === -1) return;
-
-		this.children.remove(index);
+		this._children.remove(child);
 		child.destroy();
 	}
 
 	clear() {
 		this.clearing = true;
-		for (const child of this.children) {
+		for (const child of this._children.get()) {
 			child.destroy();
 		}
 
-		this.children.clear();
+		this._children.clear();
 		this.clearing = false;
 	}
 
