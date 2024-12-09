@@ -3,12 +3,13 @@ import { pathOf } from "engine/shared/di/DIPathFunctions";
 import { GameHost } from "engine/shared/GameHost";
 import { Logger } from "engine/shared/Logger";
 import { Switches } from "engine/shared/Switches";
+import type { HostedService } from "engine/shared/di/HostedService";
 
 class GameHostDIContainerBuilder extends DIContainerBuilder {
 	/** @deprecated Internal use only */
-	readonly hostedServices: ConstructorOf<IHostedService>[] = [];
+	readonly hostedServices: ConstructorOf<HostedService>[] = [];
 
-	registerService<T extends object & IHostedService, TCtor extends ConstructorOf<T>>(
+	registerService<T extends object & HostedService, TCtor extends ConstructorOf<T>>(
 		clazz: TCtor,
 		@pathOf("T") name?: string,
 	) {
