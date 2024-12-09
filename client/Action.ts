@@ -3,11 +3,11 @@ import { OverlayValueStorage } from "engine/shared/component/OverlayValueStorage
 import { ArgsSignal } from "engine/shared/event/Signal";
 
 /** Represents an action that can be executed by a player using a GuiButton or a key. */
-export class Action extends Component {
+export class Action<TArgs extends unknown[] = []> extends Component {
 	readonly canExecute = new OverlayValueStorage<boolean>(false, true);
-	private readonly action = new ArgsSignal();
+	private readonly action = new ArgsSignal<TArgs>();
 
-	constructor(func?: () => void) {
+	constructor(func?: (...args: TArgs) => void) {
 		super();
 
 		this.subCanExecuteFrom({ mainEnabled_$: this.enabledState });
@@ -18,13 +18,13 @@ export class Action extends Component {
 	}
 
 	/** Executes the action if it can be executed. */
-	execute(): void {
+	execute(...args: TArgs): void {
 		if (!this.canExecute.get()) return;
-		this.action.Fire();
+		this.action.Fire(...args);
 	}
 
 	/** Subscribes a function to the action. */
-	subscribe(func: () => void): SignalConnection {
+	subscribe(func: (...args: TArgs) => void): SignalConnection {
 		return this.action.Connect(func);
 	}
 
