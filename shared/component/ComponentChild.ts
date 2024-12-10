@@ -2,6 +2,7 @@ import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 import type { ReadonlySlimSignal } from "engine/shared/event/SlimSignal";
 
 export interface ReadonlyComponentChild<T extends Component = Component> extends Component {
@@ -10,6 +11,22 @@ export interface ReadonlyComponentChild<T extends Component = Component> extends
 
 /** Stores a single component (or zero). Handles its enabling, disabling and destroying. */
 export class ComponentChild<T extends Component = Component> extends Component implements ReadonlyComponentChild<T> {
+	static fromObservable<TComponent extends Component, TKey>(
+		observable: ReadonlyObservableValue<TKey>,
+		ctor: (value: TKey) => TComponent,
+		clearOnDisable: boolean = false,
+	): ComponentChild<TComponent> {
+		const cc = new ComponentChild<TComponent>(clearOnDisable);
+		cc.event.subscribeObservable(observable, (value) => cc.set(ctor(value)), true);
+		cc.childSet.Connect((child) => {
+			if (!child && cc.isEnabled()) {
+				cc.set(ctor(observable.get()));
+			}
+		});
+
+		return cc;
+	}
+
 	private readonly _childSet = new SlimSignal<(child: T | undefined) => void>();
 	readonly childSet: ReadonlySlimSignal<(child: T | undefined) => void> = this._childSet;
 
