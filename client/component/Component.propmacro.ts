@@ -3,17 +3,16 @@ import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
-import type { Theme, ThemeKeys } from "client/Theme";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
-import type { Component, ComponentParentConfig } from "engine/shared/component/Component";
+import type { Component } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5, Macros6, Macros7];
+const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5];
 
 //
 
@@ -138,26 +137,6 @@ export const Macros5: PropertyMacros<InstanceComponent<GuiButton>> = {
 
 		return selv;
 	},
-};
-
-declare module "engine/shared/component/InstanceComponent" {
-	interface InstanceComponent<T extends Instance> {
-		themeButton(this: icpm<GuiButton>, theme: Theme, key: ThemeKeys | ReadonlyObservableValue<ThemeKeys>): this;
-	}
-}
-export const Macros6: PropertyMacros<InstanceComponent<GuiButton>> = {
-	themeButton: (selv, theme, key) => {
-		if (typeIs(key, "table")) {
-			key.subscribe((key) => selv.themeButton(theme, key), true);
-		} else {
-			selv.overlayValue("BackgroundColor3", theme.get(key));
-		}
-
-		return selv;
-	},
-};
-export const Macros7: PropertyMacros<InstanceComponent<Instance>> = {
-	//
 };
 
 //
