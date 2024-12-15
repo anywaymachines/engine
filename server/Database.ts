@@ -1,6 +1,8 @@
-import { Element } from "engine/shared/Element";
+import { DataStoreDatabaseBackend } from "engine/server/backend/DataStoreDatabaseBackend";
+import { InMemoryDatabaseBackend } from "engine/server/backend/InMemoryDatabaseBackend";
 import { Objects } from "engine/shared/fixes/Objects";
 import { Throttler } from "engine/shared/Throttler";
+import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
 interface DbStoredValue<T> {
 	value: T;
@@ -8,12 +10,12 @@ interface DbStoredValue<T> {
 	lastAccessedTime: number;
 	lastSaveTime: number;
 }
-export abstract class DbBase<T> {
-	private readonly datastore;
+abstract class DbBase<T> {
+	private readonly datastore: DatabaseBackend;
 	private readonly cache: { [k in string]: DbStoredValue<T> } = {};
 	private readonly currentlyLoading: Record<string, Promise<T>> = {};
 
-	constructor(datastore: DataStore | undefined) {
+	constructor(datastore: DatabaseBackend) {
 		this.datastore = datastore;
 
 		game.BindToClose(() => {
@@ -94,23 +96,8 @@ export abstract class DbBase<T> {
 		};
 	}
 
-	private readonly getOptions = Element.create("DataStoreGetOptions", { UseCache: false });
 	private load(key: string): DbStoredValue<T> {
-		if (!this.datastore) {
-			const time = os.time();
-			return {
-				value: this.createDefault(),
-				changed: false,
-				lastAccessedTime: time,
-				lastSaveTime: time,
-			};
-		}
-
-		const req = Throttler.retryOnFail<string | undefined>(
-			10,
-			1,
-			() => this.datastore!.GetAsync<string>(key, this.getOptions)[0],
-		);
+		const req = Throttler.retryOnFail<string | undefined>(10, 1, () => this.datastore!.GetAsync<string>(key));
 
 		if (req.success) {
 			if (req.message !== undefined) {
@@ -161,7 +148,6 @@ export abstract class DbBase<T> {
 
 		// delay between saves?
 		value.changed = false;
-		if (!this.datastore) return;
 
 		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(key, this.serialize(value.value)));
 		if (!req.success) {
@@ -177,12 +163,20 @@ export abstract class DbBase<T> {
 }
 
 export class Db<T> extends DbBase<T> {
+	static createStore(name: string): DatabaseBackend {
+		const ds = DataStoreDatabaseBackend.tryCreate(name);
+		if (ds) return ds;
+
+		warn(`Place datastore ${name} is not available. Data will be stored in-memory.`);
+		return new InMemoryDatabaseBackend();
+	}
+
 	private readonly createDefaultFunc;
 	private readonly serializeFunc;
 	private readonly deserializeFunc;
 
 	constructor(
-		datastore: DataStore | undefined,
+		datastore: DatabaseBackend,
 		createDefaultFunc: () => T,
 		serializeFunc: (data: T) => string | undefined,
 		deserializeFunc: (data: string) => T,
