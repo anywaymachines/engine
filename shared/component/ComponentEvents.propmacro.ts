@@ -1,6 +1,7 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { JSON } from "engine/shared/fixes/Json";
 import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import type { EventHandler } from "engine/shared/event/EventHandler";
 import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
@@ -12,7 +13,7 @@ const _ = () => [ComponentEvents2Macros];
 
 declare module "engine/shared/component/ComponentEvents" {
 	interface ComponentEvents {
-		onEnable(func: () => void, executeImmediately?: boolean): void;
+		onEnable(func: (eh: EventHandler) => void, executeImmediately?: boolean): void;
 
 		/** Register an event */
 		subscribe<TArgs extends unknown[]>(signal: ReadonlyArgsSignal<TArgs>, callback: (...args: TArgs) => void): void;
@@ -96,8 +97,8 @@ declare module "engine/shared/component/ComponentEvents" {
 }
 export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 	onEnable: (selv, func, executeImmediately = false): void => {
-		selv.state.onEnable(func);
-		if (executeImmediately) func();
+		selv.state.onEnable(() => func(selv.eventHandler));
+		if (executeImmediately) func(selv.eventHandler);
 	},
 
 	subscribe: <TArgs extends unknown[]>(
