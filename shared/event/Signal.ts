@@ -26,7 +26,13 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 		};
 	}
 	static connectionFromTask(thread: thread): SignalConnection {
-		return this.connection(() => task.cancel(thread));
+		return this.connection(() => {
+			try {
+				task.cancel(thread);
+			} catch {
+				// empty
+			}
+		});
 	}
 	static multiConnection(...connections: SignalConnection[]): SignalConnection {
 		return {
