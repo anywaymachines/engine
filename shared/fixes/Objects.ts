@@ -30,28 +30,32 @@ export namespace Objects {
 	}
 
 	/** Shorthand for `asObject(asMap(obj).mapToMap((k, v) => $tuple(k, func(v))))` */
-	export function mapValues<const TObj extends object, const V>(
+	export function mapValues<const TObj extends object, const V extends defined>(
 		obj: TObj,
-		func: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V,
+		func: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V | undefined,
 	): object & { [k in keyof TObj]: V } {
 		return asObject(asMap(obj).mapToMap((k, v) => $tuple(k, func(k, v))));
 	}
 
-	export function map<const TObj extends readonly unknown[], const K extends string | number | symbol, const V>(
+	export function map<
+		const TObj extends readonly unknown[],
+		const K extends string | number | symbol,
+		const V extends defined,
+	>(
 		obj: TObj,
 		keyfunc: (key: keyof TObj, value: TObj extends readonly (infer E)[] ? E : never) => K,
-		valuefunc: (key: keyof TObj, value: TObj extends readonly (infer E)[] ? E : never) => V,
+		valuefunc: (key: keyof TObj, value: TObj extends readonly (infer E)[] ? E : never) => V | undefined,
 	): object & { [k in K]: V };
-	export function map<const TObj extends object, const K extends string | number | symbol, const V>(
+	export function map<const TObj extends object, const K extends string | number | symbol, const V extends defined>(
 		obj: TObj,
 		keyfunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => K,
-		valuefunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V,
+		valuefunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V | undefined,
 	): object & { [k in K]: V };
 	/** Shorthand for `asObject(asMap(obj).mapToMap((k, v) => $tuple(kfunc(k), vfunc(v))))` with the key and value functions divided to simplify writing the type */
-	export function map<const TObj extends object, const K extends string | number | symbol, const V>(
+	export function map<const TObj extends object, const K extends string | number | symbol, const V extends defined>(
 		obj: TObj,
 		keyfunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => K,
-		valuefunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V,
+		valuefunc: (key: keyof TObj, value: TObj[keyof TObj] & defined) => V | undefined,
 	): object & { [k in K]: V } {
 		return asObject(asMap(obj).mapToMap((k, v) => $tuple(keyfunc(k, v), valuefunc(k, v))));
 	}
