@@ -109,7 +109,7 @@ export const SetMacros1: PropertyMacros<ReadonlySet<defined>> = {
 		if (!func) return selv.size() !== 0;
 
 		for (const value of selv) {
-			if (!func(value)) {
+			if (func(value)) {
 				return true;
 			}
 		}
@@ -152,7 +152,7 @@ export const MapMacros1: PropertyMacros<ReadonlyMap<defined, unknown>> = {
 		if (!func) return selv.size() !== 0;
 
 		for (const [key, value] of selv) {
-			if (!func(key, value)) {
+			if (func(key, value)) {
 				return true;
 			}
 		}
@@ -160,13 +160,7 @@ export const MapMacros1: PropertyMacros<ReadonlyMap<defined, unknown>> = {
 		return false;
 	},
 	containsKey: <K, V>(selv: ReadonlyMap<K, V>, item: K): boolean => {
-		for (const [key, value] of selv) {
-			if (key === item) {
-				return true;
-			}
-		}
-
-		return false;
+		return selv.has(item);
 	},
 	containsValue: <K, V>(selv: ReadonlyMap<K, V>, item: V): boolean => {
 		for (const [key, value] of selv) {
