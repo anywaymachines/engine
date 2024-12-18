@@ -4,7 +4,7 @@ import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
 import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
-import type { ITransformBuilder } from "engine/shared/component/Transform";
+import type { TransformBuilder } from "engine/shared/component/Transform";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
@@ -28,7 +28,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		this.value.subscribeFrom(values);
 	}
 
-	waitForTransform(): ITransformBuilder {
+	waitForTransform(): TransformBuilder {
 		return Transforms.create().waitForTransformOf(this.transforming);
 	}
 	waitForTransformThenDestroy() {
@@ -38,10 +38,10 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 			.run(this);
 	}
 
-	addTransformFunc(func: (enabling: boolean) => ITransformBuilder): void {
+	addTransformFunc(func: (enabling: boolean) => TransformBuilder): void {
 		this.transforming.addTransform(func);
 	}
-	addTransform(onEnable: boolean, transform: ITransformBuilder): void {
+	addTransform(onEnable: boolean, transform: TransformBuilder): void {
 		this.addTransformFunc((enabling) => {
 			if (enabling !== onEnable) {
 				return Transforms.create();

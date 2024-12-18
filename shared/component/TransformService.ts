@@ -1,7 +1,7 @@
 import { TransformBuilder, TransformRunner } from "engine/shared/component/Transform";
-import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
-export type TransformSetup<T extends object> = (transform: ITransformBuilder, instance: T) => void;
+export type TransformSetup<T extends object> = (transform: TransformBuilder, instance: T) => void;
 export namespace TransformService {
 	export const commonProps = {
 		quadOut02: { style: "Quad", direction: "Out", duration: 0.2 },
@@ -12,12 +12,12 @@ export namespace TransformService {
 
 	export function run<T extends object>(
 		key: T,
-		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder, instance: T) => void),
+		transform: TransformBuilder | Transform | ((transform: TransformBuilder, instance: T) => void),
 		cancelExisting: boolean = false,
 	): RunningTransform {
 		if (typeIs(transform, "function") || !("finish" in transform)) {
 			if (typeIs(transform, "function")) {
-				const empty = new TransformBuilder() as unknown as ITransformBuilder;
+				const empty = new TransformBuilder() as unknown as TransformBuilder;
 
 				transform(empty, key);
 				transform = empty.buildSequence();

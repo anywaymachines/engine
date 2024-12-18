@@ -1,23 +1,24 @@
 import { Easing } from "engine/shared/component/Easing";
 import { ParallelTransformSequence } from "engine/shared/component/Transform";
+import { TransformBuilder } from "engine/shared/component/Transform";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
 const _ = () => [TransformBuilderMacros];
 
-type B = ITransformBuilder;
+type B = TransformBuilder;
 
 class FuncTransform implements Transform {
-	private readonly func: () => unknown | ITransformBuilder;
+	private readonly func: () => unknown | TransformBuilder;
 	private finished = false;
 
-	constructor(func: () => unknown | ITransformBuilder) {
+	constructor(func: () => unknown | TransformBuilder) {
 		this.func = func;
 	}
 
-	runFrame(): boolean | ITransformBuilder {
+	runFrame(): boolean | TransformBuilder {
 		if (this.finished) return true;
 
 		this.finished = true;
@@ -28,7 +29,7 @@ class FuncTransform implements Transform {
 			return result;
 		}
 		if (typeIs(result, "table") && "then" in result) {
-			return result as ITransformBuilder;
+			return result as TransformBuilder;
 		}
 
 		return true;
@@ -109,11 +110,11 @@ class WaitForOtherTransform implements Transform {
 //
 
 declare module "engine/shared/component/Transform" {
-	interface ITransformBuilder {
+	interface TransformBuilder {
 		func(func: () => void): this;
 		wait(delay: number): this;
-		parallel(...transforms: readonly ITransformBuilder[]): this;
-		repeat(amount: number, func: (transform: ITransformBuilder) => void): this;
+		parallel(...transforms: readonly TransformBuilder[]): this;
+		repeat(amount: number, func: (transform: TransformBuilder) => void): this;
 
 		/** Wait for a transform to finish */
 		waitForTransform(transform: RunningTransform): this;
@@ -130,17 +131,17 @@ declare module "engine/shared/component/Transform" {
 			params?: TransformProps,
 		): this;
 
-		setup(setup: ((transform: ITransformBuilder) => void) | undefined): this;
+		setup(setup: ((transform: TransformBuilder) => void) | undefined): this;
 	}
 }
-export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
+export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	func: (selv: B, func: () => void) => selv.push(new FuncTransform(func)),
 	wait: (selv: B, delay: number) => selv.push(new DelayTransform(delay)).then(),
-	parallel: (selv: B, ...transforms: readonly ITransformBuilder[]) =>
+	parallel: (selv: B, ...transforms: readonly TransformBuilder[]) =>
 		selv.push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence()))),
 
-	repeat: (selv: B, amount: number, func: (transform: ITransformBuilder) => void) => {
-		const transform = selv.create();
+	repeat: (selv: B, amount: number, func: (transform: TransformBuilder) => void) => {
+		const transform = new TransformBuilder();
 		for (let i = 0; i < amount; i++) {
 			func(transform);
 			transform.then();
@@ -183,7 +184,7 @@ export const TransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		);
 	},
 
-	setup: (selv: B, setup: ((transform: ITransformBuilder) => void) | undefined) => {
+	setup: (selv: B, setup: ((transform: TransformBuilder) => void) | undefined) => {
 		setup?.(selv);
 		return selv;
 	},

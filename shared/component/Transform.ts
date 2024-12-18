@@ -4,7 +4,7 @@ import type { EasingDirection, EasingStyle } from "engine/shared/component/Easin
 
 export interface Transform {
 	/** @returns True if completed */
-	runFrame(time: number): boolean | ITransformBuilder;
+	runFrame(time: number): boolean | TransformBuilder;
 
 	/** Immediately finish a transform */
 	finish(): void;
@@ -113,18 +113,13 @@ interface TransformBuilderBase {
 	buildSequence(): TransformSequence;
 
 	/** Add a transform into the current parallel sequence */
-	push(transform: Transform | ITransformBuilder): this;
+	push(transform: Transform | TransformBuilder): this;
 
 	/** End the current parallel sequence and start another */
 	then(): this;
-
-	/** Create another empty builder */
-	create(): ITransformBuilder;
 }
 
-export interface ITransformBuilder extends TransformBuilderBase {}
-
-/** @deprecated Internal use only */
+export interface TransformBuilder extends TransformBuilderBase {}
 export class TransformBuilder implements TransformBuilderBase {
 	private readonly transforms: Transform[][] = [[]];
 
@@ -136,17 +131,13 @@ export class TransformBuilder implements TransformBuilderBase {
 		this.transforms.push([]);
 		return this;
 	}
-	push(transform: Transform | ITransformBuilder): this {
+	push(transform: Transform | TransformBuilder): this {
 		if (!("finish" in transform)) {
 			transform = transform.buildSequence();
 		}
 
 		this.transforms[this.transforms.size() - 1].push(transform);
 		return this;
-	}
-
-	create(): ITransformBuilder {
-		return new TransformBuilder() as unknown as ITransformBuilder;
 	}
 }
 

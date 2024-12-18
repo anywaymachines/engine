@@ -1,24 +1,24 @@
-import { TransformBuilder } from "engine/shared/component/Transform";
 import { ParallelTransformSequence, TransformSequence } from "engine/shared/component/Transform";
+import { TransformBuilder } from "engine/shared/component/Transform";
 import { TransformService } from "engine/shared/component/TransformService";
-import type { ITransformBuilder, TransformProps } from "engine/shared/component/Transform";
+import type { TransformProps } from "engine/shared/component/Transform";
 
 export namespace Transforms {
 	export const commonProps = TransformService.commonProps;
 	export const quadOut02 = commonProps.quadOut02;
 
-	export function create(): ITransformBuilder {
-		return new TransformBuilder() as unknown as ITransformBuilder;
+	export function create(): TransformBuilder {
+		return new TransformBuilder();
 	}
 
-	export function parallel(...transforms: readonly ITransformBuilder[]): ITransformBuilder {
+	export function parallel(...transforms: readonly TransformBuilder[]): TransformBuilder {
 		return create().push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence())));
 	}
-	export function sequence(...transforms: readonly ITransformBuilder[]): ITransformBuilder {
+	export function sequence(...transforms: readonly TransformBuilder[]): TransformBuilder {
 		return create().push(new TransformSequence(transforms.map((t) => t.buildSequence())));
 	}
 
-	export function func(func: () => void | ITransformBuilder): ITransformBuilder {
+	export function func(func: () => void | TransformBuilder): TransformBuilder {
 		return create().func(func);
 	}
 
@@ -28,8 +28,8 @@ export namespace Transforms {
 		props: TransformProps,
 		trueState: State<T>,
 		falseState: State<T>,
-		setupStart?: (transform: ITransformBuilder, state: boolean) => void,
-		setupEnd?: (transform: ITransformBuilder, state: boolean) => void,
+		setupStart?: (transform: TransformBuilder, state: boolean) => void,
+		setupEnd?: (transform: TransformBuilder, state: boolean) => void,
 	): (value: boolean) => void {
 		return (value) => {
 			let tr = create();

@@ -1,8 +1,9 @@
 import { Easing } from "engine/shared/component/Easing";
+import { TransformBuilder } from "engine/shared/component/Transform";
 import { TransformService } from "engine/shared/component/TransformService";
 import type { Component } from "engine/shared/component/Component";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
-import type { ITransformBuilder, RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
 
 class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform {
 	constructor(
@@ -61,7 +62,7 @@ class TextTransform<T, TKey extends ExtractKeys<T, string>> implements Transform
 // do NOT remove and should ALWAYS be before any other code
 const _ = () => [CommonTransformBuilderMacros, InstanceTransformBuilderMacros, GuiObjectTransformBuilderMacros];
 
-type B = ITransformBuilder;
+type B = TransformBuilder;
 
 type Direction = "top" | "bottom" | "left" | "right";
 const directionToOffset = (direction: Direction, power: number) => {
@@ -78,7 +79,7 @@ const directionToOffset = (direction: Direction, power: number) => {
 //
 
 declare module "engine/shared/component/Transform" {
-	interface ITransformBuilder {
+	interface TransformBuilder {
 		/**
 		 * Run this transform in the global {@link TransformService}
 		 * @param cancelExisting Cancels any existing transforms for the same key if true, finish otherwise
@@ -86,10 +87,10 @@ declare module "engine/shared/component/Transform" {
 		run(key: object, cancelExisting?: boolean): RunningTransform;
 
 		/** Wait for the transform of a key to finish  */
-		waitForTransformOf(key: object): ITransformBuilder;
+		waitForTransformOf(key: object): TransformBuilder;
 
 		/** Wait for the transforms of all children to finish */
-		waitForTransformOfChildren(component: Component): ITransformBuilder;
+		waitForTransformOfChildren(component: Component): TransformBuilder;
 
 		if(condition: boolean, func: (builder: this) => unknown): this;
 		for<K, V>(items: ReadonlyMap<K, V>, func: (key: K, item: V, builder: this) => unknown): this;
@@ -102,7 +103,7 @@ declare module "engine/shared/component/Transform" {
 		): this;
 
 		flash<T extends object, TKey extends keyof T>(
-			this: ITransformBuilder,
+			this: TransformBuilder,
 			object: T,
 			value: T[TKey] & defined,
 			property: TKey,
@@ -110,17 +111,17 @@ declare module "engine/shared/component/Transform" {
 		): this;
 	}
 }
-export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
+export const CommonTransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	run: (selv: B, key: object, cancelExisting: boolean = false): RunningTransform =>
 		TransformService.run(key, selv, cancelExisting),
 
-	waitForTransformOf: (selv: B, key: object): ITransformBuilder => {
+	waitForTransformOf: (selv: B, key: object): TransformBuilder => {
 		const transform = TransformService.getRunning(key);
 		if (!transform) return selv;
 
 		return selv.waitForTransform(transform);
 	},
-	waitForTransformOfChildren: (selv: B, component: Component): ITransformBuilder => {
+	waitForTransformOfChildren: (selv: B, component: Component): TransformBuilder => {
 		for (const child of component.getParented()) {
 			selv.waitForTransformOf(child);
 		}
@@ -128,7 +129,7 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		return selv;
 	},
 
-	if: (selv: B, condition: boolean, func: (builder: ITransformBuilder) => unknown): ITransformBuilder => {
+	if: (selv: B, condition: boolean, func: (builder: TransformBuilder) => unknown): TransformBuilder => {
 		if (!condition) return selv;
 
 		func(selv);
@@ -138,8 +139,8 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 	for: <K, V>(
 		selv: B,
 		items: ReadonlyMap<K, V>,
-		func: (key: K, item: V, builder: ITransformBuilder) => unknown,
-	): ITransformBuilder => {
+		func: (key: K, item: V, builder: TransformBuilder) => unknown,
+	): TransformBuilder => {
 		for (const [key, item] of items) {
 			func(key, item, selv);
 		}
@@ -148,7 +149,7 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 	},
 
 	setText: <T extends object, TKey extends ExtractKeys<T, string>>(
-		selv: ITransformBuilder,
+		selv: TransformBuilder,
 		object: T,
 		text: T[TKey],
 		property: TKey,
@@ -166,15 +167,14 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 		);
 	},
 	flash: <T extends object, TKey extends keyof T>(
-		selv: ITransformBuilder,
+		selv: TransformBuilder,
 		object: T,
 		value: T[TKey] & defined,
 		property: TKey,
 		props?: TransformProps,
 	) => {
 		return selv.push(
-			selv
-				.create()
+			new TransformBuilder()
 				.transform(object, property, value, { style: "Quad", direction: "Out", ...props })
 				.then()
 				.transform(object, property, object[property]!, {
@@ -190,19 +190,19 @@ export const CommonTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
 //
 
 declare module "engine/shared/component/Transform" {
-	interface ITransformBuilder {
+	interface TransformBuilder {
 		/** Destroy an `Instance` */
 		destroy(instance: Instance): this;
 	}
 }
-export const InstanceTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
+export const InstanceTransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	destroy: (selv: B, instance: Instance) => selv.func(() => instance.Destroy()),
 };
 
 //
 
 declare module "engine/shared/component/Transform" {
-	interface ITransformBuilder {
+	interface TransformBuilder {
 		/** Move a `GuiObject` */
 		move(instance: GuiObject, position: UDim2, params?: TransformProps): this;
 		/** Move a `GuiObject` by X */
@@ -248,7 +248,7 @@ declare module "engine/shared/component/Transform" {
 		): this;
 	}
 }
-export const GuiObjectTransformBuilderMacros: PropertyMacros<ITransformBuilder> = {
+export const GuiObjectTransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	move: (selv: B, instance: GuiObject, position: UDim2, params?: TransformProps) =>
 		selv.transform(instance, "Position", position, params),
 	moveX: (selv: B, instance: GuiObject, position: UDim, params?: TransformProps) =>
@@ -329,7 +329,7 @@ export const GuiObjectTransformBuilderMacros: PropertyMacros<ITransformBuilder> 
 	},
 
 	flashColor: <T extends GuiObject>(
-		selv: ITransformBuilder,
+		selv: TransformBuilder,
 		instance: T,
 		color: Color3,
 		property: ExtractKeys<T & GuiObject, Color3> | "BackgroundColor3" = "BackgroundColor3",

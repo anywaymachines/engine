@@ -2,7 +2,7 @@ import { TransformRunner } from "engine/shared/component/Transform";
 import { Transforms } from "engine/shared/component/Transforms";
 import type { Component, ComponentTypes } from "engine/shared/component/Component";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
-import type { ITransformBuilder, RunningTransform, Transform } from "engine/shared/component/Transform";
+import type { TransformBuilder, RunningTransform, Transform } from "engine/shared/component/Transform";
 
 const mainKey: ValueOverlayKey = "main_$";
 
@@ -16,7 +16,7 @@ export class AnimationComponent implements ComponentTypes.DestroyableComponent {
 
 	run<T extends ValueOverlayKey>(
 		key: T | undefined,
-		transform: ITransformBuilder | Transform | ((transform: ITransformBuilder, key: T) => void),
+		transform: TransformBuilder | Transform | ((transform: TransformBuilder, key: T) => void),
 		cancelExisting: boolean = false,
 	): RunningTransform {
 		key ??= mainKey as T;
