@@ -41,13 +41,13 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	addTransformFunc(func: (enabling: boolean) => TransformBuilder): void {
 		this.transforming.addTransform(func);
 	}
-	addTransform(onEnable: boolean, transform: TransformBuilder): void {
+	addTransform(onEnable: boolean, transform: () => TransformBuilder): void {
 		this.addTransformFunc((enabling) => {
 			if (enabling !== onEnable) {
 				return Transforms.create();
 			}
 
-			return transform;
+			return transform();
 		});
 	}
 
