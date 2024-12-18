@@ -9,12 +9,12 @@ export class ButtonTextComponent extends Component {
 	constructor(parent: InstanceComponent<TextButtonDefinition>) {
 		super();
 
-		const isTextButton = (button: TextButtonDefinition): button is TextButton =>
-			!button.FindFirstChild("TextLabel");
+		const tb =
+			(parent.instance.FindFirstChild("TextLabel") as TextLabel | undefined) ??
+			(parent.instance.IsA("TextButton") ? parent.instance : undefined) ??
+			parent.instance.FindFirstChildWhichIsA("TextLabel", true) ??
+			(parent.instance as { TextLabel: TextLabel }).TextLabel;
 
-		this.text = this.event.observableFromInstanceParam(
-			isTextButton(parent.instance) ? (parent.instance as TextButton) : parent.instance.TextLabel,
-			"Text",
-		);
+		this.text = this.event.observableFromInstanceParam(tb, "Text");
 	}
 }
