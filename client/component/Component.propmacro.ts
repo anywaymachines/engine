@@ -81,9 +81,9 @@ declare module "engine/shared/component/InstanceComponent" {
 		/** Add or get the visibility component. */
 		visibilityComponent(this: icpm<GuiObject>): VisibilityComponent;
 		/** Enable and show the component using the main key. Might trigger animations. */
-		show_(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
+		show(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
 		/** Disable and hide the component using the main key. Might trigger animations. */
-		hide_(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
+		hide(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
 		/** Set enabled state and visibility of the component using the main key. Might trigger animations. */
 		setVisibleAndEnabled(this: icpm<GuiObject>, visible: boolean, key?: ValueOverlayKey): void;
 
@@ -95,8 +95,8 @@ declare module "engine/shared/component/InstanceComponent" {
 }
 export const Macros3: PropertyMacros<InstanceComponent<GuiObject>> = {
 	visibilityComponent: (selv) => selv.getComponent(VisibilityComponent),
-	show_: (selv, key) => selv.setVisibleAndEnabled(true, key),
-	hide_: (selv, key) => selv.setVisibleAndEnabled(false, key),
+	show: (selv, key) => selv.setVisibleAndEnabled(true, key),
+	hide: (selv, key) => selv.setVisibleAndEnabled(false, key),
 	setVisibleAndEnabled: (selv, visible, key) => {
 		selv.setInstanceVisibility(visible, key);
 		selv.setEnabled(visible);
