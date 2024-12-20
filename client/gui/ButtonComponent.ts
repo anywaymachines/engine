@@ -27,5 +27,22 @@ export class ButtonComponent extends Component {
 			if (!silent) clickSound.Play();
 			activated.Fire();
 		});
+
+		if (parent.instance.AutoButtonColor) {
+			let sub: SignalConnection | undefined;
+			this.onDisable(() => sub?.Disconnect());
+
+			parent.instance.AutoButtonColor = false;
+			const bg = parent.valuesComponent().get("BackgroundColor3");
+			const k = 99999;
+
+			this.event.subscribe(parent.instance.MouseButton1Down, () => {
+				bg.effect(k, (color) => color.Lerp(new Color3(1, 1, 1), 0.5));
+			});
+
+			const stop = () => bg.effect(k, undefined);
+			this.event.subscribe(parent.instance.MouseLeave, stop);
+			this.event.subscribe(parent.instance.MouseButton1Up, stop);
+		}
 	}
 }
