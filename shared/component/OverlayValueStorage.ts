@@ -56,6 +56,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 
 	private readonly valuesOrdered = new OrderedMap<Value<T>>();
 	private readonly values = new Map<ValueOverlayKey, Value<T>>();
+	private readonly effects = new Map<ValueOverlayKey, <K extends T>(value: K) => T>();
 	private readonly eventHandler = new EventHandler();
 
 	private readonly _value;
@@ -120,6 +121,10 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 			}
 		});
 
+		for (const [, effect] of this.effects) {
+			value = effect(value);
+		}
+
 		return value;
 	}
 
@@ -153,6 +158,15 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	}
 	and(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
 		this.sub(key, value, "and");
+	}
+	effect(key: ValueOverlayKey | undefined, value: ((value: T) => T) | undefined): void {
+		key ??= "mainkey#_$1";
+
+		if (!value) {
+			this.effects.delete(key);
+		} else {
+			this.effects.set(key, value);
+		}
 	}
 
 	destroy(): void {
