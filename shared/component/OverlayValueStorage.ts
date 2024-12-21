@@ -10,17 +10,14 @@ class OrderedMap<T extends defined> {
 	private readonly valuesMapOrdered = new Map<number, T>();
 	private minIndex = -1;
 
-	size(): number {
-		return this.valuesOrder.size();
-	}
-
 	forEach(func: (key: number, value: T | undefined) => void) {
 		for (const key of this.valuesOrder) {
 			func(key, this.valuesMapOrdered.get(key));
 		}
 	}
 
-	set(key: ValueOverlayKey, value: T) {
+	set(key: ValueOverlayKey, value: T, index?: number) {
+		key = index ?? key;
 		if (!typeIs(key, "number")) {
 			key = this.minIndex;
 			this.minIndex--;
@@ -39,10 +36,9 @@ class OrderedMap<T extends defined> {
 const isObservableValue = (v: unknown): v is ReadonlyObservableValue<unknown> =>
 	typeIs(v, "table") && "get" in v && "changed" in v;
 
-interface Value<T> {
-	value: T | ReadonlyObservableValue<T> | undefined;
+interface Effect<T> {
 	readonly key: ValueOverlayKey;
-	readonly combineType: "or" | "and" | "overlay";
+	func?: <K extends T>(value: K) => T;
 }
 
 export interface OverlayValueStorage<T> extends ReadonlyObservableValue<T> {}
@@ -54,9 +50,8 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 
 	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
 
-	private readonly valuesOrdered = new OrderedMap<Value<T>>();
-	private readonly values = new Map<ValueOverlayKey, Value<T>>();
-	private readonly effects = new Map<ValueOverlayKey, <K extends T>(value: K) => T>();
+	private readonly effects = new Map<ValueOverlayKey, Effect<T>>();
+	private readonly effectsOrdered = new OrderedMap<Effect<T>>();
 	private readonly eventHandler = new EventHandler();
 
 	private readonly _value;
@@ -87,43 +82,17 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	get(): T {
 		return this.value.get();
 	}
-	getKeyed(key: ValueOverlayKey): T | undefined {
-		const val = this.values.get(key);
-		if (!val) return val;
-
-		if (isObservableValue(val.value)) {
-			return val.value.get();
-		}
-		return val.value;
-	}
 
 	private calculate(): T {
-		if (this.valuesOrdered.size() === 0) {
+		if (this.effects.size() === 0) {
 			return this.defaultValue;
 		}
 
 		let value = this.defaultComputingValue;
-		this.valuesOrdered.forEach((k, v) => {
-			if (v?.value === undefined) return;
-
-			const actualValue = isObservableValue(v.value) //
-				? v.value.get()
-				: v.value;
-
-			if (v.combineType === "or") {
-				value ||= actualValue;
-			} else if (v.combineType === "and") {
-				value &&= actualValue;
-			} else if (v.combineType === "overlay") {
-				value = actualValue;
-			} else {
-				v.combineType satisfies never;
-			}
+		this.effectsOrdered.forEach((k, effect) => {
+			if (!effect?.func) return;
+			value = effect.func(value);
 		});
-
-		for (const [, effect] of this.effects) {
-			value = effect(value);
-		}
 
 		return value;
 	}
@@ -131,42 +100,62 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	private update() {
 		this._value.set(this.calculate());
 	}
-	private sub(key: Value<T>["key"] | undefined, value: Value<T>["value"], combineType: Value<T>["combineType"]) {
+	private sub(
+		key: ValueOverlayKey | undefined,
+		value: T | ReadonlyObservableValue<T> | undefined,
+		combineType: "or" | "and" | "overlay",
+		index: number | undefined,
+	) {
+		if (value === undefined) {
+			this.subEffect(key, undefined, index);
+			return;
+		}
+
 		if (isObservableValue(value)) {
 			this.eventHandler.register(value.subscribe(() => this.update()));
 		}
+
+		const get = () => (isObservableValue(value) ? value.get() : value);
+		if (combineType === "or") {
+			this.subEffect(key, (v) => v || get(), index);
+		} else if (combineType === "and") {
+			this.subEffect(key, (v) => v && get(), index);
+		} else if (combineType === "overlay") {
+			this.subEffect(key, get, index);
+		} else {
+			combineType satisfies never;
+		}
+	}
+	private subEffect(
+		key: ValueOverlayKey | undefined,
+		func: ((value: T) => T) | undefined,
+		index: number | undefined,
+	) {
 		key ??= "mainkey#_$1";
 
-		const existing = this.values.get(key);
-
+		const existing = this.effects.get(key);
 		if (existing !== undefined) {
-			existing.value = value;
-		} else if (value !== undefined) {
-			const val: Value<T> = { value, key, combineType };
-			this.values.set(key, val);
-			this.valuesOrdered.set(key, val);
+			existing.func = func;
+		} else if (func !== undefined) {
+			const val: Effect<T> = { func, key };
+			this.effects.set(key, val);
+			this.effectsOrdered.set(key, val, index);
 		}
 
 		this.update();
 	}
 
-	overlay(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.sub(key, value, "overlay");
+	overlay(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined, index?: number): void {
+		this.sub(key, value, "overlay", index);
 	}
-	or(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.sub(key, value, "or");
+	or(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined, index?: number): void {
+		this.sub(key, value, "or", index);
 	}
-	and(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined): void {
-		this.sub(key, value, "and");
+	and(key: ValueOverlayKey | undefined, value: T | ReadonlyObservableValue<T> | undefined, index?: number): void {
+		this.sub(key, value, "and", index);
 	}
-	effect(key: ValueOverlayKey | undefined, value: ((value: T) => T) | undefined): void {
-		key ??= "mainkey#_$1";
-
-		if (!value) {
-			this.effects.delete(key);
-		} else {
-			this.effects.set(key, value);
-		}
+	effect(key: ValueOverlayKey | undefined, func: ((value: T) => T) | undefined, index?: number): void {
+		this.subEffect(key, func, index);
 	}
 
 	destroy(): void {
