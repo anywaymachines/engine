@@ -3,6 +3,7 @@ import { ParallelTransformSequence } from "engine/shared/component/Transform";
 import { TransformBuilder } from "engine/shared/component/Transform";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
+import type { ObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -53,6 +54,39 @@ class DelayTransform implements Transform {
 	}
 	finish() {}
 }
+class FuncTweenTransform<T> implements Transform {
+	constructor(
+		private readonly startValue: T | (() => T),
+		private readonly value: T | (() => T),
+		private readonly setFunc: (value: T) => void,
+		private readonly duration: number,
+		private readonly style: EasingStyle,
+		private readonly direction: EasingDirection,
+	) {}
+
+	private actualStartValue?: T;
+	private actualValue?: T;
+
+	runFrame(time: number): boolean {
+		if (time >= this.duration) {
+			this.finish();
+			return true;
+		}
+
+		this.actualStartValue ??= typeIs(this.startValue, "function") ? this.startValue() : this.startValue;
+		this.actualValue ??= typeIs(this.value, "function") ? this.value() : this.value;
+
+		this.setFunc(
+			Easing.easeValue(time / this.duration, this.actualStartValue, this.actualValue, this.style, this.direction),
+		);
+
+		return false;
+	}
+
+	finish() {
+		this.setFunc(this.actualValue ?? (typeIs(this.value, "function") ? this.value() : this.value));
+	}
+}
 class TweenTransform<T extends object, TKey extends keyof T> implements Transform {
 	constructor(
 		private readonly instance: T,
@@ -61,11 +95,7 @@ class TweenTransform<T extends object, TKey extends keyof T> implements Transfor
 		private readonly duration: number,
 		private readonly style: EasingStyle,
 		private readonly direction: EasingDirection,
-	) {
-		this.instance = instance;
-		this.key = key;
-		this.value = value;
-	}
+	) {}
 
 	private startValue?: T[TKey];
 	private actualValue?: T[TKey];
@@ -130,6 +160,13 @@ declare module "engine/shared/component/Transform" {
 			value: T[TKey] | (() => T[TKey]),
 			params?: TransformProps,
 		): this;
+		funcTransform<T>(
+			startValue: T | (() => T),
+			value: T | (() => T),
+			set: (vaule: T) => void,
+			params?: TransformProps,
+		): this;
+		transformObservable<T>(observable: ObservableValue<T>, value: T | (() => T), params?: TransformProps): this;
 
 		setup(setup: ((transform: TransformBuilder) => void) | undefined): this;
 	}
@@ -169,7 +206,7 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 		selv: B,
 		object: T,
 		key: TKey,
-		value: (T[TKey] & defined) | (() => T[TKey] & defined),
+		value: T[TKey] | (() => T[TKey]),
 		params?: TransformProps,
 	) => {
 		return selv.push(
@@ -182,6 +219,34 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 				params?.direction ?? "Out",
 			),
 		);
+	},
+
+	funcTransform: <T>(
+		selv: B,
+		startValue: T | (() => T),
+		value: T | (() => T),
+		func: (value: T) => void,
+		params?: TransformProps,
+	) => {
+		return selv.push(
+			new FuncTweenTransform(
+				startValue,
+				value,
+				func,
+				params?.duration ?? 0,
+				params?.style ?? "Quad",
+				params?.direction ?? "Out",
+			),
+		);
+	},
+
+	transformObservable: <T>(
+		selv: B,
+		observable: ObservableValue<T>,
+		value: T | (() => T),
+		params?: TransformProps,
+	) => {
+		return selv.funcTransform(observable.get(), value, (v) => observable.set(v), params);
 	},
 
 	setup: (selv: B, setup: ((transform: TransformBuilder) => void) | undefined) => {
