@@ -52,22 +52,29 @@ export class ButtonComponent extends Component {
 					.transformObservable(bgAlpha, 0.3, props)
 					.run(bgAlpha, true);
 			});
+			this.event.subscribe(parent.instance.MouseButton1Up, () => {
+				Transforms.create() //
+					.transformObservable(bgColor, new Color3(0, 0, 0), props)
+					.transformObservable(bgAlpha, 0.3, props)
+					.run(bgAlpha, true);
+			});
 
 			this.event.subscribe(parent.instance.MouseButton1Down, () => {
 				Transforms.create() //
 					.transformObservable(bgColor, new Color3(1, 1, 1), props)
-					.transformObservable(bgAlpha, 0.3, props)
+					.transformObservable(bgAlpha, 0.2, props)
 					.run(bgAlpha, true);
 			});
 
 			const stop = () => {
 				Transforms.create() //
 					.transformObservable(bgAlpha, 0, props)
+					.then()
+					.transformObservable(bgColor, new Color3(0, 0, 0), props)
 					.run(bgAlpha, true);
 			};
-			this.onDisable(stop);
 			this.event.subscribe(parent.instance.MouseLeave, stop);
-			this.event.subscribe(parent.instance.MouseButton1Up, stop);
+			this.onDisable(stop);
 		}
 	}
 }
