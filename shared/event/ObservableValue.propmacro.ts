@@ -3,7 +3,7 @@ import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValu
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros];
+const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros, ObservableValueBoolMacros];
 
 declare module "engine/shared/event/ObservableValue" {
 	interface ReadonlyObservableValue<T> {
@@ -48,6 +48,8 @@ declare module "engine/shared/event/ObservableValue" {
 		asReadonly(): ReadonlyObservableValue<T>;
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
 		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
+
+		toggle(this: ObservableValue<boolean>): boolean;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -76,5 +78,14 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		selv.subscribe((value) => observable.set(value));
 
 		return observable;
+	},
+};
+
+export const ObservableValueBoolMacros: PropertyMacros<ObservableValue<boolean>> = {
+	toggle: (selv: ObservableValue<boolean>): boolean => {
+		const val = !selv.get();
+		selv.set(val);
+
+		return val;
 	},
 };
