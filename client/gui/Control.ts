@@ -1,9 +1,13 @@
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
+import type { InstanceComponentConfig } from "engine/shared/component/InstanceComponent";
 
+export interface ControlConfig extends InstanceComponentConfig {
+	readonly showOnEnable?: boolean;
+}
 export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<T> {
 	protected readonly gui: T;
 
-	constructor(instance: T, config?: { showOnEnable?: boolean }) {
+	constructor(instance: T, config?: ControlConfig) {
 		super(instance);
 
 		this.gui = instance;
