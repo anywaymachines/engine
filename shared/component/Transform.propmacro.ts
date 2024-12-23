@@ -163,7 +163,7 @@ declare module "engine/shared/component/Transform" {
 		funcTransform<T>(
 			startValue: T | (() => T),
 			value: T | (() => T),
-			set: (vaule: T) => void,
+			set: (value: T) => void,
 			params?: TransformProps,
 		): this;
 		transformObservable<T>(observable: ObservableValue<T>, value: T | (() => T), params?: TransformProps): this;
@@ -246,7 +246,12 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 		value: T | (() => T),
 		params?: TransformProps,
 	) => {
-		return selv.funcTransform(observable.get(), value, (v) => observable.set(v), params);
+		return selv.funcTransform(
+			() => observable.get(),
+			value,
+			(v) => observable.set(v),
+			params,
+		);
 	},
 
 	setup: (selv: B, setup: ((transform: TransformBuilder) => void) | undefined) => {

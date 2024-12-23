@@ -107,7 +107,8 @@ declare module "engine/shared/component/Transform" {
 			object: T,
 			value: T[TKey] & defined,
 			property: TKey,
-			props?: TransformProps,
+			propsIn?: TransformProps,
+			propsOut?: TransformProps,
 		): this;
 	}
 }
@@ -171,18 +172,14 @@ export const CommonTransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 		object: T,
 		value: T[TKey] & defined,
 		property: TKey,
-		props?: TransformProps,
+		propsIn?: TransformProps,
+		propsOut?: TransformProps,
 	) => {
 		return selv.push(
 			new TransformBuilder()
-				.transform(object, property, value, { style: "Quad", direction: "Out", ...props })
+				.transform(object, property, value, propsIn)
 				.then()
-				.transform(object, property, object[property]!, {
-					duration: 0.4,
-					style: "Quad",
-					direction: "Out",
-					...props,
-				}),
+				.transform(object, property, object[property]!, { duration: 0.4, ...propsOut }),
 		);
 	},
 };

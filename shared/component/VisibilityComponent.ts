@@ -9,15 +9,15 @@ import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValu
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
 	private readonly transforming: InstanceValueTransformContainer<boolean>;
-	private readonly value;
+	readonly visible;
 	readonly instance: GuiObject;
 
 	constructor(readonly component: InstanceComponent<GuiObject>) {
 		this.instance = component.instance;
-		this.value = component.valuesComponent().get("Visible");
-		this.value.setDefaultComputingValue(true);
+		this.visible = component.valuesComponent().get("Visible");
+		this.visible.setDefaultComputingValue(true);
 
-		this.transforming = this.value.transforms;
+		this.transforming = this.visible.transforms;
 		this.transforming.addTransform((value) => {
 			if (!value) return Transforms.create();
 			return Transforms.create().show(this.instance);
@@ -25,7 +25,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
-		this.value.subscribeFrom(values);
+		this.visible.subscribeFrom(values);
 	}
 
 	waitForTransform(): TransformBuilder {
@@ -52,7 +52,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	isVisible(): boolean {
-		return this.value.value.get();
+		return this.visible.value.get();
 	}
 
 	setVisible(visible: boolean, key?: ValueOverlayKey): void {
@@ -61,10 +61,10 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	show(key?: ValueOverlayKey): void {
-		this.value.and(key, true);
+		this.visible.and(key, true);
 	}
 	hide(key?: ValueOverlayKey): void {
-		this.value.and(key, false);
+		this.visible.and(key, false);
 	}
 
 	private initializedShowOnEnable = false;

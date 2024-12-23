@@ -1,4 +1,5 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
+import { Signal } from "engine/shared/event/Signal";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -10,6 +11,9 @@ declare module "engine/shared/event/ObservableValue" {
 		subscribe(func: (value: T, prev: T) => void, executeImmediately?: boolean): SignalConnection;
 
 		createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
+		createBasedDisconnectable<TNew>(
+			func: (value: T) => TNew,
+		): LuaTuple<[ReadonlyObservableValue<TNew>, SignalConnection]>;
 
 		/** Creates a new ObservableValue that always has the opposite value. */
 		not(this: ReadonlyObservableValue<boolean>): ReadonlyObservableValue<boolean>;
@@ -20,10 +24,16 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 		selv: ReadonlyObservableValue<T>,
 		func: (value: T) => TNew,
 	): ReadonlyObservableValue<TNew> => {
+		return selv.createBasedDisconnectable(func)[0];
+	},
+	createBasedDisconnectable: <T, TNew>(
+		selv: ReadonlyObservableValue<T>,
+		func: (value: T) => TNew,
+	): LuaTuple<[ReadonlyObservableValue<TNew>, SignalConnection]> => {
 		const observable = new ObservableValue<TNew>(func(selv.get()));
-		selv.subscribe((value) => observable.set(func(value)));
+		const connection = selv.subscribe((value) => observable.set(func(value)));
 
-		return observable;
+		return $tuple(observable, connection);
 	},
 
 	subscribe: <T>(
@@ -50,6 +60,9 @@ declare module "engine/shared/event/ObservableValue" {
 		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
 
 		toggle(this: ObservableValue<boolean>): boolean;
+
+		/** Connect two observables to have the same value. Immediately sets the other observable value to this one */
+		connect(other: ObservableValue<T>): SignalConnection;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -78,6 +91,13 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		selv.subscribe((value) => observable.set(value));
 
 		return observable;
+	},
+
+	connect: <T>(selv: ObservableValue<T>, other: ObservableValue<T>): SignalConnection => {
+		return Signal.multiConnection(
+			other.subscribe((value) => selv.set(value)),
+			selv.subscribe((value) => other.set(value), true),
+		);
 	},
 };
 

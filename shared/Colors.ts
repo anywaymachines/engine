@@ -13,6 +13,9 @@ export namespace Colors {
 	export function toInt(color: Color3) {
 		return math.floor(color.B * 255) + (math.floor(color.G * 255) << 8) + (math.floor(color.R * 255) << 16);
 	}
+	export function grayscale(b: number) {
+		return Color3.fromRGB(b, b, b);
+	}
 
 	/**
 	 * @param lightening Percentage to lighten the color by, 0-1

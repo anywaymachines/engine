@@ -118,7 +118,7 @@ export const Macros4: PropertyMacros<InstanceComponent<GuiObject>> = {
 declare module "engine/shared/component/InstanceComponent" {
 	interface InstanceComponent<T extends Instance> {
 		subscribeVisibilityFrom(
-			this: icpm<GuiButton>,
+			this: icpm<GuiObject>,
 			values: { readonly [k in string]: ReadonlyObservableValue<boolean> },
 		): this;
 
