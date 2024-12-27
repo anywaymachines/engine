@@ -14,6 +14,11 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		this.instance = component.instance;
 		this.visible = component.valuesComponent().get("Visible");
 		this.visible.setDefaultComputingValue(true);
+
+		this.visible.addTransform((value) => {
+			if (!value) return Transforms.create();
+			return Transforms.create().show(this.instance);
+		});
 	}
 
 	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
