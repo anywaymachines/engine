@@ -51,7 +51,7 @@ class Tooltip extends InstanceComponent<TooltipDefinition> {
 
 		this.visibilityComponent().addTransformFunc((visible) =>
 			Transforms.create() //
-				.if(visible, (tr) => tr.wait(0.4))
+				.wait(visible ? 0.4 : 0.1)
 				.then()
 				.transform(this.instance, "BackgroundTransparency", visible ? 0 : 1, Transforms.quadOut02)
 				.transform(this.instance.TextLabel, "TextTransparency", visible ? 0 : 1, Transforms.quadOut02),
