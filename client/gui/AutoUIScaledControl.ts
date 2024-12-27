@@ -1,13 +1,18 @@
 import { Component } from "engine/shared/component/Component";
 import { InstanceComponent } from "engine/shared/component/InstanceComponent";
+import { Transforms } from "engine/shared/component/Transforms";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 const globalScale = new ObservableValue<number>(1);
 export class AutoUIScaledControl extends InstanceComponent<GuiObject | ScreenGui> {
 	static initializeGlobalScale(scale: ReadonlyObservableValue<number>) {
-		scale.subscribe((sc) => globalScale.set(sc), true);
-		globalScale.subscribe((scale) => $trace("GUI scaling set to", scale));
+		scale.subscribe((sc) => {
+			Transforms.create() //
+				.transformObservable(globalScale, sc, Transforms.quadOut02)
+				.run(globalScale, true);
+		}, true);
+		scale.subscribe((scale) => $trace("GUI scaling set to", scale));
 	}
 
 	private readonly scale;
