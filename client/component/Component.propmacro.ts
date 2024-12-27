@@ -1,4 +1,3 @@
-import { AnimationComponent } from "engine/client/gui/AnimationComponent";
 import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
@@ -12,7 +11,7 @@ import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValu
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros4, Macros5];
+const _ = () => [CMacros, Macros1, Macros2, Macros3, Macros5];
 
 //
 
@@ -103,16 +102,6 @@ export const Macros3: PropertyMacros<InstanceComponent<GuiObject>> = {
 	},
 	setInstanceVisibility: (selv, visible, key) => selv.visibilityComponent().setVisible(visible, key),
 	isInstanceVisible: (selv) => selv.visibilityComponent().isVisible(),
-};
-
-declare module "engine/shared/component/InstanceComponent" {
-	interface InstanceComponent<T extends Instance> {
-		/** Add or get the animation component. */
-		animationComponent(this: icpm<GuiObject>): AnimationComponent;
-	}
-}
-export const Macros4: PropertyMacros<InstanceComponent<GuiObject>> = {
-	animationComponent: (selv) => selv.getComponent(AnimationComponent),
 };
 
 declare module "engine/shared/component/InstanceComponent" {
