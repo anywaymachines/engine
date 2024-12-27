@@ -1,35 +1,39 @@
 import { Transforms } from "engine/shared/component/Transforms";
-import { ObservableValue } from "engine/shared/event/ObservableValue";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { TransformBuilder } from "engine/shared/component/Transform";
+import type { ObservableValue } from "engine/shared/event/ObservableValue";
 
 export class InstanceValueTransformContainer<T> implements ComponentTypes.DestroyableComponent {
-	// unknown to fix contrvariativity
-	private transforms?: ((enabling: unknown) => TransformBuilder)[];
-	readonly value: ObservableValue<T>;
+	private transforms?: (<K extends T>(enabling: K) => TransformBuilder)[];
+	private current?: T;
 
-	constructor(defaultValue: T, set: (value: T) => void) {
-		this.value = new ObservableValue<T>(defaultValue);
-		this.value.subscribe((value) => {
-			if (!this.transforms) {
-				set(value);
-				return;
-			}
+	constructor(private readonly value: ObservableValue<T>) {}
 
-			Transforms.create()
-				.push(Transforms.parallel(...this.transforms.map((t) => t(value))))
-				.then()
-				.func(() => set(value))
-				.run(this, true);
-		});
+	set(value: T): void {
+		this.current ??= this.value.get();
+
+		if (value === this.current) return;
+		this.current = value;
+
+		if (!this.transforms) {
+			this.value.set(value);
+			return;
+		}
+
+		Transforms.create()
+			.push(Transforms.parallel(...this.transforms.map((t) => t(value))))
+			.then()
+			.func(() => this.value.set(value))
+			.run(this, true);
 	}
 
-	addTransform(func: (value: T) => TransformBuilder): void {
+	addTransform(func: (endValue: T, observable: ObservableValue<T>) => TransformBuilder): void {
 		this.transforms ??= [];
-		this.transforms.push((v) => func(v as T));
+		this.transforms.push((v) => func(v as T, this.value));
 	}
 
 	destroy(): void {
 		this.transforms = [];
+		this.value.destroy();
 	}
 }

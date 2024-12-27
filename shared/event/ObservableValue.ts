@@ -13,6 +13,9 @@ export interface ObservableValueBase<T> extends ReadonlyObservableValueBase<T> {
 export interface ReadonlyObservableValue<T> extends ReadonlyObservableValueBase<T> {}
 export interface ObservableValue<T> extends ReadonlyObservableValue<T>, ObservableValueBase<T> {}
 
+export const isReadonlyObservableValue = (v: unknown): v is ReadonlyObservableValue<unknown> =>
+	typeIs(v, "table") && "get" in v && "changed" in v;
+
 class _ObservableValue<T> implements ObservableValueBase<T> {
 	readonly changed = new Signal<(value: T, prev: T) => void>();
 	private value: T;

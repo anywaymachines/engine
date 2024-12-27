@@ -3,7 +3,7 @@ import { ParallelTransformSequence } from "engine/shared/component/Transform";
 import { TransformBuilder } from "engine/shared/component/Transform";
 import type { EasingDirection, EasingStyle } from "engine/shared/component/Easing";
 import type { RunningTransform, Transform, TransformProps } from "engine/shared/component/Transform";
-import type { ObservableValue } from "engine/shared/event/ObservableValue";
+import type { ObservableValue, ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -56,16 +56,16 @@ class DelayTransform implements Transform {
 }
 class FuncTweenTransform<T> implements Transform {
 	constructor(
-		private readonly startValue: T | (() => T),
-		private readonly value: T | (() => T),
+		private readonly startValue: TransformValue<T, []>,
+		private readonly endValue: TransformValue<T, []>,
 		private readonly setFunc: (value: T) => void,
 		private readonly duration: number,
 		private readonly style: EasingStyle,
 		private readonly direction: EasingDirection,
 	) {}
 
-	private actualStartValue?: T;
-	private actualValue?: T;
+	private actualStartValue?: () => T;
+	private actualEndValue?: () => T;
 
 	runFrame(time: number): boolean {
 		if (time >= this.duration) {
@@ -73,32 +73,38 @@ class FuncTweenTransform<T> implements Transform {
 			return true;
 		}
 
-		this.actualStartValue ??= typeIs(this.startValue, "function") ? this.startValue() : this.startValue;
-		this.actualValue ??= typeIs(this.value, "function") ? this.value() : this.value;
+		this.actualStartValue ??= transformValueToActual(this.startValue);
+		this.actualEndValue ??= transformValueToActual(this.endValue);
 
 		this.setFunc(
-			Easing.easeValue(time / this.duration, this.actualStartValue, this.actualValue, this.style, this.direction),
+			Easing.easeValue(
+				time / this.duration,
+				this.actualStartValue(),
+				this.actualEndValue(),
+				this.style,
+				this.direction,
+			),
 		);
 
 		return false;
 	}
 
 	finish() {
-		this.setFunc(this.actualValue ?? (typeIs(this.value, "function") ? this.value() : this.value));
+		this.setFunc((this.actualEndValue ?? transformValueToActual(this.endValue))());
 	}
 }
 class TweenTransform<T extends object, TKey extends keyof T> implements Transform {
 	constructor(
 		private readonly instance: T,
 		private readonly key: TKey,
-		private readonly value: T[TKey] | (() => T[TKey]),
+		private readonly endValue: TransformValue<T[TKey]>,
 		private readonly duration: number,
 		private readonly style: EasingStyle,
 		private readonly direction: EasingDirection,
 	) {}
 
-	private startValue?: T[TKey];
-	private actualValue?: T[TKey];
+	private actualStartValue?: T[TKey];
+	private actualEndValue?: (current: T[TKey]) => T[TKey];
 
 	runFrame(time: number): boolean {
 		if (time >= this.duration) {
@@ -106,13 +112,13 @@ class TweenTransform<T extends object, TKey extends keyof T> implements Transfor
 			return true;
 		}
 
-		this.startValue ??= this.instance[this.key];
-		this.actualValue ??= typeIs(this.value, "function") ? this.value() : this.value;
+		this.actualStartValue ??= this.instance[this.key];
+		this.actualEndValue ??= transformValueToActual(this.endValue, this.actualStartValue);
 
 		this.instance[this.key] = Easing.easeValue(
 			time / this.duration,
-			this.startValue,
-			this.actualValue,
+			this.actualStartValue,
+			this.actualEndValue(this.instance[this.key]),
 			this.style,
 			this.direction,
 		) as T[TKey];
@@ -121,7 +127,10 @@ class TweenTransform<T extends object, TKey extends keyof T> implements Transfor
 	}
 
 	finish() {
-		this.instance[this.key] = this.actualValue ?? (typeIs(this.value, "function") ? this.value() : this.value);
+		this.instance[this.key] = (
+			this.actualEndValue ??
+			transformValueToActual(this.endValue, this.actualStartValue ?? this.instance[this.key])
+		)(this.instance[this.key]);
 	}
 }
 class WaitForOtherTransform implements Transform {
@@ -138,6 +147,43 @@ class WaitForOtherTransform implements Transform {
 }
 
 //
+
+const transformValueToActual = <T, TArgs extends unknown[]>(
+	value: TransformValue<T, TArgs>,
+	...args: TArgs
+): ((...args: TArgs) => T) => {
+	if (typeIs(value, "table")) {
+		if ("run" in value && "func" in value) {
+			if (value.run === "once") {
+				const v = value.func(...args);
+				return () => v;
+			}
+			if (value.run === "everyTick") {
+				return value.func;
+			}
+
+			value.run satisfies never;
+		}
+
+		if ("get" in value && "changed" in value) {
+			return () => {
+				const v = value.get();
+				if (typeIs(v, "table") && "get" in v && "changed" in v) {
+					return v.get();
+				}
+
+				return v;
+			};
+		}
+	}
+
+	return () => value as T;
+};
+type TransformValue<T, TArgs extends unknown[] = [current: T]> =
+	| T
+	| ReadonlyObservableValue<T>
+	| ReadonlyObservableValue<ReadonlyObservableValue<T>>
+	| { readonly run: "once" | "everyTick"; readonly func: (...args: TArgs) => T };
 
 declare module "engine/shared/component/Transform" {
 	interface TransformBuilder {
@@ -157,16 +203,20 @@ declare module "engine/shared/component/Transform" {
 		transform<T extends object, TKey extends keyof T>(
 			object: T,
 			key: TKey,
-			value: T[TKey] | (() => T[TKey]),
+			value: TransformValue<T[TKey]>,
 			params?: TransformProps,
 		): this;
 		funcTransform<T>(
-			startValue: T | (() => T),
-			value: T | (() => T),
-			set: (value: T) => void,
+			startValue: TransformValue<T, []>,
+			endValue: TransformValue<T, []>,
+			setFunc: (value: T) => void,
 			params?: TransformProps,
 		): this;
-		transformObservable<T>(observable: ObservableValue<T>, value: T | (() => T), params?: TransformProps): this;
+		transformObservable<T>(
+			observable: ObservableValue<T>,
+			endValue: TransformValue<T>,
+			params?: TransformProps,
+		): this;
 
 		setup(setup: ((transform: TransformBuilder) => void) | undefined): this;
 	}
@@ -206,14 +256,14 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 		selv: B,
 		object: T,
 		key: TKey,
-		value: T[TKey] | (() => T[TKey]),
+		endValue: TransformValue<T[TKey]>,
 		params?: TransformProps,
 	) => {
 		return selv.push(
 			new TweenTransform(
 				object,
 				key,
-				value,
+				endValue,
 				params?.duration ?? 0,
 				params?.style ?? "Quad",
 				params?.direction ?? "Out",
@@ -223,16 +273,16 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 
 	funcTransform: <T>(
 		selv: B,
-		startValue: T | (() => T),
-		value: T | (() => T),
-		func: (value: T) => void,
+		startValue: TransformValue<T, []>,
+		endValue: TransformValue<T, []>,
+		setFunc: (value: T) => void,
 		params?: TransformProps,
 	) => {
 		return selv.push(
 			new FuncTweenTransform(
 				startValue,
-				value,
-				func,
+				endValue,
+				setFunc,
 				params?.duration ?? 0,
 				params?.style ?? "Quad",
 				params?.direction ?? "Out",
@@ -243,12 +293,28 @@ export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	transformObservable: <T>(
 		selv: B,
 		observable: ObservableValue<T>,
-		value: T | (() => T),
+		endValue: TransformValue<T>,
 		params?: TransformProps,
 	) => {
+		const addArg = (value: TransformValue<T>): TransformValue<T, []> => {
+			if (!typeIs(value, "table") || !("run" in value) || !("func" in value)) {
+				return value as T | ObservableValue<T> | ObservableValue<ObservableValue<T>>;
+			}
+
+			if (value.run === "once") {
+				return { run: "once", func: () => observable.get() };
+			}
+			if (value.run === "everyTick") {
+				return { run: "everyTick", func: () => value.func(observable.get()) };
+			}
+
+			value.run satisfies never;
+			return value as T | ObservableValue<T> | ObservableValue<ObservableValue<T>>;
+		};
+
 		return selv.funcTransform(
-			() => observable.get(),
-			value,
+			{ run: "once", func: () => observable.get() },
+			addArg(endValue),
 			(v) => observable.set(v),
 			params,
 		);

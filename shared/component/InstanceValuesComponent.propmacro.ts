@@ -1,9 +1,8 @@
 import { InstanceValuesComponent } from "engine/shared/component/InstanceValuesComponent";
 import { Transforms } from "engine/shared/component/Transforms";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
+import type { OverlaySubValue, ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { TransformProps } from "engine/shared/component/Transform";
-import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
@@ -19,7 +18,7 @@ declare module "engine/shared/component/InstanceComponent" {
 		/** Shorthand for `this.valuesComponent().get(key).overlay(overlayKey, value);` */
 		overlayValue<K extends keyof T>(
 			key: K,
-			value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
+			value: OverlaySubValue<T[K]> | undefined,
 			overlayKey?: ValueOverlayKey | undefined,
 		): this;
 
@@ -33,7 +32,7 @@ export const InstanceValuesComponentMacros: PropertyMacros<InstanceComponent<Ins
 	overlayValue: <T extends Instance, K extends keyof T & string>(
 		selv: InstanceComponent<T>,
 		key: K,
-		value: T[K] | ReadonlyObservableValue<T[K]> | undefined,
+		value: OverlaySubValue<T[K]> | undefined,
 		overlayKey: ValueOverlayKey | undefined,
 	) => {
 		selv.valuesComponent() //
@@ -44,10 +43,7 @@ export const InstanceValuesComponentMacros: PropertyMacros<InstanceComponent<Ins
 	},
 
 	initializeSimpleTransform: (selv, key, props = Transforms.quadOut02) => {
-		selv.valuesComponent()
-			.get(key)
-			.transforms.addTransform((value) => Transforms.create().transform(selv.instance, key, value, props));
-
+		selv.valuesComponent().get(key).addBasicTransform(props);
 		return selv;
 	},
 };

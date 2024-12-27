@@ -1,11 +1,16 @@
+import { Component } from "engine/shared/component/Component";
 import { Logger } from "engine/shared/Logger";
 import type { DIContainer } from "engine/shared/di/DIContainer";
 import type { HostedService } from "engine/shared/di/HostedService";
 
 export class GameHost {
 	private readonly hostedServices: HostedService[] = [];
+	// Component for providing DIContainer for the services
+	private readonly container: Component;
 
-	constructor(readonly services: DIContainer) {}
+	constructor(readonly services: DIContainer) {
+		this.container = services.resolveForeignClass(Component);
+	}
 
 	run(): void {
 		Logger.beginScope("GameHost");
@@ -21,6 +26,7 @@ export class GameHost {
 	}
 
 	parent<T extends HostedService>(service: T): T {
+		this.container.parent(service);
 		this.hostedServices.push(service);
 		return service;
 	}

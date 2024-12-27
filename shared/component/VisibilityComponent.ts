@@ -2,13 +2,11 @@ import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { InstanceValueTransformContainer } from "engine/shared/component/InstanceValueTransformContainer";
 import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { TransformBuilder } from "engine/shared/component/Transform";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 export class VisibilityComponent implements ComponentTypes.DestroyableComponent {
-	private readonly transforming: InstanceValueTransformContainer<boolean>;
 	readonly visible;
 	readonly instance: GuiObject;
 
@@ -16,20 +14,14 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		this.instance = component.instance;
 		this.visible = component.valuesComponent().get("Visible");
 		this.visible.setDefaultComputingValue(true);
-
-		this.transforming = this.visible.transforms;
-		this.transforming.addTransform((value) => {
-			if (!value) return Transforms.create();
-			return Transforms.create().show(this.instance);
-		});
 	}
 
 	subscribeFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
-		this.visible.subscribeFrom(values);
+		this.visible.subscribeAndFrom(values);
 	}
 
 	waitForTransform(): TransformBuilder {
-		return Transforms.create().waitForTransformOf(this.transforming);
+		return this.visible.waitForTransforms();
 	}
 	waitForTransformThenDestroy() {
 		this.waitForTransform()
@@ -39,7 +31,7 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 	}
 
 	addTransformFunc(func: (enabling: boolean) => TransformBuilder): void {
-		this.transforming.addTransform(func);
+		this.visible.addTransform(func);
 	}
 	addTransform(onEnable: boolean, transform: () => TransformBuilder): void {
 		this.addTransformFunc((enabling) => {

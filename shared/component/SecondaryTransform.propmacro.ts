@@ -249,16 +249,26 @@ export const GuiObjectTransformBuilderMacros: PropertyMacros<TransformBuilder> =
 	move: (selv: B, instance: GuiObject, position: UDim2, params?: TransformProps) =>
 		selv.transform(instance, "Position", position, params),
 	moveX: (selv: B, instance: GuiObject, position: UDim, params?: TransformProps) =>
-		selv.transform(instance, "Position", () => new UDim2(position, instance.Position.Y), params),
+		selv.transform(
+			instance,
+			"Position",
+			{ run: "once", func: () => new UDim2(position, instance.Position.Y) },
+			params,
+		),
 	moveY: (selv: B, instance: GuiObject, position: UDim, params?: TransformProps) =>
-		selv.transform(instance, "Position", () => new UDim2(instance.Position.X, position), params),
+		selv.transform(
+			instance,
+			"Position",
+			{ run: "once", func: () => new UDim2(instance.Position.X, position) },
+			params,
+		),
 	moveRelative: (selv: B, instance: GuiObject, offset: UDim2, params?: TransformProps) =>
-		selv.transform(instance, "Position", () => instance.Position.add(offset), params),
+		selv.transform(instance, "Position", { run: "once", func: () => instance.Position.add(offset) }, params),
 
 	resize: (selv: B, instance: GuiObject, size: UDim2, params?: TransformProps) =>
 		selv.transform(instance, "Size", size, params),
 	resizeRelative: (selv: B, instance: GuiObject, offset: UDim2, params?: TransformProps) =>
-		selv.transform(instance, "Size", () => instance.Size.add(offset), params),
+		selv.transform(instance, "Size", { run: "once", func: () => instance.Size.add(offset) }, params),
 
 	// slideIn: (selv: B, instance: GuiObject, from: Direction, power: number, props?: TransformProps) => {
 	// 	return selv

@@ -1,4 +1,5 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
+import { getDIClassSymbol } from "engine/shared/di/DIPathFunctions";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
@@ -70,13 +71,40 @@ class ComponentState {
 }
 
 export interface Component extends ComponentState {}
-// /** @deprecated Internal use only */
 export class Component extends ComponentState implements DebuggableComponent {
 	readonly event: ComponentEvents;
+	private _di?: DIContainer;
 
 	constructor() {
 		super();
-		this.event = new ComponentEvents(this as unknown as Component);
+		this.event = new ComponentEvents(this);
+	}
+
+	private injectFuncs?: Set<(di: DIContainer) => void>;
+	/** Subscribes a function to run when a DI container is available (so when parented to another component or resolved by DI) */
+	protected onInject(func: (di: DIContainer) => void) {
+		if (this.injectFuncs?.size() === 0) {
+			throw "Can't request injection after parenting";
+		}
+
+		this.injectFuncs ??= new Set();
+		this.injectFuncs.add(func);
+	}
+	private _customInject(di: DIContainer) {
+		this._di = di;
+
+		if (this.injectFuncs) {
+			for (const func of this.injectFuncs) {
+				func(di);
+			}
+			this.injectFuncs.clear();
+		}
+
+		if (this.parented) {
+			for (const child of this.parented) {
+				this.tryProvideDIToChild(child);
+			}
+		}
 	}
 
 	private components?: Map<ConstructorOf<ComponentTypes.DestroyableComponent>, ComponentTypes.DestroyableComponent>;
@@ -106,6 +134,16 @@ export class Component extends ComponentState implements DebuggableComponent {
 		return this.parented ?? Objects.empty;
 	}
 
+	private tryProvideDIToChild(child: Component): void {
+		if (child._di || !this._di) return;
+
+		const scope = this._di.beginScope((builder) =>
+			builder.registerSingletonValue(this, getDIClassSymbol(getmetatable(this) as object)),
+		);
+
+		child._customInject(scope);
+	}
+
 	/** Parents the component to the given component. */
 	parent<T extends Component>(child: T, config?: ComponentParentConfig): T {
 		this.parented ??= [];
@@ -125,6 +163,7 @@ export class Component extends ComponentState implements DebuggableComponent {
 			this.onDestroy(() => child.destroy());
 		}
 
+		this.tryProvideDIToChild(child);
 		return child;
 	}
 

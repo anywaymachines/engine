@@ -38,7 +38,7 @@ export class GameHostBuilder {
 		this.services.registerTransientFunc(() => host);
 
 		const services = this.services.build();
-		const host = new GameHost(services);
+		const host = services.resolveForeignClass(GameHost, [services]);
 
 		for (const ctor of this.services.hostedServices) {
 			$log(`Resolving service ${ctor}`);
