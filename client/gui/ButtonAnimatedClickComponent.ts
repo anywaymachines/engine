@@ -19,7 +19,7 @@ export class ButtonAnimatedClickComponent extends Component {
 			Transforms.create() //
 				.wait(0.1)
 				.then()
-				.transformObservable(scale, 0.8, { duration: 1 })
+				.transformObservable(scale, 0.8, { duration: 2 })
 				.run(scale, true);
 		});
 
