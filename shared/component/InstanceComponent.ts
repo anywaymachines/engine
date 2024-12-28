@@ -7,7 +7,7 @@ export interface InstanceComponentConfig {
 	readonly destroyInstanceOnComponentDestroy?: boolean;
 }
 export interface InstanceComponentParentConfig extends ComponentParentConfig {
-	readonly parent: boolean;
+	readonly parent?: boolean;
 }
 
 export class InstanceComponent<T extends Instance> extends Component {
@@ -51,9 +51,7 @@ export class InstanceComponent<T extends Instance> extends Component {
 			ComponentInstance.setInstanceParentIfNeeded(child, this);
 		}
 		if (ComponentInstance.isInstanceComponent(child)) {
-			if (child.instance.IsA("GuiObject") && child.instance.LayoutOrder === 0) {
-				child.instance.LayoutOrder = this.getParented().size();
-			}
+			ComponentInstance.setLayoutOrderIfNeeded(child.instance, this.instance);
 		}
 
 		return super.parent(child, config);

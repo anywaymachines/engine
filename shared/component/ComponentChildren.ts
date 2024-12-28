@@ -64,6 +64,7 @@ export class ComponentChildren<T extends Component = Component>
 
 		if (this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
 			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
+			ComponentInstance.setLayoutOrderIfNeeded(child.instance, this.parentInstance);
 		}
 
 		return child;

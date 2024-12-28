@@ -45,6 +45,11 @@ export namespace ComponentInstance {
 			instance.Parent = parent;
 		}
 	}
+	export function setLayoutOrderIfNeeded(child: Instance, parent: Instance) {
+		if (child.IsA("GuiObject") && child.LayoutOrder === 0) {
+			child.LayoutOrder = parent.GetChildren().size() + 1;
+		}
+	}
 
 	export function isInstanceComponent(component: Component): component is InstanceComponent<Instance> {
 		return "instance" in component;
