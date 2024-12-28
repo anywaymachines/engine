@@ -23,7 +23,7 @@ export class SubmittableValue<T> implements ReadonlySubmittableValue<T>, SignalR
 	}
 
 	readonly value;
-	readonly _submitted = new ArgsSignal<[value: T, prev: T]>();
+	private readonly _submitted = new ArgsSignal<[value: T, prev: T]>();
 	readonly submitted = this._submitted.asReadonly();
 
 	constructor(observable: ObservableValue<T>) {
