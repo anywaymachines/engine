@@ -22,7 +22,7 @@ export class PartialControl<
 
 				const existing = partsBackend[key];
 				if (existing === undefined) {
-					const inst = instance.FindFirstChild(key);
+					const inst = instance.FindFirstChild(key, true);
 					if (!inst) {
 						partsBackend[key] = childNotExists;
 						return undefined;
