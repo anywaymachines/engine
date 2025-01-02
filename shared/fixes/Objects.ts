@@ -135,6 +135,21 @@ export namespace Objects {
 		return true;
 	}
 
+	/** Object deep equals check, but checks only propeties that exists on `properties` */
+	export function objectDeepEqualsExisting(object: object, properties: object): boolean {
+		for (const [k] of pairs(properties)) {
+			if (!(k in object)) {
+				return false;
+			}
+
+			if (!deepEquals(object[k], properties[k])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	export function deepCombine<T1 extends object, T2 extends object>(o1: T1, o2: T2): T1 & T2;
 	export function deepCombine<T extends object>(...objects: readonly T[]): T;
 	export function deepCombine<T extends object>(...objects: readonly T[]): T {
@@ -150,6 +165,27 @@ export namespace Objects {
 		}
 
 		return result;
+	}
+	export function getValueByPath(obj: object, path: readonly string[]): unknown {
+		let v: unknown = obj;
+		for (const p of path) {
+			v = (v as { [k in string]: unknown })[p];
+		}
+
+		return v;
+	}
+	export function createObjectWithValueByPath<V>(value: V, path: readonly string[]): object {
+		const obj: { [k in string]: unknown } = {};
+		let part = obj;
+		for (const [i, p] of ipairs(path)) {
+			if (i === path.size()) {
+				part[p] = value;
+			} else {
+				part = part[p] = {};
+			}
+		}
+
+		return obj;
 	}
 
 	/** Executes the function and throws if it ever yields */
