@@ -1,5 +1,6 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { Signal } from "engine/shared/event/Signal";
+import type { DisconnectableObservableCreation } from "engine/shared/event/Observables";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -58,6 +59,7 @@ declare module "engine/shared/event/ObservableValue" {
 		asReadonly(): ReadonlyObservableValue<T>;
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
 		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
+		withDefaultDC(value: () => T & defined): DisconnectableObservableCreation<T & defined>;
 
 		toggle(this: ObservableValue<boolean>): boolean;
 
@@ -91,6 +93,20 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		selv.subscribe((value) => observable.set(value));
 
 		return observable;
+	},
+
+	withDefaultDC: <T>(
+		selv: ObservableValue<T>,
+		valueFunc: () => T & defined,
+	): DisconnectableObservableCreation<T & defined> => {
+		const observable = new ObservableValue<T & defined>(selv.get() ?? valueFunc());
+		const reg = () =>
+			Signal.multiConnection(
+				observable.subscribe((value) => selv.set(value)),
+				selv.subscribe((value) => observable.set(value ?? valueFunc())),
+			);
+
+		return { observable, reg };
 	},
 
 	connect: <T>(selv: ObservableValue<T>, other: ObservableValue<T>): SignalConnection => {
