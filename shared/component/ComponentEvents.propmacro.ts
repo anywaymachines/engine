@@ -3,6 +3,10 @@ import { JSON } from "engine/shared/fixes/Json";
 import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import type { EventHandler } from "engine/shared/event/EventHandler";
 import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
+import type {
+	DisconnectableObservableCreation,
+	DisconnectableReadonlyObservableCreation,
+} from "engine/shared/event/Observables";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -90,6 +94,10 @@ declare module "engine/shared/component/ComponentEvents" {
 			source: ReadonlyObservableValue<T1>,
 			func: (value: T1) => T2,
 		): ObservableValue<T2>;
+
+		/** Subscribe an `ObservableValue` based on multiple others. */
+		addObservable<T>(creation: DisconnectableObservableCreation<T>): ObservableValue<T>;
+		addObservable<T>(creation: DisconnectableReadonlyObservableCreation<T>): ReadonlyObservableValue<T>;
 
 		/** Create an infinite loop that would only loop when this event holder is enabled */
 		loop(interval: number, func: (dt: number) => void): SignalConnection;
@@ -287,6 +295,13 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 		selv.subscribeRegistration(() => source.subscribe((value) => result.set(func(value))));
 
 		return result;
+	},
+	addObservable: <T>(
+		selv: ComponentEvents,
+		{ observable, reg }: DisconnectableReadonlyObservableCreation<T>,
+	): ReadonlyObservableValue<T> => {
+		selv.subscribeRegistration(reg);
+		return observable;
 	},
 
 	loop: (selv: ComponentEvents, interval: number, func: (dt: number) => void): SignalConnection => {
