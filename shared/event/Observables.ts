@@ -3,7 +3,6 @@ import { Signal } from "engine/shared/event/Signal";
 import { Objects } from "engine/shared/fixes/Objects";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 import type { SignalReadonlySubmittableValue } from "engine/shared/event/SubmittableValue";
-import type { PartialThrough } from "shared/building/BuildingDiffer";
 
 type Reg = () => SignalConnection;
 

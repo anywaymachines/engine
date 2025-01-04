@@ -17,3 +17,5 @@ type ArgsOf<T = AbstractConstructorOf> =
 type InstanceOf<T extends AbstractConstructorOf> = T extends AbstractConstructorOf<infer R extends object> ? R : never;
 
 type ConstructorToFunction<T extends ConstructorOf> = (...args: ConstructorParameters<T>) => InstanceOf<T>;
+
+type PartialThrough<T> = T extends object ? { [k in keyof T]?: PartialThrough<T[k]> } : T;
