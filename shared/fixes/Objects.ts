@@ -150,7 +150,7 @@ export namespace Objects {
 		return true;
 	}
 
-	export function deepCombine<T1 extends object, T2 extends object>(o1: T1, o2: T2): T1 & T2;
+	export function deepCombine<T1 extends object, T2 extends object = T1>(o1: T1, o2: T2): T1 & T2;
 	export function deepCombine<T extends object>(...objects: readonly T[]): T;
 	export function deepCombine<T extends object>(...objects: readonly T[]): T {
 		const result = {} as T;
