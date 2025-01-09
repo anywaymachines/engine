@@ -14,6 +14,8 @@ const _ = () => [
 	[ArrayMacrosGroupBy, SetMacrosGroupBy, MapMacrosGroupBy],
 	[ArrayMacrosExcept, SetMacrosExcept, MapMacrosExcept],
 	[ArrayMacrosConvert, SetMacrosConvert, MapMacrosConvert],
+	[ArrayMacrosDistinct],
+	[SetMacrosWithAdded],
 	[ArrayMacrosSequenceEquals, SetMacrosSequenceEquals, MapMacrosSequenceEquals],
 ];
 
@@ -1143,6 +1145,42 @@ export const SetMacrosConvert: PropertyMacros<ReadonlySet<defined>> = {
 export const MapMacrosConvert: PropertyMacros<ReadonlyMap<defined, defined>> = {
 	toArray: <K extends defined, V extends defined>(selv: ReadonlyMap<K, V>): [K, V][] => [...selv],
 	toSet: <K extends defined, V extends defined>(selv: ReadonlyMap<K, V>): Set<[K, V]> => new Set([...selv]),
+};
+
+declare global {
+	interface ReadonlyArray<T> {
+		distinct(this: ReadonlyArray<defined>): T[];
+	}
+}
+export const ArrayMacrosDistinct: PropertyMacros<ReadonlyArray<defined>> = {
+	distinct: <T extends defined>(selv: ReadonlyArray<T>): T[] => [...new Set(selv)],
+};
+
+declare global {
+	interface ReadonlySet<T> {
+		/** Returns a copy of the set with the provided items added */
+		withAdded(this: ReadonlySet<defined>, items: readonly T[]): Set<T>;
+		/** Returns a copy of the set with the provided items added */
+		withAddedSet(this: ReadonlySet<defined>, items: ReadonlySet<T>): Set<T>;
+	}
+}
+export const SetMacrosWithAdded: PropertyMacros<ReadonlySet<defined>> = {
+	withAdded: <T extends defined>(selv: ReadonlySet<T>, items: readonly T[]): Set<T> => {
+		const ret = selv.clone();
+		for (const item of items) {
+			ret.add(item);
+		}
+
+		return ret;
+	},
+	withAddedSet: <T extends defined>(selv: ReadonlySet<T>, items: ReadonlySet<T>): Set<T> => {
+		const ret = selv.clone();
+		for (const item of items) {
+			ret.add(item);
+		}
+
+		return ret;
+	},
 };
 
 declare global {
