@@ -8,7 +8,7 @@ export class Control<T extends GuiObject = GuiObject> extends InstanceComponent<
 	protected readonly gui: T;
 
 	constructor(instance: T, config?: ControlConfig) {
-		super(instance);
+		super(instance, config);
 
 		this.gui = instance;
 		if (config?.showOnEnable ?? false) {
