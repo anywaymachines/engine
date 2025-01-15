@@ -92,6 +92,8 @@ export namespace Strings {
 
 		let parent: Instance | undefined = instance;
 		while (parent) {
+			if (parent === game) break;
+
 			ret.unshift(parent.Name);
 			parent = parent.Parent;
 		}
