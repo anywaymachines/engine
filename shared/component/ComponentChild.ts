@@ -1,16 +1,25 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { ArgsSignal } from "engine/shared/event/Signal";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
-import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
+import type {
+	ObservableValue,
+	ObservableValueBase,
+	ReadonlyObservableValue,
+} from "engine/shared/event/ObservableValue";
 import type { ReadonlySlimSignal } from "engine/shared/event/SlimSignal";
 
 export interface ReadonlyComponentChild<T extends Component = Component> extends Component {
 	get(): T | undefined;
 }
 
+export interface ComponentChild<T extends Component = Component> extends ObservableValue<T | undefined> {}
 /** Stores a single component (or zero). Handles its enabling, disabling and destroying. */
-export class ComponentChild<T extends Component = Component> extends Component implements ReadonlyComponentChild<T> {
+export class ComponentChild<T extends Component = Component>
+	extends Component
+	implements ReadonlyComponentChild<T>, ObservableValueBase<T | undefined>
+{
 	static fromObservable<TComponent extends Component, TKey>(
 		observable: ReadonlyObservableValue<TKey>,
 		ctor: (value: TKey) => TComponent,
@@ -30,10 +39,15 @@ export class ComponentChild<T extends Component = Component> extends Component i
 	private readonly _childSet = new SlimSignal<(child: T | undefined) => void>();
 	readonly childSet: ReadonlySlimSignal<(child: T | undefined) => void> = this._childSet;
 
+	private readonly _changed = new ArgsSignal<[value: T | undefined, prev: T | undefined]>();
+	readonly changed: ReadonlyArgsSignal<[value: T | undefined, prev: T | undefined]> = this._changed;
+
 	private child?: T;
 
 	constructor(clearOnDisable = false) {
 		super();
+
+		this.changed.Connect((value) => this._childSet.Fire(value));
 
 		this.onEnable(() => this.child?.enable());
 		this.onDestroy(() => this.clear());
