@@ -1,6 +1,7 @@
 import { ButtonComponent } from "engine/client/gui/ButtonComponent";
 import { ButtonInteractabilityComponent } from "engine/client/gui/ButtonInteractabilityComponent";
 import { ButtonTextComponent } from "engine/client/gui/ButtonTextComponent";
+import { TransformComponent } from "engine/shared/component/TransformComponent";
 import { VisibilityComponent } from "engine/shared/component/VisibilityComponent";
 import type { Action } from "engine/client/Action";
 import type { TextButtonDefinition } from "engine/client/gui/Button";
@@ -83,6 +84,8 @@ declare module "engine/shared/component/InstanceComponent" {
 		show(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
 		/** Disable and hide the component using the main key. Might trigger animations. */
 		hide(this: icpm<GuiObject>, key?: ValueOverlayKey): void;
+		/** Disable and hide the component using the main key. Destroy after animations. */
+		hideThenDestroy(this: icpm<GuiObject>): void;
 		/** Set enabled state and visibility of the component using the main key. Might trigger animations. */
 		setVisibleAndEnabled(this: icpm<GuiObject>, visible: boolean, key?: ValueOverlayKey): void;
 
@@ -90,18 +93,24 @@ declare module "engine/shared/component/InstanceComponent" {
 		setInstanceVisibility(this: icpm<GuiObject>, visible: boolean, key?: ValueOverlayKey): void;
 		/** Returns whether the component's VisibilityComponent is visible or not. Does not check the actual GuiObject visibility. */
 		isInstanceVisible(this: icpm<GuiObject>): boolean;
+
+		/** Add or get the transform component. */
+		transformComponent(this: icpm<GuiObject>): TransformComponent;
 	}
 }
 export const Macros3: PropertyMacros<InstanceComponent<GuiObject>> = {
 	visibilityComponent: (selv) => selv.getComponent(VisibilityComponent),
 	show: (selv, key) => selv.setVisibleAndEnabled(true, key),
 	hide: (selv, key) => selv.setVisibleAndEnabled(false, key),
+	hideThenDestroy: (selv) => selv.visibilityComponent().hideThenDestroy(),
 	setVisibleAndEnabled: (selv, visible, key) => {
 		selv.setInstanceVisibility(visible, key);
 		selv.setEnabled(visible);
 	},
 	setInstanceVisibility: (selv, visible, key) => selv.visibilityComponent().setVisible(visible, key),
 	isInstanceVisible: (selv) => selv.visibilityComponent().isVisible(),
+
+	transformComponent: (selv) => selv.getComponent(TransformComponent),
 };
 
 declare module "engine/shared/component/InstanceComponent" {

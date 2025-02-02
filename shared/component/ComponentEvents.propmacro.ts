@@ -1,5 +1,6 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { JSON } from "engine/shared/fixes/Json";
+import type { ComponentTypes } from "engine/shared/component/Component";
 import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import type { EventHandler } from "engine/shared/event/EventHandler";
 import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
@@ -24,6 +25,9 @@ declare module "engine/shared/component/ComponentEvents" {
 
 		/** Register an event */
 		subscribeRegistration(func: () => SignalConnection | readonly SignalConnection[] | undefined): void;
+
+		/** Destroy the provided object on state destroy */
+		subscribeDestroyable(component: ComponentTypes.DestroyableComponent): void;
 
 		/** Register an event and call the callback function on enable or immediately */
 		subscribeImmediately<TArgs extends unknown[]>(
@@ -140,6 +144,10 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 				}
 			}
 		});
+	},
+
+	subscribeDestroyable: (selv: ComponentEvents, component: ComponentTypes.DestroyableComponent): void => {
+		selv.state.onDestroy(() => component.destroy());
 	},
 
 	subscribeImmediately: <TArgs extends unknown[]>(

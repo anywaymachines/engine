@@ -3,6 +3,7 @@ import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import { EventHandler } from "engine/shared/event/EventHandler";
 import { isReadonlyObservableValue, ObservableValue } from "engine/shared/event/ObservableValue";
+import { ArgsSignal } from "engine/shared/event/Signal";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import type { TransformBuilder, TransformProps } from "engine/shared/component/Transform";
@@ -38,11 +39,15 @@ class OrderedMap<T extends defined> {
 
 interface Effect<T> {
 	readonly key: ValueOverlayKey;
-	func?: <K extends T>(value: K) => T;
+	func?: <K extends T>(value: K) => T | undefined;
 }
 
 export type ValueOverlayKey = string | object | number;
-export type OverlaySubValue<T> = T | ReadonlyObservableValue<T> | ReadonlyObservableValue<ReadonlyObservableValue<T>>;
+export type OverlaySubValue<T> =
+	| T
+	| undefined
+	| ReadonlyObservableValue<T | undefined>
+	| ReadonlyObservableValue<ReadonlyObservableValue<T | undefined> | undefined>;
 
 export interface OverlayValueStorage<T> extends ReadonlyObservableValue<T> {}
 /** Storage for a single value that can be set from multiple places */
@@ -103,7 +108,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		let value = this.defaultComputingValue;
 		this.effectsOrdered.forEach((k, effect) => {
 			if (!effect?.func) return;
-			value = effect.func(value);
+			value = effect.func(value) ?? value;
 		});
 
 		return value;
@@ -114,7 +119,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	}
 	private sub(
 		key: ValueOverlayKey | undefined,
-		value: OverlaySubValue<T> | undefined,
+		value: OverlaySubValue<T>,
 		combineType: "or" | "and" | "overlay",
 		index: number | undefined,
 	) {
@@ -127,7 +132,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		};
 
 		const subChangesToObservable = () => {
-			const sub1 = (value: OverlaySubValue<T> | undefined) => {
+			const sub1 = (value: OverlaySubValue<T>) => {
 				eh.k1?.Disconnect();
 				eh.k1 = undefined;
 				eh.transforms1 = undefined;
@@ -144,7 +149,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 				sub2(value.get());
 			};
 
-			const sub2 = (value: OverlaySubValue<T> | undefined) => {
+			const sub2 = (value: OverlaySubValue<T>) => {
 				eh.k2?.Disconnect();
 				eh.k2 = undefined;
 				eh.transforms2 = undefined;
@@ -164,7 +169,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		};
 		subChangesToObservable();
 
-		const get = (): T => {
+		const get = (): T | undefined => {
 			if (!isReadonlyObservableValue(value)) return value;
 			if (isOverlayValueStorage(value)) value.update();
 
@@ -187,7 +192,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	}
 	private subEffect(
 		key: ValueOverlayKey | undefined,
-		func: ((value: T) => T) | undefined,
+		func: ((value: T) => T | undefined) | undefined,
 		index: number | undefined,
 	) {
 		key ??= "mainkey#_$1";
@@ -207,7 +212,10 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 	addChildOverlay(value: OverlaySubValue<T>): OverlayValueStorage<T> {
 		const ovv = new OverlayValueStorage(this.defaultValue, this.defaultComputingValue);
 		ovv.overlay(undefined, value);
-		this.overlay({}, ovv);
+
+		const key = {};
+		this.overlay(key, ovv);
+		ovv.onDestroy.Connect(() => this.overlay(key, undefined));
 
 		return ovv;
 	}
@@ -247,31 +255,6 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		return tr;
 	}
 
-	/*
-	export function transitionBetweenObservables<K extends defined, T>(
-		event: ComponentEvents,
-		value: ReadonlyObservableValue<K>,
-		observables: ReadonlyMap<K, ReadonlyObservableValue<T>>,
-		props: TransformProps,
-	): ObservableValue<T> {
-		const ret = new ObservableValue<T>(observables.get(value.get())!.get());
-
-		const eh = new EventHandler();
-		event.state.onDisable(() => eh.unsubscribeAll());
-		event.subscribeObservable(value, (value) => {
-			eh.unsubscribeAll();
-
-			const ov = observables.get(value)!;
-			Transforms.create()
-				.transformObservable(ret, ov, props)
-				.then()
-				.func(() => eh.register(ov.subscribe((v) => ret.set(v))))
-				.run(ret, true);
-		});
-
-		return ret;
-	}
-	*/
 	addTransitionBetweenBoolObservables(
 		event: ComponentEvents,
 		value: ReadonlyObservableValue<boolean>,
@@ -304,19 +287,20 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		this.overlay({}, create());
 	}
 
-	overlay(key: ValueOverlayKey | undefined, value: OverlaySubValue<T> | undefined, index?: number): void {
+	overlay(key: ValueOverlayKey | undefined, value: OverlaySubValue<T>, index?: number): void {
 		this.sub(key, value, "overlay", index);
 	}
-	or(key: ValueOverlayKey | undefined, value: OverlaySubValue<T> | undefined, index?: number): void {
+	or(key: ValueOverlayKey | undefined, value: OverlaySubValue<T>, index?: number): void {
 		this.sub(key, value, "or", index);
 	}
-	and(key: ValueOverlayKey | undefined, value: OverlaySubValue<T> | undefined, index?: number): void {
+	and(key: ValueOverlayKey | undefined, value: OverlaySubValue<T>, index?: number): void {
 		this.sub(key, value, "and", index);
 	}
 	effect(key: ValueOverlayKey | undefined, func: ((value: T) => T) | undefined, index?: number): void {
 		this.subEffect(key, func, index);
 	}
 
+	private readonly onDestroy = new ArgsSignal();
 	destroy(): void {
 		this.transforms.destroy();
 
@@ -328,5 +312,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 			}
 		}
 		this.eventHandlers.clear();
+
+		this.onDestroy.Fire();
 	}
 }

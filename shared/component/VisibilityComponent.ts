@@ -2,7 +2,7 @@ import { Transforms } from "engine/shared/component/Transforms";
 import { TransformService } from "engine/shared/component/TransformService";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { InstanceComponent } from "engine/shared/component/InstanceComponent";
-import type { ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
+import type { OverlayValueStorage, ValueOverlayKey } from "engine/shared/component/OverlayValueStorage";
 import type { TransformBuilder } from "engine/shared/component/Transform";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
@@ -15,7 +15,10 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 		this.visible = component.valuesComponent().get("Visible");
 		this.visible.setDefaultComputingValue(true);
 
-		this.visible.addTransform((value) => {
+		this.visible.addTransform((value, observable) => {
+			// immediately set the value for any dependent values to update first
+			observable.set(value);
+
 			if (!value) return Transforms.create();
 			return Transforms.create().show(this.instance);
 		});
@@ -27,6 +30,11 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 
 	waitForTransform(): TransformBuilder {
 		return this.visible.waitForTransforms();
+	}
+	hideThenDestroy() {
+		this.component.disable();
+		this.hide();
+		this.waitForTransformThenDestroy();
 	}
 	waitForTransformThenDestroy() {
 		this.waitForTransform()
@@ -46,6 +54,9 @@ export class VisibilityComponent implements ComponentTypes.DestroyableComponent 
 
 			return transform();
 		});
+	}
+	addWaitForTransform(values: OverlayValueStorage<unknown>): void {
+		this.addTransformFunc(() => values.waitForTransforms());
 	}
 
 	isVisible(): boolean {

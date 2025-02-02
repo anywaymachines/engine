@@ -1,3 +1,4 @@
+import { EventHandler } from "engine/shared/event/EventHandler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { Signal } from "engine/shared/event/Signal";
 import type { DisconnectableObservableCreation } from "engine/shared/event/Observables";
@@ -52,6 +53,45 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 	},
 
 	not: (selv) => selv.createBased((v) => !v),
+};
+
+declare module "engine/shared/event/ObservableValue" {
+	interface ReadonlyObservableValue<T> {
+		/** Has true value if any of the obsevables in the provided collection have a true value */
+		createBasedAnyDC<Item extends T extends readonly (infer I)[] ? I : never>(
+			this: ReadonlyObservableValue<readonly Item[]>,
+			func: (value: Item) => ReadonlyObservableValue<boolean>,
+		): DisconnectableObservableCreation<boolean>;
+	}
+}
+export const ReadonlyObservableValueArrayMacros: PropertyMacros<ReadonlyObservableValue<readonly defined[]>> = {
+	createBasedAnyDC: <Item extends defined>(
+		selv: ReadonlyObservableValue<readonly Item[]>,
+		func: (value: Item) => ReadonlyObservableValue<boolean>,
+	): DisconnectableObservableCreation<boolean> => {
+		const eh = new EventHandler();
+
+		const resub = (): void => {
+			eh.unsubscribeAll();
+
+			for (const item of selv.get()) {
+				const ov = func(item);
+				eh.register(ov.subscribe(() => observable.set(calculate())));
+			}
+
+			observable.set(calculate());
+		};
+
+		const calculate = (): boolean => selv.get().any((v) => func(v).get());
+		const observable = new ObservableValue<boolean>(calculate());
+
+		const reg = (): SignalConnection => {
+			resub();
+			return Signal.connection(() => eh.unsubscribeAll());
+		};
+
+		return { observable, reg };
+	},
 };
 
 declare module "engine/shared/event/ObservableValue" {
