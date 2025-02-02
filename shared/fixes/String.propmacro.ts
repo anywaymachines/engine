@@ -86,18 +86,4 @@ export namespace Strings {
 
 		return `${integerstr}.${floatingstr}`;
 	}
-
-	export function pathOf(instance: Instance): string[] {
-		const ret: string[] = [];
-
-		let parent: Instance | undefined = instance;
-		while (parent) {
-			if (parent === game) break;
-
-			ret.unshift(parent.Name);
-			parent = parent.Parent;
-		}
-
-		return ret;
-	}
 }
