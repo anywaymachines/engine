@@ -12,32 +12,17 @@ declare module "engine/shared/event/ObservableValue" {
 	interface ReadonlyObservableValue<T> {
 		subscribe(func: (value: T, prev: T) => void, executeImmediately?: boolean): SignalConnection;
 
+		/** @deprecated Use {@link createBasedDC} instead */
 		createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
-		createBasedDisconnectable<TNew>(
-			func: (value: T) => TNew,
-		): LuaTuple<[ReadonlyObservableValue<TNew>, SignalConnection]>;
+		createBasedDC<U>(func: (value: T) => U): DisconnectableObservableCreation<U>;
+
+		withDefault<U>(value: U): DisconnectableObservableCreation<(T & defined) | U>;
 
 		/** Creates a new ObservableValue that always has the opposite value. */
 		not(this: ReadonlyObservableValue<boolean>): ReadonlyObservableValue<boolean>;
 	}
 }
 export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableValue<unknown>> = {
-	createBased: <T, TNew>(
-		selv: ReadonlyObservableValue<T>,
-		func: (value: T) => TNew,
-	): ReadonlyObservableValue<TNew> => {
-		return selv.createBasedDisconnectable(func)[0];
-	},
-	createBasedDisconnectable: <T, TNew>(
-		selv: ReadonlyObservableValue<T>,
-		func: (value: T) => TNew,
-	): LuaTuple<[ReadonlyObservableValue<TNew>, SignalConnection]> => {
-		const observable = new ObservableValue<TNew>(func(selv.get()));
-		const connection = selv.subscribe((value) => observable.set(func(value)));
-
-		return $tuple(observable, connection);
-	},
-
 	subscribe: <T>(
 		selv: ReadonlyObservableValue<T>,
 		func: (value: T, prev: T) => void,
@@ -50,6 +35,32 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 		}
 
 		return sub;
+	},
+
+	createBased: <T, TNew>(
+		selv: ReadonlyObservableValue<T>,
+		func: (value: T) => TNew,
+	): ReadonlyObservableValue<TNew> => {
+		const { observable, reg } = selv.createBasedDC(func);
+		reg();
+
+		return observable;
+	},
+	createBasedDC: <T, U>(
+		selv: ReadonlyObservableValue<T>,
+		func: (value: T) => U,
+	): DisconnectableObservableCreation<U> => {
+		const observable = new ObservableValue<U>(func(selv.get()));
+		const reg = () => selv.subscribe((value) => observable.set(func(value)), true);
+
+		return { observable, reg };
+	},
+
+	withDefault: <T, U>(
+		selv: ReadonlyObservableValue<T>,
+		defaultValue: U,
+	): DisconnectableObservableCreation<(T & defined) | U> => {
+		return selv.createBasedDC((value) => value ?? defaultValue);
 	},
 
 	not: (selv) => selv.createBased((v) => !v),
@@ -98,8 +109,8 @@ declare module "engine/shared/event/ObservableValue" {
 	interface ObservableValue<T> {
 		asReadonly(): ReadonlyObservableValue<T>;
 		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
+
 		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
-		withDefaultDC(value: () => T & defined): DisconnectableObservableCreation<T & defined>;
 
 		toggle(this: ObservableValue<boolean>): boolean;
 
@@ -133,20 +144,6 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		selv.subscribe((value) => observable.set(value));
 
 		return observable;
-	},
-
-	withDefaultDC: <T>(
-		selv: ObservableValue<T>,
-		valueFunc: () => T & defined,
-	): DisconnectableObservableCreation<T & defined> => {
-		const observable = new ObservableValue<T & defined>(selv.get() ?? valueFunc());
-		const reg = () =>
-			Signal.multiConnection(
-				observable.subscribe((value) => selv.set(value)),
-				selv.subscribe((value) => observable.set(value ?? valueFunc())),
-			);
-
-		return { observable, reg };
 	},
 
 	connect: <T>(selv: ObservableValue<T>, other: ObservableValue<T>): SignalConnection => {

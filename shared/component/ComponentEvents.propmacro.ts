@@ -93,12 +93,6 @@ declare module "engine/shared/component/ComponentEvents" {
 		/** Create an `ObservableValue` from an `Instance` attribute, using JSON.ts */
 		observableFromAttributeJson<TType>(instance: Instance, name: string): ObservableValue<TType | undefined>;
 
-		/** Create an `ObservableValue` based on another's value, delete on events deletion. */
-		createBasedObservable<T1, T2>(
-			source: ReadonlyObservableValue<T1>,
-			func: (value: T1) => T2,
-		): ObservableValue<T2>;
-
 		/** Subscribe an `ObservableValue` based on multiple others. */
 		addObservable<T>(creation: DisconnectableObservableCreation<T>): ObservableValue<T>;
 		addObservable<T>(creation: DisconnectableReadonlyObservableCreation<T>): ReadonlyObservableValue<T>;
@@ -294,16 +288,6 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 		return observable;
 	},
 
-	createBasedObservable: <T1, T2>(
-		selv: ComponentEvents,
-		source: ReadonlyObservableValue<T1>,
-		func: (value: T1) => T2,
-	): ObservableValue<T2> => {
-		const result = new ObservableValue<T2>(func(source.get()));
-		selv.subscribeRegistration(() => source.subscribe((value) => result.set(func(value))));
-
-		return result;
-	},
 	addObservable: <T>(
 		selv: ComponentEvents,
 		{ observable, reg }: DisconnectableReadonlyObservableCreation<T>,

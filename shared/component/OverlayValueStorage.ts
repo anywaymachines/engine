@@ -266,7 +266,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 			const ret = new ObservableValue<T>(value.get() ? otrue.get() : ofalse.get());
 
 			const eh = new EventHandler();
-			event.state.onDisable(() => eh.unsubscribeAll());
+			// event.state.onDisable(() => eh.unsubscribeAll());
 
 			const update = (props: TransformProps | undefined) => {
 				eh.unsubscribeAll();
