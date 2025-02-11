@@ -38,6 +38,10 @@ class ComponentState {
 			if (!enabled) return;
 			func();
 		});
+
+		if (this.isEnabled()) {
+			func();
+		}
 	}
 	onDisable(func: () => void): void {
 		this.enabledState.subscribe((enabled) => {
