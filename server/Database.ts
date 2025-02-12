@@ -1,23 +1,20 @@
-import { DataStoreDatabaseBackend } from "engine/server/backend/DataStoreDatabaseBackend";
-import { InMemoryDatabaseBackend } from "engine/server/backend/InMemoryDatabaseBackend";
+import { formatDatabaseBackendKeys } from "engine/server/backend/DatabaseBackend";
 import { Objects } from "engine/shared/fixes/Objects";
 import { Throttler } from "engine/shared/Throttler";
 import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
-interface DbStoredValue<T> {
+interface DbStoredValue<T, TKeys extends defined[]> {
+	keys: TKeys;
 	value: T;
 	changed: boolean;
 	lastAccessedTime: number;
 	lastSaveTime: number;
 }
-abstract class DbBase<T> {
-	private readonly datastore: DatabaseBackend;
-	private readonly cache: { [k in string]: DbStoredValue<T> } = {};
+abstract class DbBase<T, TKeys extends defined[]> {
+	private readonly cache: { [k in string]: DbStoredValue<T, TKeys> } = {};
 	private readonly currentlyLoading: Record<string, Promise<T>> = {};
 
-	constructor(datastore: DatabaseBackend) {
-		this.datastore = datastore;
-
+	constructor(private readonly datastore: DatabaseBackend<TKeys>) {
 		game.BindToClose(() => {
 			$log("Game termination detected");
 
@@ -41,14 +38,14 @@ abstract class DbBase<T> {
 					if (item.lastAccessedTime < freeTimeCutoff) {
 						$debug(`Freeing db ${this} key ${key} after ${freeTimeoutSec} sec of inactivity`);
 
-						this.save(key);
-						this.free(key);
+						this.save(item.keys, key);
+						this.free(item.keys, key);
 						continue;
 					}
 
 					if (item.lastSaveTime < saveTimeCutoff) {
 						$debug(`Auto-saving db ${this} key ${key} after ${saveTimeoutSec} sec`);
-						this.save(key);
+						this.save(item.keys, key);
 					}
 				}
 			}
@@ -59,36 +56,38 @@ abstract class DbBase<T> {
 	protected abstract deserialize(data: string): T;
 	protected abstract serialize(data: T): string | undefined;
 
-	get(key: string): T {
-		if (key in this.cache) {
-			const value = this.cache[key];
+	get(keys: TKeys): T {
+		const strkey = formatDatabaseBackendKeys(keys);
+		if (strkey in this.cache) {
+			const value = this.cache[strkey];
 			value.lastAccessedTime = os.time();
 
 			return value.value;
 		}
 
-		if (key in this.currentlyLoading) {
-			return Objects.awaitThrow(this.currentlyLoading[key]);
+		if (strkey in this.currentlyLoading) {
+			return Objects.awaitThrow(this.currentlyLoading[strkey]);
 		}
 
 		let res: (value: T) => void = undefined!;
 		const promise = new Promise<T>((resolve) => (res = resolve));
-		this.currentlyLoading[key] = promise;
+		this.currentlyLoading[strkey] = promise;
 
 		try {
-			const loaded = this.load(key);
-			this.cache[key] = loaded;
+			const loaded = this.load(keys, strkey);
+			this.cache[strkey] = loaded;
 			res(loaded.value);
 
 			return loaded.value;
 		} finally {
-			delete this.currentlyLoading[key];
+			delete this.currentlyLoading[strkey];
 		}
 	}
 
-	set(key: string, value: T) {
+	set(keys: TKeys, value: T) {
 		const time = os.time();
-		this.cache[key] = {
+		this.cache[formatDatabaseBackendKeys(keys)] = {
+			keys,
 			changed: true,
 			lastAccessedTime: time,
 			value,
@@ -96,13 +95,14 @@ abstract class DbBase<T> {
 		};
 	}
 
-	private load(key: string): DbStoredValue<T> {
-		const req = Throttler.retryOnFail<string | undefined>(10, 1, () => this.datastore!.GetAsync<string>(key));
+	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
+		const req = Throttler.retryOnFail<string | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
 
 		if (req.success) {
 			if (req.message !== undefined) {
 				const time = os.time();
-				return (this.cache[key] = {
+				return (this.cache[strkey] = {
+					keys,
 					value: this.deserialize(req.message),
 					changed: false,
 					lastAccessedTime: time,
@@ -115,6 +115,7 @@ abstract class DbBase<T> {
 
 		const time = os.time();
 		return {
+			keys,
 			value: this.createDefault(),
 			changed: false,
 			lastAccessedTime: time,
@@ -127,8 +128,8 @@ abstract class DbBase<T> {
 	}
 
 	/** Removes an entry from the cache */
-	free(key: string) {
-		delete this.cache[key];
+	free(keys: TKeys, key?: string) {
+		delete this.cache[key ?? formatDatabaseBackendKeys(keys)];
 	}
 
 	/** Clears tha cache */
@@ -139,8 +140,10 @@ abstract class DbBase<T> {
 	}
 
 	/** Saves an entry if it's not changed */
-	save(key: string) {
-		const value = this.cache[key];
+	save(keys: TKeys, strkey?: string) {
+		strkey ??= formatDatabaseBackendKeys(keys);
+
+		const value = this.cache[strkey];
 		if (!value) return;
 
 		value.lastSaveTime = os.time();
@@ -149,42 +152,27 @@ abstract class DbBase<T> {
 		// delay between saves?
 		value.changed = false;
 
-		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(key, this.serialize(value.value)));
+		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(this.serialize(value.value), keys));
 		if (!req.success) {
 			$err(req.error_message);
 		}
 	}
 
 	saveChanged() {
-		for (const [key] of pairs(this.cache)) {
-			this.save(key);
+		for (const [key, { keys }] of pairs(this.cache)) {
+			this.save(keys, key);
 		}
 	}
 }
 
-export class Db<T> extends DbBase<T> {
-	static createStore(name: string): DatabaseBackend {
-		const ds = DataStoreDatabaseBackend.tryCreate(name);
-		if (ds) return ds;
-
-		warn(`Place datastore ${name} is not available. Data will be stored in-memory.`);
-		return new InMemoryDatabaseBackend();
-	}
-
-	private readonly createDefaultFunc;
-	private readonly serializeFunc;
-	private readonly deserializeFunc;
-
+export class Db<T, TKeys extends defined[]> extends DbBase<T, TKeys> {
 	constructor(
-		datastore: DatabaseBackend,
-		createDefaultFunc: () => T,
-		serializeFunc: (data: T) => string | undefined,
-		deserializeFunc: (data: string) => T,
+		datastore: DatabaseBackend<TKeys>,
+		private readonly createDefaultFunc: () => T,
+		private readonly serializeFunc: (data: T) => string | undefined,
+		private readonly deserializeFunc: (data: string) => T,
 	) {
 		super(datastore);
-		this.createDefaultFunc = createDefaultFunc;
-		this.serializeFunc = serializeFunc;
-		this.deserializeFunc = deserializeFunc;
 	}
 
 	protected createDefault(): T {

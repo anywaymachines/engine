@@ -1,15 +1,16 @@
+import { formatDatabaseBackendKeys } from "engine/server/backend/DatabaseBackend";
 import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
-export class InMemoryDatabaseBackend implements DatabaseBackend {
-	private readonly data = new Map<string, unknown>();
+export class InMemoryDatabaseBackend implements DatabaseBackend<defined[]> {
+	private readonly data = new Map<string, string>();
 
-	GetAsync<T>(key: string): T | undefined {
-		return this.data.get(key) as T;
+	GetAsync(args: readonly defined[]): string | undefined {
+		return this.data.get(formatDatabaseBackendKeys(args));
 	}
-	SetAsync(key: string, value?: unknown): void {
-		this.data.set(key, value);
+	SetAsync(value: string | undefined, args: readonly defined[]): void {
+		this.data.set(formatDatabaseBackendKeys(args), value!);
 	}
-	RemoveAsync(key: string): void {
-		this.data.delete(key);
+	RemoveAsync(args: readonly defined[]): void {
+		this.data.delete(formatDatabaseBackendKeys(args));
 	}
 }

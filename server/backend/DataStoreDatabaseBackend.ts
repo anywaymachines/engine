@@ -1,10 +1,11 @@
 import { DataStoreService } from "@rbxts/services";
+import { formatDatabaseBackendKeys } from "engine/server/backend/DatabaseBackend";
 import { Element } from "engine/shared/Element";
 import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
 const getOptions = Element.create("DataStoreGetOptions", { UseCache: false });
 
-export class DataStoreDatabaseBackend implements DatabaseBackend {
+export class DataStoreDatabaseBackend implements DatabaseBackend<defined[]> {
 	static tryCreate(name: string): DataStoreDatabaseBackend | undefined {
 		try {
 			return new DataStoreDatabaseBackend(DataStoreService.GetDataStore(name));
@@ -15,13 +16,13 @@ export class DataStoreDatabaseBackend implements DatabaseBackend {
 
 	constructor(private readonly dataStore: DataStore) {}
 
-	GetAsync<T>(key: string): T | undefined {
-		return this.dataStore.GetAsync<T>(key, getOptions)[0];
+	GetAsync(keys: defined[]): string | undefined {
+		return this.dataStore.GetAsync<string>(formatDatabaseBackendKeys(keys), getOptions)[0];
 	}
-	SetAsync(key: string, value?: unknown): void {
-		this.dataStore.SetAsync(key, value);
+	SetAsync(value: string | undefined, keys: defined[]): void {
+		this.dataStore.SetAsync(formatDatabaseBackendKeys(keys), value);
 	}
-	RemoveAsync(key: string): void {
-		this.dataStore.RemoveAsync(key);
+	RemoveAsync(keys: defined[]): void {
+		this.dataStore.RemoveAsync(formatDatabaseBackendKeys(keys));
 	}
 }
