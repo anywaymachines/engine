@@ -14,7 +14,7 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	private readonly cache: { [k in string]: DbStoredValue<T, TKeys> } = {};
 	private readonly currentlyLoading: Record<string, Promise<T>> = {};
 
-	constructor(private readonly datastore: DatabaseBackend<TKeys>) {
+	constructor(private readonly datastore: DatabaseBackend<T, TKeys>) {
 		game.BindToClose(() => {
 			$log("Game termination detected");
 
@@ -53,8 +53,6 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	}
 
 	protected abstract createDefault(): T;
-	protected abstract deserialize(data: string): T;
-	protected abstract serialize(data: T): string | undefined;
 
 	get(keys: TKeys): T {
 		const strkey = formatDatabaseBackendKeys(keys);
@@ -96,14 +94,14 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	}
 
 	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
-		const req = Throttler.retryOnFail<string | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
+		const req = Throttler.retryOnFail<T | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
 
 		if (req.success) {
 			if (req.message !== undefined) {
 				const time = os.time();
 				return (this.cache[strkey] = {
 					keys,
-					value: this.deserialize(req.message),
+					value: req.message,
 					changed: false,
 					lastAccessedTime: time,
 					lastSaveTime: time,
@@ -152,7 +150,7 @@ abstract class DbBase<T, TKeys extends defined[]> {
 		// delay between saves?
 		value.changed = false;
 
-		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(this.serialize(value.value), keys));
+		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(value.value, keys));
 		if (!req.success) {
 			$err(req.error_message);
 		}
@@ -167,23 +165,13 @@ abstract class DbBase<T, TKeys extends defined[]> {
 
 export class Db<T, TKeys extends defined[]> extends DbBase<T, TKeys> {
 	constructor(
-		datastore: DatabaseBackend<TKeys>,
+		datastore: DatabaseBackend<T, TKeys>,
 		private readonly createDefaultFunc: () => T,
-		private readonly serializeFunc: (data: T) => string | undefined,
-		private readonly deserializeFunc: (data: string) => T,
 	) {
 		super(datastore);
 	}
 
 	protected createDefault(): T {
 		return this.createDefaultFunc();
-	}
-
-	protected deserialize(data: string): T {
-		return this.deserializeFunc(data);
-	}
-
-	protected serialize(data: T): string | undefined {
-		return this.serializeFunc(data);
 	}
 }
