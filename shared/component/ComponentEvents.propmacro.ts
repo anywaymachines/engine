@@ -3,11 +3,11 @@ import { JSON } from "engine/shared/fixes/Json";
 import type { ComponentTypes } from "engine/shared/component/Component";
 import type { ComponentEvents } from "engine/shared/component/ComponentEvents";
 import type { EventHandler } from "engine/shared/event/EventHandler";
-import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
 import type {
-	DisconnectableObservableCreation,
-	DisconnectableReadonlyObservableCreation,
-} from "engine/shared/event/Observables";
+	FakeObservableValue,
+	ReadonlyFakeObservableValue,
+} from "engine/shared/event/FakeObservableValue.propmacro";
+import type { CollectionChangedArgs, ReadonlyObservableCollection } from "engine/shared/event/ObservableCollection";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -27,7 +27,7 @@ declare module "engine/shared/component/ComponentEvents" {
 		subscribeRegistration(func: () => SignalConnection | readonly SignalConnection[] | undefined): void;
 
 		/** Destroy the provided object on state destroy */
-		subscribeDestroyable(component: ComponentTypes.DestroyableComponent): void;
+		subscribeDestroyable<T extends ComponentTypes.DestroyableComponent>(component: T): T;
 
 		/** Register an event and call the callback function on enable or immediately */
 		subscribeImmediately<TArgs extends unknown[]>(
@@ -39,6 +39,14 @@ declare module "engine/shared/component/ComponentEvents" {
 
 		/** Subscribe to an observable value changed event */
 		subscribeObservable<T>(
+			observable: ReadonlyObservableValue<T>,
+			callback: (value: T) => void,
+			executeOnEnable?: boolean,
+			executeImmediately?: boolean,
+		): void;
+
+		/** Subscribe to an observable value changed event, with the previous value argument */
+		subscribeObservablePrev<T>(
 			observable: ReadonlyObservableValue<T>,
 			callback: (value: T, prev: T) => void,
 			executeOnEnable?: boolean,
@@ -93,9 +101,10 @@ declare module "engine/shared/component/ComponentEvents" {
 		/** Create an `ObservableValue` from an `Instance` attribute, using JSON.ts */
 		observableFromAttributeJson<TType>(instance: Instance, name: string): ObservableValue<TType | undefined>;
 
-		/** Subscribe an `ObservableValue` based on multiple others. */
-		addObservable<T>(creation: DisconnectableObservableCreation<T>): ObservableValue<T>;
-		addObservable<T>(creation: DisconnectableReadonlyObservableCreation<T>): ReadonlyObservableValue<T>;
+		/** Susbcribe to destroy the fake observable on component destroy. */
+		addObservable<T>(creation: FakeObservableValue<T>): ObservableValue<T>;
+		/** Susbcribe to destroy the fake observable on component destroy. */
+		addObservable<T>(creation: ReadonlyFakeObservableValue<T>): ReadonlyObservableValue<T>;
 
 		/** Create an infinite loop that would only loop when this event holder is enabled */
 		loop(interval: number, func: (dt: number) => void): SignalConnection;
@@ -140,8 +149,9 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 		});
 	},
 
-	subscribeDestroyable: (selv: ComponentEvents, component: ComponentTypes.DestroyableComponent): void => {
+	subscribeDestroyable: <T extends ComponentTypes.DestroyableComponent>(selv: ComponentEvents, component: T): T => {
 		selv.state.onDestroy(() => component.destroy());
+		return component;
 	},
 
 	subscribeImmediately: <TArgs extends unknown[]>(
@@ -165,13 +175,33 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 	subscribeObservable: <T>(
 		selv: ComponentEvents,
 		observable: ReadonlyObservableValue<T>,
-		callback: (value: T, prev: T) => void,
+		callback: (value: T) => void,
 		executeOnEnable = false,
 		executeImmediately = false,
 	): void => {
 		selv.subscribe(observable.changed, callback);
 		if (executeOnEnable) {
-			selv.onEnable(() => callback(observable.get(), observable.get()), executeImmediately);
+			selv.onEnable(() => callback(observable.get()));
+		}
+		if (executeImmediately) {
+			callback(observable.get());
+		}
+	},
+
+	subscribeObservablePrev: <T>(
+		selv: ComponentEvents,
+		observable: ReadonlyObservableValue<T>,
+		callback: (value: T, prev: T) => void,
+		executeOnEnable = false,
+		executeImmediately = false,
+	): void => {
+		selv.subscribeRegistration(() => observable.subscribePrev(callback));
+
+		if (executeOnEnable) {
+			selv.onEnable(() => callback(observable.get(), observable.get()));
+		}
+		if (executeImmediately) {
+			callback(observable.get(), observable.get());
 		}
 	},
 
@@ -288,12 +318,8 @@ export const ComponentEvents2Macros: PropertyMacros<ComponentEvents> = {
 		return observable;
 	},
 
-	addObservable: <T>(
-		selv: ComponentEvents,
-		{ observable, reg }: DisconnectableReadonlyObservableCreation<T>,
-	): ReadonlyObservableValue<T> => {
-		selv.subscribeRegistration(reg);
-		return observable;
+	addObservable: <T>(selv: ComponentEvents, data: ReadonlyFakeObservableValue<T>): ReadonlyObservableValue<T> => {
+		return selv.subscribeDestroyable(data);
 	},
 
 	loop: (selv: ComponentEvents, interval: number, func: (dt: number) => void): SignalConnection => {

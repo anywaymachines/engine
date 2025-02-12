@@ -1,7 +1,7 @@
 import { Signal } from "engine/shared/event/Signal";
 
-export interface ReadonlyObservableValueBase<T> {
-	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
+export interface ReadonlyObservableValueBase<out T> {
+	readonly changed: ReadonlyArgsSignal<[value: T]>;
 
 	get(): T;
 }
@@ -17,7 +17,7 @@ export const isReadonlyObservableValue = (v: unknown): v is ReadonlyObservableVa
 	typeIs(v, "table") && "get" in v && "changed" in v;
 
 class _ObservableValue<T> implements ObservableValueBase<T> {
-	readonly changed = new Signal<(value: T, prev: T) => void>();
+	readonly changed = new Signal<(value: T) => void>();
 	private value: T;
 	private readonly _middleware?: (value: T) => T;
 
@@ -32,10 +32,9 @@ class _ObservableValue<T> implements ObservableValueBase<T> {
 		}
 
 		if (this.value === value) return;
-		const prev = this.get();
 
 		this.value = value;
-		this.changed.Fire(value, prev);
+		this.changed.Fire(value);
 	}
 
 	get() {

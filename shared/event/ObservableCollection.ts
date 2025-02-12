@@ -1,5 +1,9 @@
 import { ArgsSignal } from "engine/shared/event/Signal";
-import type { ReadonlyObservableValue, ReadonlyObservableValueBase } from "engine/shared/event/ObservableValue";
+import type {
+	ObservableValue,
+	ObservableValueBase,
+	ReadonlyObservableValue,
+} from "engine/shared/event/ObservableValue";
 
 export type CollectionChangedArgs<T> =
 	| { readonly kind: "add"; readonly added: readonly T[] }
@@ -67,15 +71,19 @@ abstract class ObservableCollectionBase<T extends defined> implements ReadonlyOb
 		this._changed.Fire({ kind: "clear" });
 	}
 
+	destroy(): void {
+		this._changed.destroy();
+	}
+
 	asReadonly(): ReadonlyObservableCollection<T> {
 		return this;
 	}
 }
 
-export interface ObservableCollectionArr<T extends defined> extends ReadonlyObservableValue<readonly T[]> {}
+export interface ObservableCollectionArr<T extends defined> extends ObservableValue<readonly T[]> {}
 export class ObservableCollectionArr<T extends defined>
 	extends ObservableCollectionBase<T>
-	implements ReadonlyObservableCollectionArr<T>, ReadonlyObservableValueBase<readonly T[]>
+	implements ReadonlyObservableCollectionArr<T>, ObservableValueBase<readonly T[]>
 {
 	readonly changed;
 	private readonly items: T[] = [];
@@ -84,12 +92,9 @@ export class ObservableCollectionArr<T extends defined>
 		super();
 		this.items = [...items];
 
-		const changed = new ArgsSignal<[value: readonly T[], prev: readonly T[]]>();
+		const changed = new ArgsSignal<[value: readonly T[]]>();
 		this.changed = changed.asReadonly();
-		this.collectionChanged.Connect(() => {
-			const items = this.get();
-			changed.Fire(items, items);
-		});
+		this.collectionChanged.Connect(() => changed.Fire(this.get()));
 	}
 
 	get(): readonly T[] {
@@ -97,6 +102,12 @@ export class ObservableCollectionArr<T extends defined>
 	}
 	getArr(): readonly T[] {
 		return this.get();
+	}
+
+	/** Clear the collection and add the provided items. For compatibility with ObservableValue. */
+	set(items: readonly T[]): void {
+		this.clear();
+		this.add(...items);
 	}
 
 	size(): number {
@@ -140,10 +151,10 @@ export class ObservableCollectionArr<T extends defined>
 	}
 }
 
-export interface ObservableCollectionSet<T extends defined> extends ReadonlyObservableValue<ReadonlySet<T>> {}
+export interface ObservableCollectionSet<T extends defined> extends ObservableValue<ReadonlySet<T>> {}
 export class ObservableCollectionSet<T extends defined>
 	extends ObservableCollectionBase<T>
-	implements ReadonlyObservableCollectionSet<T>, ReadonlyObservableValueBase<ReadonlySet<T>>
+	implements ReadonlyObservableCollectionSet<T>, ObservableValueBase<ReadonlySet<T>>
 {
 	readonly changed;
 	private readonly items: Set<T>;
@@ -152,12 +163,9 @@ export class ObservableCollectionSet<T extends defined>
 		super();
 		this.items = new Set<T>(items);
 
-		const changed = new ArgsSignal<[value: ReadonlySet<T>, prev: ReadonlySet<T>]>();
+		const changed = new ArgsSignal<[value: ReadonlySet<T>]>();
 		this.changed = changed.asReadonly();
-		this.collectionChanged.Connect(() => {
-			const items = this.get();
-			changed.Fire(items, items);
-		});
+		this.collectionChanged.Connect(() => changed.Fire(this.get()));
 	}
 
 	get(): ReadonlySet<T> {
@@ -165,6 +173,12 @@ export class ObservableCollectionSet<T extends defined>
 	}
 	getArr(): readonly T[] {
 		return [...this.get()];
+	}
+
+	/** Clear the collection and add the provided items. For compatibility with ObservableValue. */
+	set(items: ReadonlySet<T>): void {
+		this.clear();
+		this.add(...items);
 	}
 
 	size(): number {

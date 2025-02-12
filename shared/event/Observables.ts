@@ -1,32 +1,34 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
-import { Signal } from "engine/shared/event/Signal";
+import { ArgsSignal, Signal } from "engine/shared/event/Signal";
 import { Objects } from "engine/shared/fixes/Objects";
-import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
-import type { SignalReadonlySubmittableValue } from "engine/shared/event/SubmittableValue";
-
-type Reg = () => SignalConnection;
-
-export interface DisconnectableReadonlyObservableCreation<T> {
-	readonly observable: ReadonlyObservableValue<T>;
-	readonly reg: Reg;
-}
-export interface DisconnectableObservableCreation<T> {
-	readonly observable: ObservableValue<T>;
-	readonly reg: Reg;
-}
+import type { FakeObservableValue } from "engine/shared/event/FakeObservableValue.propmacro";
 
 export namespace Observables {
-	function multiReg(regs: readonly Reg[]): Reg {
-		return () => Signal.multiConnection(...regs.map((r) => r()));
+	type MultiValues<T, K extends string | number | symbol = string> = { readonly [k in K]: T };
+
+	interface DestoyableOV<T> extends ObservableValue<T>, FakeObservableValue<T> {}
+	class DestoyableOV<T> extends ObservableValue<T> {
+		private readonly destroyed = new ArgsSignal();
+
+		onDestroy(func: () => void): void {
+			this.destroyed.Connect(func);
+		}
+
+		destroy(): void {
+			this.destroyed.Fire();
+			super.destroy();
+		}
 	}
+
+	//
 
 	export function createObservableSwitch<T extends string>(sources: {
 		readonly [k in T]: ObservableValue<boolean>;
-	}): DisconnectableObservableCreation<T> {
-		const result = new ObservableValue<T>(firstKey(sources)!);
-		const regs: Reg[] = [];
+	}): FakeObservableValue<T> {
+		const result = new DestoyableOV<T>(firstKey(sources)!);
+		const subs: SignalConnection[] = [];
 
-		regs.push(() =>
+		subs.push(
 			result.subscribe((value) => {
 				for (const [k, v] of pairs(sources)) {
 					v.set(k === value);
@@ -35,7 +37,7 @@ export namespace Observables {
 		);
 
 		for (const [k, v] of pairs(sources)) {
-			regs.push(() =>
+			subs.push(
 				v.subscribe((value) => {
 					if (!value) return;
 					result.set(k);
@@ -43,13 +45,17 @@ export namespace Observables {
 			);
 		}
 
-		return { observable: result, reg: multiReg(regs) };
+		result.onDestroy(() => {
+			for (const sub of subs) {
+				sub.Disconnect();
+			}
+		});
+		return result;
 	}
-
 	export function createObservableSwitchFromObject<TObj extends object, T extends string>(
 		object: ObservableValue<TObj>,
 		sources: { readonly [k in T]: PartialThrough<TObj> },
-	): DisconnectableObservableCreation<T> {
+	): FakeObservableValue<T> {
 		return createObservableSwitch(
 			Objects.mapValues(sources, (k, v) =>
 				object.createBothWayBased<boolean>(
@@ -63,99 +69,16 @@ export namespace Observables {
 		);
 	}
 
-	export function createObservableFromObjectPropertySV<TObj extends object, T>(
-		object: ObservableValue<TObj>,
-		value: SignalReadonlySubmittableValue<T>,
-		path: readonly string[],
-	): DisconnectableObservableCreation<T> {
-		const setObject = (): void =>
-			object.set(Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(value.get(), path)));
-
-		const getValueFromObject = () => Objects.getValueByPath(object.get(), path) as T;
-		const setValue = () => value.set(getValueFromObject());
-
-		const observable = new ObservableValue<T>(getValueFromObject());
-		const reg: Reg = () => {
-			const s1 = value.submitted.Connect(setObject);
-			return Signal.multiConnection(s1, object.subscribe(setValue));
-		};
-
-		return { observable, reg: reg };
-	}
-
-	type MultiValues<T, K extends string | number | symbol = string> = {
-		readonly [k in K]: T;
-	};
-	export function createObservableFromMultipleObjectsProperty<TObj extends object, T extends defined>(
-		objects: MultiValues<ObservableValue<TObj>>,
-		value: ObservableValue<MultiValues<T>>,
-		path: readonly string[],
-	): DisconnectableObservableCreation<MultiValues<T>> {
-		const setObject = (): void => {
-			for (const [, obj] of pairs(objects)) {
-				obj.set(Objects.deepCombine(obj.get(), Objects.createObjectWithValueByPath(value.get(), path)));
-			}
-		};
-
-		const getValueFromObject = () =>
-			Objects.mapValues(objects, (k, v) => Objects.getValueByPath(v.get(), path) as T);
-		const setValue = () => value.set(getValueFromObject());
-
-		const observable = new ObservableValue<MultiValues<T>>(getValueFromObject());
-		const reg: Reg = () =>
-			Signal.multiConnection(value.subscribe(setObject), ...asMap(objects).map((k, v) => v.subscribe(setValue)));
-
-		return { observable, reg };
-	}
-	export function createObservableFromMultipleObjectsPropertySV<TObj extends object, T extends defined>(
-		objects: MultiValues<ObservableValue<TObj>>,
-		value: SignalReadonlySubmittableValue<MultiValues<T>>,
-		path: readonly string[],
-	): DisconnectableObservableCreation<MultiValues<T>> {
-		const setObject = (): void => {
-			for (const [, obj] of pairs(objects)) {
-				obj.set(Objects.deepCombine(obj.get(), Objects.createObjectWithValueByPath(value.get(), path)));
-			}
-		};
-
-		const getValueFromObject = () =>
-			Objects.mapValues(objects, (k, v) => Objects.getValueByPath(v.get(), path) as T);
-		const setValue = () => value.set(getValueFromObject());
-
-		const observable = new ObservableValue<MultiValues<T>>(getValueFromObject());
-		const reg: Reg = () => {
-			return Signal.multiConnection(
-				value.submitted.Connect(setObject),
-				...asMap(objects).map((k, v) => v.subscribe(setValue)),
-			);
-		};
-
-		return { observable, reg };
-	}
-
-	//
-
-	/** Create an ObservableValue from the object property specified by a path. */
-	export function createObservableFromObjectProperty<T>(
-		object: ObservableValue<object>,
-		path: readonly string[],
-	): DisconnectableObservableCreation<T> {
-		const setObject = (): void =>
-			object.set(Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(ret.get(), path)));
-
-		const getValueFromObject = () => Objects.getValueByPath(object.get(), path) as T;
-		const setValue = () => ret.set(getValueFromObject());
-
-		const ret = new ObservableValue<T>(getValueFromObject());
-		const reg: Reg = () => Signal.multiConnection(ret.subscribe(setObject), object.subscribe(setValue));
-
-		return { observable: ret, reg: reg };
-	}
-
 	/** Create a single observable from multiple, bidirectional. */
+	export function createObservableFromMultiple<O extends object>(observables: {
+		readonly [k in keyof O]: ObservableValue<O[k]>;
+	}): FakeObservableValue<O>;
 	export function createObservableFromMultiple<T extends defined, K extends string | number | symbol>(
 		observables: MultiValues<ObservableValue<T>, K>,
-	): DisconnectableObservableCreation<MultiValues<T, K>> {
+	): FakeObservableValue<MultiValues<T, K>>;
+	export function createObservableFromMultiple<T extends defined, K extends string | number | symbol>(
+		observables: MultiValues<ObservableValue<T>, K>,
+	): FakeObservableValue<MultiValues<T, K>> {
 		let inRetUpdate = false;
 
 		const setObject = (): void => {
@@ -176,14 +99,36 @@ export namespace Observables {
 			ret.set(getValueFromObject());
 		};
 
-		const ret = new ObservableValue<MultiValues<T, K>>(getValueFromObject());
-		const reg: Reg = () => {
-			return Signal.multiConnection(
-				ret.subscribe(setObject),
-				...asMap(observables).map((k, v) => v.subscribe(setValue)),
-			);
-		};
+		const ret = new DestoyableOV<MultiValues<T, K>>(getValueFromObject());
+		const sub = Signal.multiConnection(
+			ret.subscribe(setObject),
+			...asMap(observables).map((k, v) => v.subscribe(setValue)),
+		);
+		ret.onDestroy(() => sub.Disconnect());
 
-		return { observable: ret, reg };
+		return ret;
+	}
+
+	/** Strictly typed version of {@link createObservableFromObjectProperty} */
+	export function createObservableFromObjectPropertyTyped<
+		const TObj extends object,
+		const TPath extends readonly string[],
+	>(object: ObservableValue<TObj>, path: TPath): FakeObservableValue<Objects.ValueOf<TObj, TPath>>;
+	export function createObservableFromObjectPropertyTyped<T>(
+		object: ObservableValue<object>,
+		path: readonly string[],
+	): FakeObservableValue<T> {
+		return createObservableFromObjectProperty(object, path);
+	}
+
+	/** Create an ObservableValue from the object property specified by a path. */
+	export function createObservableFromObjectProperty<T>(
+		object: ObservableValue<object>,
+		path: readonly string[],
+	): FakeObservableValue<T> {
+		return object.fCreateBased(
+			(obj) => Objects.getValueByPath(obj, path) as T,
+			(val) => Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(val, path)),
+		);
 	}
 }

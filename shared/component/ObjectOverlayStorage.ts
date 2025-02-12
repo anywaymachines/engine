@@ -26,7 +26,7 @@ export class ObjectOverlayStorage<T extends object> {
 
 	constructor(
 		defaultValues: T,
-		changed?: (value: T, prev: T) => void,
+		changed?: (value: T) => void,
 		private readonly treatDefaultAsUndefined = false,
 	) {
 		this.order.push(defaultIndex);

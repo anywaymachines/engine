@@ -166,6 +166,28 @@ export namespace Objects {
 
 		return result;
 	}
+
+	// Returns full paths of the object T
+	export type PathsOf<T> = T extends object
+		? { [K in keyof T]: T[K] extends object ? [K, ...PathsOf<T[K]>] : [K] }[keyof T] & readonly string[]
+		: readonly [];
+
+	// Returns a value of the object T at the path TPath
+	export type ValueOf<T, TPath extends readonly string[]> = TPath extends readonly [
+		infer First extends keyof T,
+		...infer Rest extends readonly string[],
+	]
+		? ValueOf<T[First], Rest>
+		: T;
+
+	export function getValueByPathTyped<const TObj extends object, const TPath extends readonly string[]>(
+		obj: TObj,
+		path: TPath,
+	): ValueOf<TObj, TPath>;
+	export function getValueByPathTyped(obj: object, path: readonly string[]): unknown {
+		return getValueByPath(obj, path);
+	}
+
 	export function getValueByPath(obj: object, path: readonly string[]): unknown {
 		let v: unknown = obj;
 		for (const p of path) {

@@ -49,26 +49,4 @@ export class SubmittableValue<T> implements ReadonlySubmittableValue<T>, SignalR
 	asHalfReadonly(): SignalReadonlySubmittableValue<T> {
 		return this;
 	}
-
-	createBothWayBased<V>(func: (value: T) => V, funcBack: (value: V) => T) {
-		const ret = new SubmittableValue<V>(this.value.createBothWayBased(funcBack, func));
-
-		let submitting = false;
-		this.submitted.Connect((value) => {
-			if (submitting) return;
-
-			submitting = true;
-			ret.submit(func(value));
-			submitting = false;
-		});
-		ret.submitted.Connect((value) => {
-			if (submitting) return;
-
-			submitting = true;
-			this.submit(funcBack(value));
-			submitting = false;
-		});
-
-		return ret;
-	}
 }

@@ -56,7 +56,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 		return new OverlayValueStorage<boolean>(false, true);
 	}
 
-	readonly changed: ReadonlyArgsSignal<[value: T, prev: T]>;
+	readonly changed: ReadonlyArgsSignal<[value: T]>;
 
 	private readonly effects = new Map<ValueOverlayKey, Effect<T>>();
 	private readonly effectsOrdered = new OrderedMap<Effect<T>>();
@@ -266,7 +266,7 @@ export class OverlayValueStorage<T> implements ComponentTypes.DestroyableCompone
 			const ret = new ObservableValue<T>(value.get() ? otrue.get() : ofalse.get());
 
 			const eh = new EventHandler();
-			// event.state.onDisable(() => eh.unsubscribeAll());
+			event.state.onDisable(() => eh.unsubscribeAll());
 
 			const update = (props: TransformProps | undefined) => {
 				eh.unsubscribeAll();
