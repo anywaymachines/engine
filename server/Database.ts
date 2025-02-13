@@ -10,11 +10,11 @@ interface DbStoredValue<T, TKeys extends defined[]> {
 	lastAccessedTime: number;
 	lastSaveTime: number;
 }
-abstract class DbBase<T, TKeys extends defined[]> {
+abstract class DbBase<T, TDb, TKeys extends defined[]> {
 	private readonly cache: { [k in string]: DbStoredValue<T, TKeys> } = {};
 	private readonly currentlyLoading: Record<string, Promise<T>> = {};
 
-	constructor(private readonly datastore: DatabaseBackend<T, TKeys>) {
+	constructor(private readonly datastore: DatabaseBackend<TDb, TKeys>) {
 		game.BindToClose(() => {
 			$log("Game termination detected");
 
@@ -53,6 +53,8 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	}
 
 	protected abstract createDefault(): T;
+	protected abstract import(value: TDb): T;
+	protected abstract export(value: T): TDb;
 
 	get(keys: TKeys): T {
 		const strkey = formatDatabaseBackendKeys(keys);
@@ -94,14 +96,14 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	}
 
 	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
-		const req = Throttler.retryOnFail<T | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
+		const req = Throttler.retryOnFail<TDb | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
 
 		if (req.success) {
 			if (req.message !== undefined) {
 				const time = os.time();
 				return (this.cache[strkey] = {
 					keys,
-					value: req.message,
+					value: this.import(req.message),
 					changed: false,
 					lastAccessedTime: time,
 					lastSaveTime: time,
@@ -150,7 +152,7 @@ abstract class DbBase<T, TKeys extends defined[]> {
 		// delay between saves?
 		value.changed = false;
 
-		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(value.value, keys));
+		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(this.export(value.value), keys));
 		if (!req.success) {
 			$err(req.error_message);
 		}
@@ -163,15 +165,23 @@ abstract class DbBase<T, TKeys extends defined[]> {
 	}
 }
 
-export class Db<T, TKeys extends defined[]> extends DbBase<T, TKeys> {
+export class Db<T, TDb, TKeys extends defined[]> extends DbBase<T, TDb, TKeys> {
 	constructor(
-		datastore: DatabaseBackend<T, TKeys>,
+		datastore: DatabaseBackend<TDb, TKeys>,
 		private readonly createDefaultFunc: () => T,
+		private readonly importFunc: (value: TDb) => T,
+		private readonly exportFunc: (value: T) => TDb,
 	) {
 		super(datastore);
 	}
 
 	protected createDefault(): T {
 		return this.createDefaultFunc();
+	}
+	protected import(value: TDb): T {
+		return this.importFunc(value);
+	}
+	protected export(value: T): TDb {
+		return this.exportFunc(value);
 	}
 }
