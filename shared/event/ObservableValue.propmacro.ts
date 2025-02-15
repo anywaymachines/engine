@@ -54,10 +54,17 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 		equalityCheck: (value: T, prev: T) => boolean,
 		executeImmediately?: boolean,
 	): SignalConnection => {
-		return selv.subscribePrev((value, prev) => {
+		const sub = selv.subscribePrev((value, prev) => {
 			if (equalityCheck(value, prev)) return;
 			func(value, prev);
-		}, executeImmediately);
+		});
+
+		if (executeImmediately) {
+			const v = selv.get();
+			func(v, v);
+		}
+
+		return sub;
 	},
 
 	createBased: <T, U>(selv: ReadonlyObservableValue<T>, func: (value: T) => U): ReadonlyObservableValue<U> => {
