@@ -136,7 +136,7 @@ export class InputHandler {
 		this.onInputEnded(filterMouse3(callback, allowGameProcessedEvents));
 	}
 	onMouseMove(callback: InputCallback, allowGameProcessedEvents: boolean) {
-		this.onInputBegan((input, gameProcessedEvent) => {
+		this.onInputChanged((input, gameProcessedEvent) => {
 			if (!allowGameProcessedEvents && gameProcessedEvent) return;
 			if (input.UserInputType !== Enum.UserInputType.MouseMovement) return;
 			callback(input);
