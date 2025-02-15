@@ -55,6 +55,12 @@ export namespace Materials {
 	export function getMaterialTexture(material: Enum.Material): string | undefined {
 		return materialTextures[material.Name];
 	}
+	export function getMaterialTextureAssetId(material: Enum.Material): string {
+		const m = getMaterialTexture(material);
+		if (!m) return "";
+
+		return `rbxassetid://${m}`;
+	}
 
 	export function getMaterialDefaultColor(material: Enum.Material): Color3 {
 		try {
