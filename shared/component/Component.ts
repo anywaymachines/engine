@@ -85,6 +85,7 @@ export class Component extends ComponentState implements DebuggableComponent {
 	}
 
 	private injectFuncs?: Set<(di: DIContainer) => void>;
+
 	/** Subscribes a function to run when a DI container is available (so when parented to another component or resolved by DI) */
 	protected onInject(func: (di: DIContainer) => void) {
 		if (this.injectFuncs?.size() === 0) {
@@ -104,10 +105,8 @@ export class Component extends ComponentState implements DebuggableComponent {
 			this.injectFuncs.clear();
 		}
 
-		if (this.parented) {
-			for (const child of this.parented) {
-				this.tryProvideDIToChild(child);
-			}
+		for (const child of this.getChildrenForInjecting()) {
+			this.tryProvideDIToChild(child);
 		}
 	}
 
@@ -137,8 +136,15 @@ export class Component extends ComponentState implements DebuggableComponent {
 	getParented(): readonly Component[] {
 		return this.parented ?? Objects.empty;
 	}
+	protected getChildrenForInjecting(): readonly Component[] {
+		return this.getParented();
+	}
 
-	private tryProvideDIToChild(child: Component): void {
+	protected getDI(): DIContainer {
+		if (!this._di) throw "Component haven't been injected into yet";
+		return this._di;
+	}
+	protected tryProvideDIToChild(child: Component): void {
 		if (child._di || !this._di) return;
 
 		const scope = this._di.beginScope((builder) =>

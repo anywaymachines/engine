@@ -49,6 +49,9 @@ export class ComponentChildren<T extends Component = Component>
 	getAll(): readonly T[] {
 		return this._children.get();
 	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		return [...super.getChildrenForInjecting(), ...this.getAll()];
+	}
 
 	add<TChild extends T>(child: TChild): TChild {
 		this._children.push(child);
@@ -67,6 +70,7 @@ export class ComponentChildren<T extends Component = Component>
 			ComponentInstance.setLayoutOrderIfNeeded(child.instance, this.parentInstance);
 		}
 
+		this.tryProvideDIToChild(child);
 		return child;
 	}
 

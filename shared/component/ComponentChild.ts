@@ -72,6 +72,12 @@ export class ComponentChild<T extends Component = Component>
 	get(): T | undefined {
 		return this.child;
 	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		const child = this.get();
+		if (!child) return super.getChildrenForInjecting();
+
+		return [...super.getChildrenForInjecting(), child];
+	}
 
 	set<TChild extends T | undefined>(child: TChild): TChild {
 		const prev = this.child;
@@ -94,6 +100,9 @@ export class ComponentChild<T extends Component = Component>
 			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
 		}
 
+		if (child) {
+			this.tryProvideDIToChild(child);
+		}
 		return child;
 	}
 	clear() {
