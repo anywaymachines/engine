@@ -1,10 +1,6 @@
+import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { ArgsSignal } from "engine/shared/event/Signal";
 import type { ComponentTypes } from "engine/shared/component/Component";
-import type {
-	ObservableValue,
-	ObservableValueBase,
-	ReadonlyObservableValueBase,
-} from "engine/shared/event/ObservableValue";
 import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
 // function to force hoisting of the macros, because it does not but still tries to use them
@@ -45,31 +41,39 @@ class FakeSignal<TOrigArgs extends unknown[] = [], TArgs extends unknown[] = []>
 	}
 }
 
+interface DestoyableOV<T> extends ObservableValue<T>, FakeObservableValue<T> {}
+class DestoyableOV<T> extends ObservableValue<T> {
+	private readonly destroyed = new ArgsSignal();
+
+	onDestroy(func: () => void): void {
+		this.destroyed.Connect(func);
+	}
+
+	destroy(): void {
+		this.destroyed.Fire();
+		super.destroy();
+	}
+}
+
 //
 
 declare module "engine/shared/event/ObservableValue" {
 	interface ReadonlyObservableValue<T> {
-		fReadonlyCreateBased<U>(func: (value: T) => U): ReadonlyFakeObservableValue<U>;
+		fReadonlyCreateBased<U>(funcTo: (value: T) => U): ReadonlyFakeObservableValue<U>;
 		fReadonlyWithDefault<U>(value: U): ReadonlyFakeObservableValue<(T & defined) | U>;
 	}
 }
 export const FakeReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableValue<unknown>> = {
 	fReadonlyCreateBased: <T, U>(
 		selv: ReadonlyObservableValue<T>,
-		func: (value: T) => U,
+		funcTo: (value: T) => U,
 	): ReadonlyFakeObservableValue<U> => {
-		const changed = new FakeSignal(selv.changed, (value) => [func(value)]);
+		const ov = new DestoyableOV<U>(funcTo(selv.get()));
 
-		return {
-			changed,
-			get() {
-				return func(selv.get());
-			},
-			destroy() {
-				changed.destroy();
-			},
-		} satisfies ReadonlyObservableValueBase<U> &
-			ComponentTypes.DestroyableComponent as unknown as ReadonlyFakeObservableValue<U>;
+		const sub = selv.subscribe((v) => ov.set(funcTo(v)));
+		ov.onDestroy(() => sub.Disconnect());
+
+		return ov;
 	},
 	fReadonlyWithDefault: <T, U>(
 		selv: ReadonlyObservableValue<T>,
@@ -91,12 +95,13 @@ export const FakeObservableValueMacros: PropertyMacros<ObservableValue<unknown>>
 		funcTo: (value: T) => U,
 		funcFrom: (value: U) => T,
 	): FakeObservableValue<U> => {
-		return {
-			...selv.fReadonlyCreateBased<U>(funcTo),
-			set(value, forceSet) {
-				selv.set(funcFrom(value), forceSet);
-			},
-		} satisfies ObservableValueBase<U> & ComponentTypes.DestroyableComponent as unknown as FakeObservableValue<U>;
+		const ov = new DestoyableOV<U>(funcTo(selv.get()));
+
+		const sub = selv.subscribe((v) => ov.set(funcTo(v)));
+		ov.subscribe((v) => selv.set(funcFrom(v)));
+		ov.onDestroy(() => sub.Disconnect());
+
+		return ov;
 	},
 	fWithDefault: <T, U>(selv: ObservableValue<T | U>, value: U): FakeObservableValue<(T & defined) | U> => {
 		return selv.fCreateBased(

@@ -1,6 +1,7 @@
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { ArgsSignal, Signal } from "engine/shared/event/Signal";
 import { Objects } from "engine/shared/fixes/Objects";
+import { Strings } from "engine/shared/fixes/String.propmacro";
 import type { FakeObservableValue } from "engine/shared/event/FakeObservableValue.propmacro";
 
 export namespace Observables {
@@ -81,12 +82,12 @@ export namespace Observables {
 	): FakeObservableValue<MultiValues<T, K>> {
 		let inRetUpdate = false;
 
-		const setObject = (): void => {
+		const setObject = (mv: MultiValues<T, K>): void => {
 			inRetUpdate = true;
 
 			try {
 				for (const [k, obs] of pairs(observables)) {
-					obs.set(ret.get()[k]);
+					obs.set(mv[k]);
 				}
 			} finally {
 				inRetUpdate = false;
@@ -127,7 +128,10 @@ export namespace Observables {
 		path: readonly string[],
 	): FakeObservableValue<T> {
 		return object.fCreateBased(
-			(obj) => Objects.getValueByPath(obj, path) as T,
+			(obj) => {
+				print("gobp", Strings.pretty(path));
+				return Objects.getValueByPath(obj, path) as T;
+			},
 			(val) => Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(val, path)),
 		);
 	}

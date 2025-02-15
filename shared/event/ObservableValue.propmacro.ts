@@ -99,10 +99,7 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		toNew: (value: T) => U,
 	): ObservableValue<U> => {
 		const observable = new ObservableValue<U>(toNew(selv.get()));
-		observable.subscribe((value) => {
-			selv.set(toOld(value));
-			observable.set(toNew(selv.get()));
-		});
+		observable.subscribe((value) => selv.set(toOld(value)));
 		selv.subscribe((value) => observable.set(toNew(value)));
 
 		return observable;
