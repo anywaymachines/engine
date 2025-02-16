@@ -67,7 +67,6 @@ export namespace Logger {
 		print(gameInfo.gameName);
 		print();
 
-		print(`ℹ Environment: ${gameInfo.environment} in ${RunService.IsStudio() ? "studio" : "player"}`);
 		print(`ℹ User: ${Players.LocalPlayer.UserId} @${Players.LocalPlayer.Name} ${Players.LocalPlayer.DisplayName}`);
 		print(`ℹ Build: ${RunService.IsStudio() ? "🔒 Studio" : game.PlaceVersion}`);
 		print(`ℹ Server: ${RunService.IsStudio() ? "🔒 Studio" : game.JobId}`);
