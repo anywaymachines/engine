@@ -12,10 +12,10 @@ export class Switches {
 	private readonly _registered: { [k in string]: ObservableValue<boolean> } = {};
 	readonly registered: { readonly [k in string]: ObservableValue<boolean> } = this._registered;
 
-	constructor(@inject private readonly gameInfo: GameInfo) {
+	constructor() {
 		if (RunService.IsServer()) {
 			this.setSwitch.subscribe((player, { name, value }) => {
-				if (!PlayerRank.isAdmin(gameInfo.groupId, player)) {
+				if (!PlayerRank.isAdmin(player)) {
 					return {
 						success: false,
 						message: "Not enough permissions",
@@ -40,7 +40,7 @@ export class Switches {
 	register(name: string, value: ObservableValue<boolean>) {
 		this._registered[name] = value;
 
-		if (RunService.IsClient() && PlayerRank.isAdmin(this.gameInfo.groupId, Players.LocalPlayer)) {
+		if (RunService.IsClient() && PlayerRank.isAdmin(Players.LocalPlayer)) {
 			value.subscribe((value) => this.setSwitch.send({ name, value }));
 		}
 	}
