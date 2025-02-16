@@ -21,6 +21,9 @@ declare module "engine/shared/event/ObservableValue" {
 
 		/** Creates a new ObservableValue that always has the opposite value. */
 		not(this: ReadonlyObservableValue<boolean>): ReadonlyObservableValue<boolean>;
+
+		waitOnceFor<U extends T>(predicate: (value: T) => value is U, action: (value: U) => void): void;
+		waitOnceFor(predicate: (value: T) => boolean, action: (value: T) => void): void;
 	}
 }
 export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableValue<unknown>> = {
@@ -75,6 +78,25 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 	},
 
 	not: (selv) => selv.createBased((v) => !v),
+
+	waitOnceFor: <T>(
+		selv: ReadonlyObservableValue<T>,
+		predicate: (value: T) => boolean,
+		action: (value: T) => void,
+	): void => {
+		const value = selv.get();
+		if (predicate(value)) {
+			action(value);
+			return;
+		}
+
+		const sub = selv.subscribe((value) => {
+			if (!predicate(value)) return;
+
+			sub.Disconnect();
+			action(value);
+		});
+	},
 };
 
 declare module "engine/shared/event/ObservableValue" {
