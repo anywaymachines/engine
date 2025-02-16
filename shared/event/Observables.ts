@@ -124,7 +124,7 @@ export namespace Observables {
 	/** Create an ObservableValue from the object property specified by a path. */
 	export function createObservableFromObjectProperty<T>(
 		object: ObservableValue<object>,
-		path: readonly string[],
+		path: readonly (string | number)[],
 	): FakeObservableValue<T> {
 		return object.fCreateBased(
 			(obj) => Objects.getValueByPath(obj, path) as T,

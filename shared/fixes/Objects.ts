@@ -188,16 +188,16 @@ export namespace Objects {
 		return getValueByPath(obj, path);
 	}
 
-	export function getValueByPath(obj: object, path: readonly string[]): unknown {
+	export function getValueByPath(obj: object, path: readonly (string | number)[]): unknown {
 		let v: unknown = obj;
 		for (const p of path) {
-			v = (v as { [k in string]: unknown })[p];
+			v = (v as { [k in string | number]: unknown })[p];
 		}
 
 		return v;
 	}
-	export function createObjectWithValueByPath<V>(value: V, path: readonly string[]): object {
-		const obj: { [k in string]: unknown } = {};
+	export function createObjectWithValueByPath<V>(value: V, path: readonly (string | number)[]): object {
+		const obj: { [k in string | number]: unknown } = {};
 		let part = obj;
 		for (const [i, p] of ipairs(path)) {
 			if (i === path.size()) {
