@@ -23,26 +23,8 @@ export interface ReadonlyFakeObservableValue<T>
 	readonly __nominal_ReadonlyFakeObservable: "ReadonlyFakeObservableValue";
 }
 
-class FakeSignal<TOrigArgs extends unknown[] = [], TArgs extends unknown[] = []> extends ArgsSignal<TArgs> {
-	private readonly sub: SignalConnection;
-
-	constructor(original: ReadonlyArgsSignal<TOrigArgs>, middleware: (...args: TOrigArgs) => TArgs) {
-		super();
-		this.sub = original.Connect((...args) => super.Fire(...middleware(...args)));
-	}
-
-	Fire(): void {
-		throw "Firing a FakeSignal is not supported";
-	}
-
-	override destroy(): void {
-		super.destroy();
-		this.sub.Disconnect();
-	}
-}
-
-interface DestoyableOV<T> extends ObservableValue<T>, FakeObservableValue<T> {}
-class DestoyableOV<T> extends ObservableValue<T> {
+export interface DestoyableOV<T> extends ObservableValue<T>, FakeObservableValue<T> {}
+export class DestoyableOV<T> extends ObservableValue<T> {
 	private readonly destroyed = new ArgsSignal();
 
 	onDestroy(func: () => void): void {
@@ -85,7 +67,11 @@ export const FakeReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservabl
 
 declare module "engine/shared/event/ObservableValue" {
 	interface ObservableValue<T> {
-		fCreateBased<U>(funcTo: (value: T) => U, funcFrom: (value: U) => T): FakeObservableValue<U>;
+		fCreateBased<U>(
+			funcTo: (value: T) => U,
+			funcFrom: (value: U) => T,
+			equalityFunc?: (left: T, right: U) => boolean,
+		): FakeObservableValue<U>;
 		fWithDefault<U>(value: U): FakeObservableValue<(T & defined) | U>;
 	}
 }
@@ -94,11 +80,16 @@ export const FakeObservableValueMacros: PropertyMacros<ObservableValue<unknown>>
 		selv: ObservableValue<T>,
 		funcTo: (value: T) => U,
 		funcFrom: (value: U) => T,
+		equalityFunc?: (left: T, right: U) => boolean,
 	): FakeObservableValue<U> => {
 		const ov = new DestoyableOV<U>(funcTo(selv.get()));
 
 		const sub = selv.subscribe((v) => ov.set(funcTo(v)));
-		ov.subscribe((v) => selv.set(funcFrom(v)));
+		ov.subscribe((v) => {
+			const n = funcFrom(v);
+			if (equalityFunc?.(n, v)) return;
+			selv.set(n);
+		});
 		ov.onDestroy(() => sub.Disconnect());
 
 		return ov;
