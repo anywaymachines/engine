@@ -173,12 +173,11 @@ export namespace Objects {
 		: readonly [];
 
 	// Returns a value of the object T at the path TPath
-	export type ValueOf<T, TPath extends readonly string[]> = TPath extends readonly [
-		infer First extends keyof T,
-		...infer Rest extends readonly string[],
-	]
-		? ValueOf<T[First], Rest>
-		: T;
+	export type ValueOf<T, TPath extends readonly (string | number)[]> = TPath extends readonly []
+		? T
+		: TPath extends readonly [infer First extends keyof T, ...infer Rest extends readonly (string | number)[]]
+			? ValueOf<T[First], Rest>
+			: never;
 
 	export function getValueByPathTyped<const TObj extends object, const TPath extends readonly string[]>(
 		obj: TObj,
