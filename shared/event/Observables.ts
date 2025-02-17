@@ -1,24 +1,11 @@
-import { ObservableValue } from "engine/shared/event/ObservableValue";
-import { ArgsSignal, Signal } from "engine/shared/event/Signal";
+import { DestoyableOV } from "engine/shared/event/FakeObservableValue.propmacro";
+import { Signal } from "engine/shared/event/Signal";
 import { Objects } from "engine/shared/fixes/Objects";
 import type { FakeObservableValue } from "engine/shared/event/FakeObservableValue.propmacro";
+import type { ObservableValue } from "engine/shared/event/ObservableValue";
 
 export namespace Observables {
 	type MultiValues<T, K extends string | number | symbol = string> = { readonly [k in K]: T };
-
-	interface DestoyableOV<T> extends ObservableValue<T>, FakeObservableValue<T> {}
-	class DestoyableOV<T> extends ObservableValue<T> {
-		private readonly destroyed = new ArgsSignal();
-
-		onDestroy(func: () => void): void {
-			this.destroyed.Connect(func);
-		}
-
-		destroy(): void {
-			this.destroyed.Fire();
-			super.destroy();
-		}
-	}
 
 	//
 
@@ -110,13 +97,17 @@ export namespace Observables {
 	}
 
 	/** Strictly typed version of {@link createObservableFromObjectProperty} */
+	export function createObservableFromObjectPropertyTyped<const TObj extends object, const Key extends keyof TObj>(
+		object: ObservableValue<TObj>,
+		path: readonly [Key],
+	): FakeObservableValue<TObj[Key]>;
 	export function createObservableFromObjectPropertyTyped<
 		const TObj extends object,
-		const TPath extends readonly string[],
+		const TPath extends readonly (string | number)[],
 	>(object: ObservableValue<TObj>, path: TPath): FakeObservableValue<Objects.ValueOf<TObj, TPath>>;
 	export function createObservableFromObjectPropertyTyped<T>(
 		object: ObservableValue<object>,
-		path: readonly string[],
+		path: readonly (string | number)[],
 	): FakeObservableValue<T> {
 		return createObservableFromObjectProperty(object, path);
 	}
@@ -129,6 +120,7 @@ export namespace Observables {
 		return object.fCreateBased(
 			(obj) => Objects.getValueByPath(obj, path) as T,
 			(val) => Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(val, path)),
+			(obj, val) => Objects.deepEquals(Objects.getValueByPath(obj, path), val),
 		);
 	}
 }
