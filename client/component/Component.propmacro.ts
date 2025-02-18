@@ -41,6 +41,9 @@ declare module "engine/shared/component/InstanceComponent" {
 		/** Subscribe a button action, return this. */
 		addButtonAction(this: icpm<GuiButton>, func: () => void): this;
 
+		/** Subscribe a button action, return this. Sends `this` into the callback. */
+		addButtonActionSelf(this: icpm<GuiButton>, func: (selv: this) => void): this;
+
 		/** Add or get the button interactability component */
 		buttonInteractabilityComponent(this: icpm<GuiButton>): ButtonInteractabilityComponent;
 
@@ -58,6 +61,10 @@ export const Macros1: PropertyMacros<InstanceComponent<GuiButton>> = {
 	buttonComponent: (selv) => selv.getComponent(ButtonComponent),
 	addButtonAction: (selv, func) => {
 		selv.buttonComponent().activated.Connect(func);
+		return selv;
+	},
+	addButtonActionSelf: (selv, func) => {
+		selv.buttonComponent().activated.Connect(() => func(selv));
 		return selv;
 	},
 
