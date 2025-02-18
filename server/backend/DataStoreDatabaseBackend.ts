@@ -21,7 +21,7 @@ export class DataStoreDatabaseBackend<T> implements DatabaseBackend<T, defined[]
 		const str = this.dataStore.GetAsync<string>(formatDatabaseBackendKeys(keys), getOptions)[0];
 		return str ? (JSON.deserialize(str) as T) : undefined;
 	}
-	SetAsync(value: T | undefined, keys: defined[]): void {
+	SetAsync(value: T, keys: defined[]): void {
 		this.dataStore.SetAsync(formatDatabaseBackendKeys(keys), JSON.serialize(value));
 	}
 	RemoveAsync(keys: defined[]): void {

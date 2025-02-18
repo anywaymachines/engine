@@ -2,6 +2,6 @@ export const formatDatabaseBackendKeys = (keys: readonly defined[]) => keys.join
 
 export interface DatabaseBackend<T, TKeys extends defined[]> {
 	GetAsync(keys: TKeys): T | undefined;
-	SetAsync(value: T | undefined, keys: TKeys): void;
+	SetAsync(value: T, keys: TKeys): void;
 	RemoveAsync(keys: TKeys): void;
 }

@@ -7,8 +7,8 @@ export class InMemoryDatabaseBackend<T> implements DatabaseBackend<T, defined[]>
 	GetAsync(args: readonly defined[]): T | undefined {
 		return this.data.get(formatDatabaseBackendKeys(args));
 	}
-	SetAsync(value: T | undefined, args: readonly defined[]): void {
-		this.data.set(formatDatabaseBackendKeys(args), value!);
+	SetAsync(value: T, args: readonly defined[]): void {
+		this.data.set(formatDatabaseBackendKeys(args), value);
 	}
 	RemoveAsync(args: readonly defined[]): void {
 		this.data.delete(formatDatabaseBackendKeys(args));

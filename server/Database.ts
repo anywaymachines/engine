@@ -94,6 +94,10 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 			lastSaveTime: time,
 		};
 	}
+	delete(keys: TKeys) {
+		this.datastore.RemoveAsync(keys);
+		this.free(keys);
+	}
 
 	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
 		const req = Throttler.retryOnFail<TDb | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
