@@ -54,6 +54,9 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 	getAll(): ReadonlyMap<TKey, T> {
 		return this.children;
 	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		return [...super.getChildrenForInjecting(), ...this.getAll().values()];
+	}
 
 	get(key: TKey): T | undefined {
 		return this.children.get(key);
@@ -79,6 +82,7 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
 		}
 
+		this.tryProvideDIToChild(child);
 		return child;
 	}
 
