@@ -29,10 +29,12 @@ export class Action<TArgs extends unknown[] = []> extends Component {
 		return this.action.Connect(func);
 	}
 
-	/** Adds checks to the action's can execute state. */
-	subCanExecuteFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): void {
+	/** Adds checks to the action's can execute state. Returns this; */
+	subCanExecuteFrom(values: { readonly [k in string]: ReadonlyObservableValue<boolean> }): this {
 		for (const [k, v] of pairs(values)) {
 			this.canExecute.and(k, v);
 		}
+
+		return this;
 	}
 }
