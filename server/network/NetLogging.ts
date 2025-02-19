@@ -1,6 +1,5 @@
 import { Players, RunService } from "@rbxts/services";
-import { DiscordWebhook } from "engine/server/network/DiscordWebhook";
-import { LaunchDataController } from "engine/server/network/LaunchDataController";
+// import { DiscordWebhook } from "engine/server/network/DiscordWebhook";
 import { HostedService } from "engine/shared/di/HostedService";
 import { PlayerRank } from "engine/shared/PlayerRank";
 
@@ -27,14 +26,14 @@ export class DiscordLogging extends HostedService {
 			this.addLine(`${this.getPlayerCredentialsString(plr)} joined the game`);
 
 			if (plr.HasVerifiedBadge) {
-				DiscordWebhook.sendMessage({
-					content: `Verified player ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
-				});
+				// DiscordWebhook.sendMessage({
+				// 	content: `Verified player ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
+				// });
 			}
 			if (PlayerRank.isRobloxEngineer(plr)) {
-				DiscordWebhook.sendMessage({
-					content: `Roblox staff ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
-				});
+				// DiscordWebhook.sendMessage({
+				// 	content: `Roblox staff ${this.getPlayerCredentialsString(plr)} joined <@1049428656285548564>`,
+				// });
 			}
 
 			plr.Chatted.Connect((message, recipient) => {
@@ -74,20 +73,20 @@ export class DiscordLogging extends HostedService {
 
 		const content = this.storage.join("\n");
 
-		DiscordWebhook.sendMessage({
-			embeds: [
-				{
-					description: content,
-					color: 0,
-					timestamp: DateTime.now().ToIsoDate(),
-					author: {
-						name: "JOIN",
-						url: LaunchDataController.getJoinURL(),
-					},
-					footer: !this.config.footerText ? undefined : { text: this.config.footerText },
-				},
-			],
-		});
+		// DiscordWebhook.sendMessage({
+		// 	embeds: [
+		// 		{
+		// 			description: content,
+		// 			color: 0,
+		// 			timestamp: DateTime.now().ToIsoDate(),
+		// 			author: {
+		// 				name: "JOIN",
+		// 				url: LaunchDataController.getJoinURL(),
+		// 			},
+		// 			footer: !this.config.footerText ? undefined : { text: this.config.footerText },
+		// 		},
+		// 	],
+		// });
 
 		this.storage.clear();
 	}
