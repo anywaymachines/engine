@@ -100,7 +100,7 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 	}
 
 	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
-		const req = Throttler.retryOnFail<TDb | undefined>(10, 1, () => this.datastore!.GetAsync(keys));
+		const req = Throttler.retryOnFail<TDb | undefined>(3, 1, () => this.datastore!.GetAsync(keys));
 
 		if (req.success) {
 			if (req.message !== undefined) {
@@ -156,7 +156,7 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 		// delay between saves?
 		value.changed = false;
 
-		const req = Throttler.retryOnFail(10, 1, () => this.datastore!.SetAsync(this.export(value.value), keys));
+		const req = Throttler.retryOnFail(3, 1, () => this.datastore!.SetAsync(this.export(value.value), keys));
 		if (!req.success) {
 			$err(req.error_message);
 		}
