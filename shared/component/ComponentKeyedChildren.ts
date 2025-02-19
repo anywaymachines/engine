@@ -1,6 +1,6 @@
 import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
-import { Objects } from "engine/shared/fixes/Objects";
+import { ObservableMap } from "engine/shared/event/ObservableMap";
 import type { DebuggableComponent } from "engine/shared/component/Component";
 
 /** Stores keyed components. Handles its enabling, disabling and destroying. */
@@ -8,16 +8,15 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 	extends Component
 	implements DebuggableComponent
 {
-	private readonly children = new Map<TKey, T>();
+	private readonly _children = new ObservableMap<TKey, T>();
+	readonly children = this._children.asReadonly();
 	private clearing = false;
 
 	constructor(clearOnDisable = false) {
 		super();
 
 		this.onEnable(() => {
-			if (!this.children) return;
-
-			for (const [_, child] of this.children) {
+			for (const [_, child] of this.children.getAll()) {
 				child.enable();
 			}
 		});
@@ -25,9 +24,7 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 
 		if (!clearOnDisable) {
 			this.onDisable(() => {
-				if (!this.children) return;
-
-				for (const [_, child] of this.children) {
+				for (const [_, child] of this.children.getAll()) {
 					child.disable();
 				}
 			});
@@ -47,12 +44,11 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 	}
 
 	getDebugChildren(): readonly T[] {
-		if (!this.children) return Objects.empty;
-		return [...this.children].map((e) => e[1]);
+		return [...this.children.getAll()].map((e) => e[1]);
 	}
 
 	getAll(): ReadonlyMap<TKey, T> {
-		return this.children;
+		return this.children.getAll();
 	}
 	protected override getChildrenForInjecting(): readonly Component[] {
 		return [...super.getChildrenForInjecting(), ...this.getAll().values()];
@@ -63,11 +59,11 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 	}
 
 	add<TChild extends T>(key: TKey, child: TChild, throwIfExists = false): TChild {
-		if (throwIfExists && this.children?.has(key)) {
+		if (throwIfExists && this.children.has(key)) {
 			throw `Child with the key ${key} already exists`;
 		}
 
-		this.children.set(key, child);
+		this._children.set(key, child);
 
 		if (this.isEnabled()) {
 			child.enable();
@@ -90,17 +86,17 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Component = 
 		const child = this.children.get(key);
 		if (!child) return;
 
-		this.children.delete(key);
+		this._children.remove(key);
 		child.destroy();
 	}
 
 	clear() {
 		this.clearing = true;
-		for (const [key, child] of this.children) {
+		for (const [key, child] of this.children.getAll()) {
 			child.destroy();
 		}
 
-		this.children.clear();
+		this._children.clear();
 		this.clearing = false;
 	}
 }
