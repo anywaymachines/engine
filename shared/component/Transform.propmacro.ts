@@ -223,7 +223,7 @@ declare module "engine/shared/component/Transform" {
 }
 export const TransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 	func: (selv: B, func: () => void) => selv.push(new FuncTransform(func)),
-	wait: (selv: B, delay: number) => selv.push(new DelayTransform(delay)).then(),
+	wait: (selv: B, delay: number) => selv.push(new DelayTransform(delay)),
 	parallel: (selv: B, ...transforms: readonly TransformBuilder[]) =>
 		selv.push(new ParallelTransformSequence(transforms.map((t) => t.buildSequence()))),
 
