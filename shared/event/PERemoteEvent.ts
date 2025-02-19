@@ -312,6 +312,12 @@ export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Resp
 	}
 
 	/** @server */
+	execute(player: Player, arg: TArg): TResp {
+		if (!this.invoked) throw "what";
+		return this.invoked(player, arg);
+	}
+
+	/** @server */
 	subscribe(func: typeof this.invoked & defined): SignalConnection {
 		if (this.invoked) throw "what";
 		this.invoked = func;
