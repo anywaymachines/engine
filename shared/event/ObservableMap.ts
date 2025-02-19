@@ -14,6 +14,9 @@ export class ObservableMap<K extends defined, V extends defined> implements Read
 	get(key: K): V | undefined {
 		return this.map.get(key);
 	}
+	has(key: K): boolean {
+		return this.get(key) !== undefined;
+	}
 
 	/** Clear the collection and add the provided items */
 	setRange(items: ReadonlyMap<K, V>) {
