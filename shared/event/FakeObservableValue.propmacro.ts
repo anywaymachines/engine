@@ -126,6 +126,7 @@ export const FakeObservableValueSetMacros: PropertyMacros<ObservableValue<Readon
 		return selv.fCreateBased(
 			(v) => [...v],
 			(v) => new Set(v),
+			(l, r) => r.sequenceEqualsSet(l),
 		);
 	},
 };
