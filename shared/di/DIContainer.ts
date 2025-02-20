@@ -38,11 +38,6 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 
 	const isDeps = (clazz: unknown): clazz is DepsCreatable<InstanceOf<TCtor>, TArgs> =>
 		typeIs(clazz, "table") && "_depsCreate" in clazz;
-	const isInject = (
-		instance: InstanceOf<TCtor>,
-	): instance is typeof instance & { _inject(di: DIContainer): void } => {
-		return "_inject" in instance;
-	};
 	const isCustomInject = (
 		instance: InstanceOf<TCtor>,
 	): instance is typeof instance & { _customInject(di: DIContainer): void } => {
@@ -60,9 +55,6 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 		clazz._depsCreate(instance, container, ...(args ?? ([] as unknown as TArgs)));
 	}
 
-	if (isInject(instance)) {
-		instance._inject(container);
-	}
 	if (isCustomInject(instance)) {
 		instance._customInject(container);
 	}

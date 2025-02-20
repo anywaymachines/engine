@@ -95,7 +95,8 @@ export class Component extends ComponentState implements DebuggableComponent {
 		this.injectFuncs ??= new Set();
 		this.injectFuncs.add(func);
 	}
-	private _customInject(di: DIContainer) {
+	/** @deprecated Internal use only */
+	protected startInject(di: DIContainer) {
 		this._di = di;
 
 		if (this.injectFuncs) {
@@ -103,6 +104,13 @@ export class Component extends ComponentState implements DebuggableComponent {
 				func(di);
 			}
 			this.injectFuncs.clear();
+		}
+
+		const isInject = (instance: this): instance is typeof instance & { _inject(di: DIContainer): void } => {
+			return "_inject" in instance;
+		};
+		if (isInject(this)) {
+			this._inject(di);
 		}
 
 		for (const child of this.getChildrenForInjecting()) {
@@ -151,7 +159,7 @@ export class Component extends ComponentState implements DebuggableComponent {
 			builder.registerSingletonValue(this, getDIClassSymbol(getmetatable(this) as object)),
 		);
 
-		child._customInject(scope);
+		child.startInject(scope);
 	}
 
 	/** Parents the component to the given component. */
