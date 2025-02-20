@@ -1186,6 +1186,7 @@ export const SetMacrosWithAdded: PropertyMacros<ReadonlySet<defined>> = {
 declare global {
 	interface ReadonlyArray<T> {
 		sequenceEquals(this: ReadonlyArray<defined>, other: readonly T[]): boolean;
+		sequenceEqualsSet(this: ReadonlyArray<defined>, other: ReadonlySet<T>): boolean;
 	}
 	interface ReadonlySet<T> {
 		sequenceEquals(this: ReadonlySet<defined>, other: ReadonlySet<T>): boolean;
@@ -1207,6 +1208,9 @@ export const ArrayMacrosSequenceEquals: PropertyMacros<ReadonlyArray<defined>> =
 		}
 
 		return true;
+	},
+	sequenceEqualsSet: <T extends defined>(selv: ReadonlyArray<T>, other: ReadonlySet<T>): boolean => {
+		return selv.all((c) => other.has(c));
 	},
 };
 export const SetMacrosSequenceEquals: PropertyMacros<ReadonlySet<defined>> = {
