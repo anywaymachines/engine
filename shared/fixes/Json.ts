@@ -21,6 +21,23 @@ export type JsonSerializedProperty =
 	| SerializedUDim
 	| SerializedColor3;
 
+type SerializedEnumItem = { readonly __type: "enumItem"; readonly type: string; readonly name: string };
+const enumItem: Serializer<EnumItem, SerializedEnumItem> = {
+	isType(obj): obj is EnumItem {
+		return typeIs(obj, "EnumItem");
+	},
+	serialize(value: EnumItem): SerializedEnumItem {
+		return {
+			__type: "enumItem",
+			type: tostring(value.EnumType),
+			name: value.Name,
+		};
+	},
+	deserialize(value: SerializedEnumItem): EnumItem {
+		return (Enum as unknown as { readonly [k in string]: Enum })[value.type][value.name as never];
+	},
+};
+
 type SerializedCFrame = {
 	readonly __type: "cframe";
 	readonly c: readonly [
@@ -129,6 +146,7 @@ const color3: Serializer<Color3, SerializedColor3> = {
 //
 
 const serializers = {
+	enumItem,
 	vector2,
 	vector3,
 	cframe,
