@@ -270,6 +270,14 @@ declare global {
 	function inject(...args: unknown[]): void;
 	function injectFunc(...args: unknown[]): void;
 	function tryInject(...args: unknown[]): void;
+
+	/** Replaces itself with a function that takes a {@link DIContainer} and calls the provided function, resolving all of its parameters. */
+	function $autoResolve<const TArgs extends unknown[]>(
+		func: (...args: TArgs) => void,
+	): ((di: DIContainer) => void) & {
+		/** @deprecated @hidden */
+		readonly ___convertToResolveFunctionArgs: TArgs;
+	};
 }
 
 type DC = DIContainer;
