@@ -18,6 +18,7 @@ interface Log {
 	readonly action: LogAction | string;
 	readonly data?: unknown;
 	readonly server: LogServer;
+	readonly timestamp: number;
 }
 
 const getRole = (player: Player): string | undefined => {
@@ -95,8 +96,12 @@ export class NetworkLogging extends HostedService {
 		});
 	}
 
-	log(log: Omit<Log, "server">): void {
-		this.storage.push({ ...log, server: this.getServer() });
+	log(log: Omit<Log, "server" | "timestamp">): void {
+		this.storage.push({
+			...log,
+			server: this.getServer(),
+			timestamp: DateTime.now().UnixTimestamp,
+		});
 	}
 
 	private sendMetrics() {
