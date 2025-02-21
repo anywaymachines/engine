@@ -120,7 +120,7 @@ export namespace Observables {
 		return object.fCreateBased(
 			(obj) => Objects.getValueByPath(obj, path) as T,
 			(val) => Objects.deepCombine(object.get(), Objects.createObjectWithValueByPath(val, path)),
-			(obj, val) => Objects.deepEquals(Objects.getValueByPath(obj, path), val),
+			Objects.deepEquals,
 		);
 	}
 }

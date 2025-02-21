@@ -70,7 +70,7 @@ declare module "engine/shared/event/ObservableValue" {
 		fCreateBased<U>(
 			funcTo: (value: T) => U,
 			funcFrom: (value: U) => T,
-			equalityFunc?: (left: T, right: U) => boolean,
+			equalityFunc?: (oldv: T, newv: T) => boolean,
 		): FakeObservableValue<U>;
 		fWithDefault<U>(value: U): FakeObservableValue<(T & defined) | U>;
 	}
@@ -80,15 +80,16 @@ export const FakeObservableValueMacros: PropertyMacros<ObservableValue<unknown>>
 		selv: ObservableValue<T>,
 		funcTo: (value: T) => U,
 		funcFrom: (value: U) => T,
-		equalityFunc?: (left: T, right: U) => boolean,
+		equalityFunc?: (oldv: T, newv: T) => boolean,
 	): FakeObservableValue<U> => {
 		const ov = new DestoyableOV<U>(funcTo(selv.get()));
 
 		const sub = selv.subscribe((v) => ov.set(funcTo(v)));
 		ov.subscribe((v) => {
-			const n = funcFrom(v);
-			if (equalityFunc?.(n, v)) return;
-			selv.set(n);
+			const newv = funcFrom(v);
+			if (equalityFunc?.(selv.get(), newv)) return;
+
+			selv.set(newv);
 		});
 		ov.onDestroy(() => sub.Disconnect());
 
@@ -126,7 +127,7 @@ export const FakeObservableValueSetMacros: PropertyMacros<ObservableValue<Readon
 		return selv.fCreateBased(
 			(v) => [...v],
 			(v) => new Set(v),
-			(l, r) => r.sequenceEqualsSet(l),
+			(oldv, newv) => newv.sequenceEquals(oldv),
 		);
 	},
 };
