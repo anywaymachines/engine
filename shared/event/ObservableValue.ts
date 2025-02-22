@@ -19,16 +19,16 @@ export const isReadonlyObservableValue = (v: unknown): v is ReadonlyObservableVa
 class _ObservableValue<T> implements ObservableValueBase<T> {
 	readonly changed = new Signal<(value: T) => void>();
 	private value: T;
-	private readonly _middleware?: (value: T) => T;
+	private readonly _middleware?: (newval: T, current: T) => T;
 
-	constructor(value: T, middleware?: (value: T) => T) {
+	constructor(value: T, middleware?: (newval: T, current: T) => T) {
 		this.value = value;
 		this._middleware = middleware;
 	}
 
 	set(value: T) {
 		if (this._middleware) {
-			value = this._middleware(value);
+			value = this._middleware(value, this.get());
 		}
 
 		if (this.value === value) return;
@@ -49,5 +49,5 @@ class _ObservableValue<T> implements ObservableValueBase<T> {
 /** Stores a value and provides and event of it being changed */
 export const ObservableValue = _ObservableValue as unknown as new <T>(
 	value: T,
-	middleware?: (value: T) => T,
+	middleware?: (newval: T, current: T) => T,
 ) => ObservableValue<T>;
