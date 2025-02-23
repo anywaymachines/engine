@@ -30,8 +30,6 @@ export namespace Interface {
 
 	export function isCursorOnVisibleGui(): boolean {
 		const objects = playergui.GetGuiObjectsAtPosition(mouse.X, mouse.Y);
-		return objects.some(
-			(value) => value.Visible && value.BackgroundTransparency < 1 && value.IsDescendantOf(gameui),
-		);
+		return objects.some((value) => value.Visible && value.BackgroundTransparency < 1);
 	}
 }
