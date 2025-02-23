@@ -128,7 +128,7 @@ declare module "engine/shared/component/InstanceComponent" {
 		): this;
 
 		/** Subscribes the button to execute the given action when clicked and hide itself if the action can't execute. */
-		subscribeToAction(this: icpm<GuiButton>, action: Action, indicator?: GuiButtonActionIndicator.Func): this;
+		subscribeToAction<TArgs extends unknown[]>(this: icpm<GuiButton>, action: Action<TArgs>, ...args: TArgs): this;
 	}
 }
 export const Macros5: PropertyMacros<InstanceComponent<GuiButton>> = {
@@ -136,9 +136,9 @@ export const Macros5: PropertyMacros<InstanceComponent<GuiButton>> = {
 		selv.visibilityComponent().subscribeFrom(values);
 		return selv;
 	},
-	subscribeToAction: (selv, action, indicator = GuiButtonActionIndicator.interactability) => {
-		selv.addButtonAction(() => action.execute());
-		indicator(selv, action);
+	subscribeToAction: (selv, action, ...args) => {
+		selv.addButtonAction(() => action.execute(...args));
+		GuiButtonActionIndicator.interactability(selv, action);
 
 		return selv;
 	},
