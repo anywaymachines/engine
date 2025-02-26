@@ -8,7 +8,7 @@ export class PartialControl<
 	T extends GuiObject = GuiObject,
 	TPartsField extends object = TParts,
 > extends Control<T> {
-	protected readonly parts: TPartsField;
+	readonly parts: TPartsField;
 
 	constructor(instance: T, parts?: TParts, config?: ControlConfig) {
 		super(instance, config);
