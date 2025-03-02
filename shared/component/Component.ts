@@ -1,5 +1,5 @@
 import { ComponentEvents } from "engine/shared/component/ComponentEvents";
-import { getDIClassSymbol } from "engine/shared/di/DIPathFunctions";
+import { getDIClassSymbol, pathOf } from "engine/shared/di/DIPathFunctions";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
 import { Objects } from "engine/shared/fixes/Objects";
@@ -84,7 +84,24 @@ export class Component extends ComponentState implements DebuggableComponent {
 		this.event = new ComponentEvents(this);
 	}
 
+	private cached?: { readonly value: defined; readonly name: string }[];
 	private injectFuncs?: Set<(di: DIContainer) => void>;
+
+	/** Register the provided value to be available to any child DI. */
+	protected cacheDI<T extends defined>(value: T, @pathOf("T") name?: string): void {
+		if (!name) {
+			throw `Name is null when registering ${value}`;
+		}
+
+		if (this.cached?.size() === 0) {
+			this._di = this._di?.beginScope((builder) => {
+				builder.registerSingletonValue(value, name);
+			});
+		} else {
+			this.cached ??= [];
+			this.cached.push({ name, value });
+		}
+	}
 
 	/** Subscribes a function to run when a DI container is available (so when parented to another component or resolved by DI); auto-resolving version. */
 	protected $onInjectAuto<TArgs extends unknown[]>(func: (...args: TArgs) => void): void {
@@ -104,6 +121,11 @@ export class Component extends ComponentState implements DebuggableComponent {
 	protected startInject(di: DIContainer) {
 		this._di = di = di.beginScope((builder) => {
 			builder.registerSingletonValue(this, getDIClassSymbol(getmetatable(this) as object));
+
+			for (const { name, value } of this.cached ?? []) {
+				builder.registerSingletonValue(value, name);
+			}
+			this.cached = [];
 		});
 
 		if (this.injectFuncs) {
