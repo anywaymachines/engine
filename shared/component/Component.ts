@@ -102,7 +102,9 @@ export class Component extends ComponentState implements DebuggableComponent {
 	}
 	/** @deprecated Internal use only */
 	protected startInject(di: DIContainer) {
-		this._di = di;
+		this._di = di = di.beginScope((builder) => {
+			builder.registerSingletonValue(this, getDIClassSymbol(getmetatable(this) as object));
+		});
 
 		if (this.injectFuncs) {
 			for (const func of this.injectFuncs) {
@@ -159,12 +161,7 @@ export class Component extends ComponentState implements DebuggableComponent {
 	}
 	protected tryProvideDIToChild(child: Component): void {
 		if (child._di || !this._di) return;
-
-		const scope = this._di.beginScope((builder) =>
-			builder.registerSingletonValue(this, getDIClassSymbol(getmetatable(this) as object)),
-		);
-
-		child.startInject(scope);
+		child.startInject(this._di);
 	}
 
 	/** Parents the component to the given component. */
