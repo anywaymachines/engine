@@ -17,6 +17,6 @@ export class ComponentStateContainer extends Component {
 		this.onEnabledStateChange((enabled) => this.enabled.and("main$parent", enabled), true);
 
 		this.parent(child, { disable: false, enable: false });
-		this.event.subscribeObservable(this.enabled, (enabled) => child.setEnabled(enabled), true);
+		this.enabled.subscribe((enabled) => child.setEnabled(enabled), true);
 	}
 }
