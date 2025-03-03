@@ -19,9 +19,6 @@ declare module "engine/shared/event/ObservableValue" {
 		/** @deprecated Use fCreateBased() instead */
 		createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
 
-		/** Creates a new ObservableValue that always has the opposite value. */
-		not(this: ReadonlyObservableValue<boolean>): ReadonlyObservableValue<boolean>;
-
 		waitOnceFor<U extends T>(predicate: (value: T) => value is U, action: (value: U) => void): void;
 		waitOnceFor(predicate: (value: T) => boolean, action: (value: T) => void): void;
 	}
@@ -76,8 +73,6 @@ export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableVal
 
 		return observable;
 	},
-
-	not: (selv) => selv.createBased((v) => !v),
 
 	waitOnceFor: <T>(
 		selv: ReadonlyObservableValue<T>,
