@@ -405,8 +405,8 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<
 }
 
 export class A2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEventBase<TArg, TArg>> {
-	private readonly _clientInvoked = new ArgsSignal<[arg: TArg]>();
-	readonly clientInvoked = this._clientInvoked.asReadonly();
+	private readonly _senderInvoked = new ArgsSignal<[arg: TArg]>();
+	readonly senderInvoked = this._senderInvoked.asReadonly();
 
 	/** @server */
 	private readonly _invoked = new ArgsSignal<[player: Player | undefined, arg: TArg]>();
@@ -424,7 +424,7 @@ export class A2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemote
 	}
 
 	send(arg: TArg): void {
-		this._clientInvoked.Fire(arg);
+		this._senderInvoked.Fire(arg);
 
 		if (RunService.IsClient()) {
 			this.event.FireServer(arg);
