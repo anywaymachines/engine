@@ -45,22 +45,20 @@ namespace RealT {
 		readonly [k in keyof T]: Infer<T[k]>;
 	}>;
 
-	// export type TypeCheckResult = { result?: string; next?: TypeCheckResult };
-	export interface Type<T> {
+	const toType = <T>(t: Type<T>["func"]): Type<T> => ({ func: t }) as never;
+	export interface Type<T> extends t_type_propmacro<T> {
 		readonly func: (value: unknown, result?: TypeCheckResult) => value is T;
 	}
 
 	function ofType<K extends keyof CheckableTypes>(name: K): Type<CheckableTypes[K]> {
-		return {
-			func: (value, result): value is CheckableTypes[K] => {
-				if (typeIs(value, name)) {
-					return true;
-				}
+		return toType((value, result): value is CheckableTypes[K] => {
+			if (typeIs(value, name)) {
+				return true;
+			}
 
-				result?.setText(`Value ${pretty(value)} is not of type ${name}`);
-				return false;
-			},
-		};
+			result?.setText(`Value ${pretty(value)} is not of type ${name}`);
+			return false;
+		});
 	}
 
 	function _checkProperties(
@@ -92,30 +90,61 @@ namespace RealT {
 			}
 		},
 
-		custom: <T>(func: Type<T>["func"]): Type<T> => ({ func }),
+		custom: toType,
 		type: ofType,
-		any: { func: (v): v is unknown => true } satisfies T.Type<unknown>,
+		any: toType((v): v is unknown => true),
+		anyInstance: ofType("Instance"),
 		undefined: ofType("nil"),
 		number: ofType("number"),
 		boolean: ofType("boolean"),
 		string: ofType("string"),
 		object: ofType("table"),
+		true: toType((v: unknown, result?: TypeCheckResult): v is true => {
+			if (!(v === true)) {
+				result?.setText(`${v} is not true`);
+				return false;
+			}
 
-		interface: <const T extends { readonly [k in string]: Type<unknown> }>(
-			properties: T,
-		): Type<UnwrapObject<T>> => ({
-			func: (value, result): value is UnwrapObject<T> => {
+			return true;
+		}),
+		false: toType((v: unknown, result?: TypeCheckResult): v is false => {
+			if (!(v === false)) {
+				result?.setText(`${v} is not false`);
+				return false;
+			}
+
+			return true;
+		}),
+
+		vector2: ofType("Vector2"),
+		vector3: ofType("Vector3"),
+		color: ofType("Color3"),
+
+		instance: <const T extends keyof Instances>(name: T): Type<Instances[T]> =>
+			toType((value, result): value is Instances[T] => {
+				if (!t.typeCheck(value, t.anyInstance, result)) {
+					return false;
+				}
+
+				if (!value.IsA(name)) {
+					result?.setText(`${value.ClassName} ${value.Name} is not of type ${name}`);
+					return false;
+				}
+
+				return true;
+			}),
+		interface: <const T extends { readonly [k in string]: Type<unknown> }>(properties: T): Type<UnwrapObject<T>> =>
+			toType((value, result): value is UnwrapObject<T> => {
 				if (!t.typeCheck(value, t.object, result)) {
 					return false;
 				}
 
 				return _checkProperties(value, properties, result);
-			},
-		}),
+			}),
 		strictInterface: <const T extends { readonly [k in string]: Type<unknown> }>(
 			properties: T,
-		): Type<UnwrapObject<T>> => ({
-			func: (value, result): value is UnwrapObject<T> => {
+		): Type<UnwrapObject<T>> =>
+			toType((value, result): value is UnwrapObject<T> => {
 				if (!t.typeCheck(value, t.object, result)) {
 					return false;
 				}
@@ -128,11 +157,10 @@ namespace RealT {
 				}
 
 				return _checkProperties(value, properties, result);
-			},
-		}),
+			}),
 
-		intersection: <const T extends readonly Type<unknown>[]>(...items: T): Type<UnwrapArrayIntersection<T>> => ({
-			func: (value, result): value is UnwrapArrayIntersection<T> => {
+		intersection: <const T extends readonly Type<unknown>[]>(...items: T): Type<UnwrapArrayIntersection<T>> =>
+			toType((value, result): value is UnwrapArrayIntersection<T> => {
 				const childr = result?.next();
 
 				for (const item of items) {
@@ -143,10 +171,9 @@ namespace RealT {
 				}
 
 				return true;
-			},
-		}),
-		union: <const T extends readonly Type<unknown>[]>(...items: T): Type<UnwrapArrayUnion<T>> => ({
-			func: (value, result): value is UnwrapArrayUnion<T> => {
+			}),
+		union: <const T extends readonly Type<unknown>[]>(...items: T): Type<UnwrapArrayUnion<T>> =>
+			toType((value, result): value is UnwrapArrayUnion<T> => {
 				for (const item of items) {
 					if (t.typeCheck(value, item, result?.next())) {
 						return true;
@@ -155,14 +182,12 @@ namespace RealT {
 
 				result?.setText(`Value ${pretty(value)} has failed all of the union checks`);
 				return false;
-			},
-		}),
+			}),
 	} as const;
 }
 
-export namespace T {
+export namespace t {
 	export type Infer<T extends Type<unknown>> = RealT.Infer<T>;
 	export interface Type<T> extends RealT.Type<T> {}
 }
-
 export const t: typeof RealT.t & t_propmacro = RealT.t as never;
