@@ -15,6 +15,9 @@ declare module "engine/shared/component/InstanceComponent" {
 		/** Get or add the InstanceValuesComponent */
 		valuesComponent(): InstanceValuesComponent<T>;
 
+		/** Shorthand for `this.valuesComponent().get(key).addChildOverlay(value);` */
+		addValueOverlayChild<K extends keyof T>(key: K, value: OverlaySubValue<T[K]>): this;
+
 		/** Shorthand for `this.valuesComponent().get(key).overlay(overlayKey, value);` */
 		overlayValue<K extends keyof T>(
 			key: K,
@@ -28,6 +31,18 @@ declare module "engine/shared/component/InstanceComponent" {
 }
 export const InstanceValuesComponentMacros: PropertyMacros<InstanceComponent<Instance>> = {
 	valuesComponent: (selv) => selv.getComponent(InstanceValuesComponent),
+
+	addValueOverlayChild: <T extends Instance, K extends keyof T & string>(
+		selv: InstanceComponent<T>,
+		key: K,
+		value: OverlaySubValue<T[K]>,
+	) => {
+		selv.valuesComponent() //
+			.get(key)
+			.addChildOverlay(value);
+
+		return selv;
+	},
 
 	overlayValue: <T extends Instance, K extends keyof T & string>(
 		selv: InstanceComponent<T>,
