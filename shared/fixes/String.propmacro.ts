@@ -45,20 +45,31 @@ export const StringMacros: PropertyMacros<String> = {
 };
 
 export namespace Strings {
-	export function pretty(value: unknown): string {
+	function _pretty(value: unknown, seen: Map<object, string>): string {
 		if (typeIs(value, "string")) return value;
 
 		if (typeIs(value, "table")) {
+			const circular = seen.get(value);
+			if (circular) {
+				return `[Circular ${circular}]`;
+			}
+			seen.set(value, tostring(value));
+
 			if (1 in value) {
-				return `[ ${Objects.values(value).map(pretty).join()} ]`;
+				return `[ ${Objects.values(value)
+					.map((v) => _pretty(v, seen))
+					.join()} ]`;
 			}
 
 			return `{ ${Objects.entriesArray(value)
-				.map((e) => `${e[0]}: ${pretty(e[1])}`)
+				.map((e) => `${e[0]}: ${_pretty(e[1], seen)}`)
 				.join()} }`;
 		}
 
 		return tostring(value);
+	}
+	export function pretty(value: unknown): string {
+		return _pretty(value, new Map());
 	}
 
 	export function prettyNumber(value: number, step: number | undefined) {
