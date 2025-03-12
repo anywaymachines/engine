@@ -209,6 +209,25 @@ export namespace Objects {
 		return obj;
 	}
 
+	export function withValueByPath<T extends object>(obj: T, value: unknown, path: readonly (string | number)[]): T {
+		function withValueByPath<T extends object>(obj: T, value: unknown, path: (string | number)[]): T {
+			const pathPart = path.pop();
+			if (!pathPart) return obj;
+
+			const nextval = (obj as { [k in string | number]: unknown })[pathPart];
+			if (!typeIs(nextval, "table")) {
+				throw `Value at ${path.join("/")} is not an object`;
+			}
+
+			return {
+				...obj,
+				[pathPart]: withValueByPath(nextval, value, path),
+			};
+		}
+
+		return withValueByPath(obj, value, [...path]);
+	}
+
 	/** Executes the function and throws if it ever yields */
 	export function requireNoYield<TArgs extends unknown[], TRet>(
 		func: (...args: TArgs) => TRet,

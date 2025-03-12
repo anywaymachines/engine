@@ -101,30 +101,29 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 
 	private load(keys: TKeys, strkey: string): DbStoredValue<T, TKeys> {
 		const req = Throttler.retryOnFail<TDb | undefined>(3, 1, () => this.datastore!.GetAsync(keys));
+		if (!req.success) {
+			throw req.error_message;
+		}
 
-		if (req.success) {
-			if (req.message !== undefined) {
-				const time = os.time();
-				return (this.cache[strkey] = {
-					keys,
-					value: this.import(req.message),
-					changed: false,
-					lastAccessedTime: time,
-					lastSaveTime: time,
-				});
-			}
-		} else {
-			$err(req.error_message);
+		if (req.message !== undefined) {
+			const time = os.time();
+			return (this.cache[strkey] = {
+				keys,
+				value: this.import(req.message),
+				changed: false,
+				lastAccessedTime: time,
+				lastSaveTime: time,
+			});
 		}
 
 		const time = os.time();
-		return {
+		return (this.cache[strkey] = {
 			keys,
 			value: this.createDefault(),
 			changed: false,
 			lastAccessedTime: time,
 			lastSaveTime: time,
-		};
+		});
 	}
 
 	loadedUnsavedEntries() {

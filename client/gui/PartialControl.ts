@@ -10,7 +10,7 @@ export class PartialControl<
 > extends Control<T> {
 	readonly parts: TPartsField;
 
-	constructor(instance: T, parts?: TParts, config?: ControlConfig) {
+	constructor(instance: T, parts?: Partial<TParts>, config?: ControlConfig) {
 		super(instance, config);
 
 		const partsBackend: { [k in string]: unknown } = { ...parts };
