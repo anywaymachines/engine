@@ -1,77 +1,71 @@
-import { SlimSignal } from "engine/shared/event/SlimSignal";
-
-type Constraint = IComponent;
+import { Component } from "engine/shared/component/Component";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { ObservableMap } from "engine/shared/event/ObservableMap";
+import type { DebuggableComponent } from "engine/shared/component/Component";
 
 /** Stores keyed components. Handles its enabling, disabling and destroying. */
-export class ComponentKeyedChildren<TKey extends defined, T extends Constraint = Constraint>
-	implements IDebuggableComponent
+export class ComponentKeyedChildren<TKey extends defined, T extends Component = Component>
+	extends Component
+	implements DebuggableComponent
 {
-	private static readonly empty: ReadonlyMap<defined, Constraint> = new Map<defined, Constraint>();
-	private static readonly emptyarr: [] = [];
-
-	readonly onAdded = new SlimSignal<(key: TKey, child: T) => void>();
-	readonly onRemoved = new SlimSignal<(key: TKey, child: T) => void>();
-	readonly onClear = new SlimSignal();
-
-	private readonly state: IReadonlyComponent | (IReadonlyEnableableComponent & IReadonlyDestroyableComponent);
-	private children?: Map<TKey, T>;
+	private readonly _children = new ObservableMap<TKey, T>();
+	readonly children = this._children.asReadonly();
 	private clearing = false;
 
-	constructor(
-		state: IReadonlyComponent | (IReadonlyEnableableComponent & IReadonlyDestroyableComponent),
-		clearOnDisable = false,
-	) {
-		this.state = state;
+	constructor(clearOnDisable = false) {
+		super();
 
-		state.onEnable(() => {
-			if (!this.children) return;
-
-			for (const [_, child] of this.children) {
+		this.onEnable(() => {
+			for (const [_, child] of this.children.getAll()) {
 				child.enable();
 			}
 		});
-		state.onDestroy(() => this.clear());
+		this.onDestroy(() => this.clear());
 
-		if ("onDisable" in state) {
-			if (!clearOnDisable) {
-				state.onDisable(() => {
-					if (!this.children) return;
-
-					for (const [_, child] of this.children) {
-						child.disable();
-					}
-				});
-			} else {
-				state.onDisable(() => this.clear());
-			}
+		if (!clearOnDisable) {
+			this.onDisable(() => {
+				for (const [_, child] of this.children.getAll()) {
+					child.disable();
+				}
+			});
+		} else {
+			this.onDisable(() => this.clear());
 		}
+	}
+
+	private parentInstance?: Instance;
+	withParentInstance(parentInstance: Instance): this {
+		if (this.parentInstance) {
+			throw "Instance already set";
+		}
+
+		this.parentInstance = parentInstance;
+		return this;
 	}
 
 	getDebugChildren(): readonly T[] {
-		if (!this.children) {
-			return ComponentKeyedChildren.emptyarr;
-		}
-
-		return [...this.children].map((e) => e[1]);
+		return [...this.children.getAll()].map((e) => e[1]);
 	}
 
 	getAll(): ReadonlyMap<TKey, T> {
-		return this.children ?? (ComponentKeyedChildren.empty as ReadonlyMap<TKey, T>);
+		return this.children.getAll();
+	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		return [...super.getChildrenForInjecting(), ...this.getAll().values()];
 	}
 
 	get(key: TKey): T | undefined {
-		return this.children?.get(key);
+		return this.children.get(key);
 	}
 
 	add<TChild extends T>(key: TKey, child: TChild, throwIfExists = false): TChild {
-		if (throwIfExists && this.children?.has(key)) {
+		if (throwIfExists && this.children.has(key)) {
 			throw `Child with the key ${key} already exists`;
 		}
 
-		this.children ??= new Map();
-		this.children.set(key, child);
+		this._children.set(key, child);
 
-		if (this.state.isEnabled()) {
+		if (this.isEnabled()) {
 			child.enable();
 		}
 
@@ -80,32 +74,29 @@ export class ComponentKeyedChildren<TKey extends defined, T extends Constraint =
 			this.remove(key);
 		});
 
-		this.onAdded.Fire(key, child);
+		if (this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
+		}
+
+		this.tryProvideDIToChild(child);
 		return child;
 	}
 
 	remove(key: TKey) {
-		if (!this.children) return;
-
 		const child = this.children.get(key);
 		if (!child) return;
 
-		this.children.delete(key);
-		this.onRemoved.Fire(key, child);
+		this._children.remove(key);
 		child.destroy();
 	}
 
 	clear() {
-		this.onClear.Fire();
-		if (!this.children) return;
-
 		this.clearing = true;
-		for (const [key, child] of this.children) {
-			this.onRemoved.Fire(key, child);
+		for (const [key, child] of this.children.getAll()) {
 			child.destroy();
 		}
 
-		this.children.clear();
+		this._children.clear();
 		this.clearing = false;
 	}
 }

@@ -3,7 +3,7 @@ declare global {
 		Disconnect(): void;
 	}
 
-	interface ReadonlyArgsSignal<TArgs extends unknown[]> {
+	interface ReadonlyArgsSignal<TArgs extends unknown[] = []> {
 		Connect(callback: (...args: TArgs) => void): SignalConnection;
 	}
 	interface ReadonlySignal<T extends (...args: any[]) => void = () => void>
@@ -26,7 +26,13 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 		};
 	}
 	static connectionFromTask(thread: thread): SignalConnection {
-		return this.connection(() => task.cancel(thread));
+		return this.connection(() => {
+			try {
+				task.cancel(thread);
+			} catch {
+				// empty
+			}
+		});
 	}
 	static multiConnection(...connections: SignalConnection[]): SignalConnection {
 		return {

@@ -1,7 +1,8 @@
 import { Workspace } from "@rbxts/services";
+import { Colors } from "engine/shared/Colors";
 
 export namespace Materials {
-	const materialTextures: { [key: string]: string | undefined } = {
+	const materialTextures: { [k in Enum.Material["Name"]]: string | undefined } = {
 		Asphalt: "9930003046",
 		Basalt: "9920482056",
 		Brick: "9920482813",
@@ -47,13 +48,54 @@ export namespace Materials {
 		Neon: undefined,
 		Plastic: undefined,
 		ForceField: undefined,
+		Air: undefined,
+		Water: undefined,
 	};
 
 	export function getMaterialTexture(material: Enum.Material): string | undefined {
 		return materialTextures[material.Name];
 	}
+	export function getMaterialTextureAssetId(material: Enum.Material): string {
+		const m = getMaterialTexture(material);
+		if (!m) return "";
+
+		return `rbxassetid://${m}`;
+	}
 
 	export function getMaterialDefaultColor(material: Enum.Material): Color3 {
-		return Workspace.Terrain!.GetMaterialColor(material);
+		try {
+			return Workspace.Terrain!.GetMaterialColor(material);
+		} catch {
+			return Colors.white;
+		}
+	}
+
+	const materialNames: { readonly [k in Enum.Material["Name"]]?: string } = {
+		RoofShingles: "Roof Shingles",
+		DiamondPlate: "Diamond Plate",
+		WoodPlanks: "Wood Planks",
+		CorrodedMetal: "Corroded Metal",
+		Asphalt: undefined,
+		Basalt: undefined,
+		Cardboard: undefined,
+		Rubber: undefined,
+		Brick: undefined,
+		Cobblestone: undefined,
+		Concrete: undefined,
+		Fabric: undefined,
+		Glass: undefined,
+		Granite: undefined,
+		Grass: undefined,
+		Ice: undefined,
+		Marble: undefined,
+		Metal: undefined,
+		Pebble: undefined,
+		Plastic: undefined,
+		Sand: undefined,
+		Slate: undefined,
+		Wood: undefined,
+	};
+	export function getMaterialDisplayName(material: Enum.Material): string {
+		return materialNames[material.Name] ?? material.Name;
 	}
 }

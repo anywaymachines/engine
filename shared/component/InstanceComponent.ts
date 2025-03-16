@@ -1,58 +1,59 @@
+import { Component } from "engine/shared/component/Component";
 import { ComponentInstance } from "engine/shared/component/ComponentInstance";
-import { ContainerComponent } from "engine/shared/component/ContainerComponent";
-import { TransformService } from "engine/shared/component/TransformService";
-import type { TransformBuilder } from "engine/shared/component/Transform";
+import type { ComponentParentConfig } from "engine/shared/component/Component";
 
-/** Component with an `Instance` and children */
-export class InstanceComponent<
-	T extends Instance,
-	TChild extends IComponent = IComponent,
-> extends ContainerComponent<TChild> {
-	readonly instance;
+export interface InstanceComponentConfig {
+	readonly destroyComponentOnInstanceDestroy?: boolean;
+	readonly destroyInstanceOnComponentDestroy?: boolean;
+}
+export interface InstanceComponentParentConfig extends ComponentParentConfig {
+	readonly parent?: boolean;
+}
 
-	constructor(instance: T, destroyComponentOnInstanceDestroy = true, destroyInstanceOnComponentDestroy = true) {
+export class InstanceComponent<T extends Instance> extends Component {
+	constructor(
+		readonly instance: T,
+		config?: InstanceComponentConfig,
+	) {
 		super();
-		this.instance = instance;
 
-		ComponentInstance.init(this, instance, destroyComponentOnInstanceDestroy, destroyInstanceOnComponentDestroy);
-
-		this.children.onAdded.Connect((child) => {
-			if (child instanceof InstanceComponent && typeIs(child.instance, "Instance")) {
-				ComponentInstance.setParentIfNeeded(child.instance, this.instance);
-			}
-		});
+		ComponentInstance.init(
+			this,
+			instance,
+			config?.destroyComponentOnInstanceDestroy,
+			config?.destroyInstanceOnComponentDestroy,
+		);
 	}
 
+	/** Return a function that returns a copy of the provided Instance. Destroys the Instance if specified. Leaks the memory, use only in static context. */
+	static asTemplateWithMemoryLeak<T extends Instance>(object: T, destroyOriginal = true) {
+		const template = object.Clone();
+		if (destroyOriginal) object.Destroy();
+
+		return () => template.Clone();
+	}
 	/** Checks if the child exists on an Instance */
-	protected static exists<T extends Instance, TKey extends keyof T & string>(
+	static exists<T extends Instance, TKey extends keyof T & string>(
 		gui: T,
 		name: TKey,
 	): gui is T & { [key in TKey]: (typeof gui)[TKey] & defined } {
 		return gui.FindFirstChild(name) !== undefined;
 	}
-	protected static findFirstChild<T extends Instance, TKey extends keyof T & string>(
-		gui: T,
-		name: TKey,
-	): T[TKey] | undefined {
+	static findFirstChild<T extends Instance, TKey extends keyof T & string>(gui: T, name: TKey): T[TKey] | undefined {
 		return gui.FindFirstChild(name) as T[TKey] | undefined;
 	}
-	protected static waitForChild<T extends Instance, TKey extends keyof T & string>(
-		gui: T,
-		name: TKey,
-	): T[TKey] & defined {
+	static waitForChild<T extends Instance, TKey extends keyof T & string>(gui: T, name: TKey): T[TKey] & defined {
 		return gui.WaitForChild(name) as defined as T[TKey] & defined;
 	}
 
-	/** Get an attribute value on the Instance */
-	getAttribute<T extends AttributeValue>(name: string) {
-		return this.instance.GetAttribute(name) as T | undefined;
-	}
+	override parent<T extends Component>(child: T, config?: InstanceComponentParentConfig): T {
+		if (config?.parent ?? true) {
+			ComponentInstance.setInstanceParentIfNeeded(child, this);
+		}
+		if (ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setLayoutOrderIfNeeded(child.instance, this.instance);
+		}
 
-	cancelTransforms() {
-		TransformService.cancel(this.instance);
-	}
-	/** Transform the current instance */
-	transform(setup: (transform: TransformBuilder<T>, instance: T) => void) {
-		TransformService.run(this.instance, setup);
+		return super.parent(child, config);
 	}
 }

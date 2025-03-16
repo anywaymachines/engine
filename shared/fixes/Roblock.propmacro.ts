@@ -22,6 +22,8 @@ declare global {
 		 * @deprecated use Roblox built-in method
 		 */
 		max(this: Vector3, vector: Vector3): Vector3;
+
+		with(this: Vector3, x?: number, y?: number, z?: number): Vector3;
 	}
 }
 export const Vector3Macros: PropertyMacros<Vector3> = {
@@ -39,6 +41,9 @@ export const Vector3Macros: PropertyMacros<Vector3> = {
 	},
 	max: (vector: Vector3, other: Vector3): Vector3 => {
 		return new Vector3(math.max(vector.X, other.X), math.max(vector.Y, other.Y), math.max(vector.Z, other.Z));
+	},
+	with: (vector: Vector3, x?: number, y?: number, z?: number): Vector3 => {
+		return new Vector3(x ?? vector.X, y ?? vector.Y, z ?? vector.Z);
 	},
 };
 

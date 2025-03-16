@@ -1,12 +1,15 @@
-import { ReplicatedStorage } from "@rbxts/services";
+import { RunService } from "@rbxts/services";
 
 export namespace Instances {
-	export const assets = ReplicatedStorage.WaitForChild("Assets") as Folder;
+	export function findChild<T = Instance>(object: Instance, ...path: string[]): T | undefined {
+		let ret: Instance | undefined = object;
+		for (const part of path) {
+			if (!ret) return undefined;
+			ret = ret.FindFirstChild(part);
+		}
 
-	export function getAssets<T extends object = Folder>() {
-		return assets as T;
+		return ret as T;
 	}
-
 	export function waitForChild<T = Instance>(object: Instance, ...path: string[]): T {
 		let ret: Instance = object;
 		for (const part of path) {
@@ -14,5 +17,35 @@ export namespace Instances {
 		}
 
 		return ret as T;
+	}
+
+	export function waitClientOrCreateServer<T extends Instance = Instance>(
+		parent: Instance,
+		name: string,
+		ctor: () => T,
+	): T {
+		if (RunService.IsServer()) {
+			const instance = ctor();
+			instance.Name = name;
+			instance.Parent = parent;
+
+			return instance;
+		}
+
+		return parent.WaitForChild(name) as T;
+	}
+
+	export function pathOf(instance: Instance): string[] {
+		const ret: string[] = [];
+
+		let parent: Instance | undefined = instance;
+		while (parent) {
+			if (parent === game) break;
+
+			ret.unshift(parent.Name);
+			parent = parent.Parent;
+		}
+
+		return ret;
 	}
 }

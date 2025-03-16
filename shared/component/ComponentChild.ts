@@ -1,56 +1,89 @@
+import { Component } from "engine/shared/component/Component";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { ArgsSignal } from "engine/shared/event/Signal";
 import { SlimSignal } from "engine/shared/event/SlimSignal";
+import { Objects } from "engine/shared/fixes/Objects";
+import type {
+	ObservableValue,
+	ObservableValueBase,
+	ReadonlyObservableValue,
+} from "engine/shared/event/ObservableValue";
+import type { ReadonlySlimSignal } from "engine/shared/event/SlimSignal";
 
-type Constraint = IWriteonlyComponent & IReadonlyDestroyableComponent;
-
-export interface ReadonlyComponentChild<T extends Constraint = Constraint> {
+export interface ReadonlyComponentChild<T extends Component = Component> extends Component {
 	get(): T | undefined;
 }
 
+export interface ComponentChild<T extends Component = Component> extends ObservableValue<T | undefined> {}
 /** Stores a single component (or zero). Handles its enabling, disabling and destroying. */
-export class ComponentChild<T extends Constraint = Constraint>
-	implements ReadonlyComponentChild<T>, IDebuggableComponent
+export class ComponentChild<T extends Component = Component>
+	extends Component
+	implements ReadonlyComponentChild<T>, ObservableValueBase<T | undefined>
 {
-	readonly childSet = new SlimSignal<(child: T | undefined) => void>();
+	static fromObservable<TComponent extends Component, TKey>(
+		observable: ReadonlyObservableValue<TKey>,
+		ctor: (value: TKey) => TComponent,
+		clearOnDisable: boolean = false,
+	): ComponentChild<TComponent> {
+		const cc = new ComponentChild<TComponent>(clearOnDisable);
+		cc.event.subscribeObservable(observable, (value) => cc.set(ctor(value)), true);
+		cc.childSet.Connect((child) => {
+			if (!child && cc.isEnabled()) {
+				cc.set(ctor(observable.get()));
+			}
+		});
+
+		return cc;
+	}
+
+	private readonly _childSet = new SlimSignal<(child: T | undefined) => void>();
+	readonly childSet: ReadonlySlimSignal<(child: T | undefined) => void> = this._childSet;
+
+	private readonly _changed = new ArgsSignal<[value: T | undefined, prev: T | undefined]>();
+	readonly changed: ReadonlyArgsSignal<[value: T | undefined, prev: T | undefined]> = this._changed;
 
 	private child?: T;
 
-	/** Subscribe a child to a parent state. */
-	static init(state: IReadonlyComponent, child: IWriteonlyComponent) {
-		state.onEnable(() => child.enable());
-		state.onDisable(() => child.disable());
-		state.onDestroy(() => child.destroy());
+	constructor(clearOnDisable = false) {
+		super();
 
-		if (state.isEnabled()) child.enable();
-	}
-	constructor(
-		private readonly state: (IReadonlyEnableableComponent & IReadonlyDestroyableComponent) | IReadonlyComponent,
-		clearOnDisable = false,
-	) {
-		state.onEnable(() => this.child?.enable());
-		state.onDestroy(() => this.clear());
+		this.changed.Connect((value) => this._childSet.Fire(value));
 
-		if ("onDisable" in state) {
-			if (!clearOnDisable) {
-				state.onDisable(() => this.child?.disable());
-			} else {
-				state.onDisable(() => this.clear());
-			}
+		this.onEnable(() => this.child?.enable());
+		this.onDestroy(() => this.clear());
+
+		if (!clearOnDisable) {
+			this.onDisable(() => this.child?.disable());
+		} else {
+			this.onDisable(() => this.clear());
 		}
 	}
 
-	getDebugChildren(): readonly T[] {
-		return this.child ? [this.child] : [];
+	private parentInstance?: Instance;
+	withParentInstance(parentInstance: Instance): this {
+		if (this.parentInstance) {
+			throw "Instance already set";
+		}
+
+		this.parentInstance = parentInstance;
+		return this;
 	}
 
-	get() {
+	get(): T | undefined {
 		return this.child;
+	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		const child = this.get();
+		if (!child) return super.getChildrenForInjecting();
+
+		return [...super.getChildrenForInjecting(), child];
 	}
 
 	set<TChild extends T | undefined>(child: TChild): TChild {
 		const prev = this.child;
 		this.child = child;
 		prev?.destroy();
-		this.childSet.Fire(child);
+		this._childSet.Fire(child);
 
 		if (child && this.child === child) {
 			child.onDestroy(() => {
@@ -58,14 +91,26 @@ export class ComponentChild<T extends Constraint = Constraint>
 				this.set(undefined);
 			});
 
-			if (this.state.isEnabled()) {
+			if (this.isEnabled()) {
 				child.enable();
 			}
 		}
 
+		if (child && this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
+		}
+
+		if (child) {
+			this.tryProvideDIToChild(child);
+		}
 		return child;
 	}
 	clear() {
 		this.set(undefined);
+	}
+
+	override getDebugChildren(): readonly T[] {
+		const child = this.child;
+		return child ? [child] : Objects.empty;
 	}
 }

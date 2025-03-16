@@ -1,11 +1,13 @@
 import { DataStoreService } from "@rbxts/services";
+import { formatDatabaseBackendKeys } from "engine/server/backend/DatabaseBackend";
 import { Element } from "engine/shared/Element";
+import { JSON } from "engine/shared/fixes/Json";
 import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
 const getOptions = Element.create("DataStoreGetOptions", { UseCache: false });
 
-export class DataStoreDatabaseBackend implements DatabaseBackend {
-	static tryCreate(name: string): DataStoreDatabaseBackend | undefined {
+export class DataStoreDatabaseBackend<T> implements DatabaseBackend<T, defined[]> {
+	static tryCreate<T>(name: string): DataStoreDatabaseBackend<T> | undefined {
 		try {
 			return new DataStoreDatabaseBackend(DataStoreService.GetDataStore(name));
 		} catch {
@@ -15,13 +17,14 @@ export class DataStoreDatabaseBackend implements DatabaseBackend {
 
 	constructor(private readonly dataStore: DataStore) {}
 
-	GetAsync<T>(key: string): T | undefined {
-		return this.dataStore.GetAsync<T>(key, getOptions)[0];
+	GetAsync(keys: defined[]): T | undefined {
+		const str = this.dataStore.GetAsync<string>(formatDatabaseBackendKeys(keys), getOptions)[0];
+		return str ? (JSON.deserialize(str) as T) : undefined;
 	}
-	SetAsync(key: string, value?: unknown): void {
-		this.dataStore.SetAsync(key, value);
+	SetAsync(value: T, keys: defined[]): void {
+		this.dataStore.SetAsync(formatDatabaseBackendKeys(keys), JSON.serialize(value));
 	}
-	RemoveAsync(key: string): void {
-		this.dataStore.RemoveAsync(key);
+	RemoveAsync(keys: defined[]): void {
+		this.dataStore.RemoveAsync(formatDatabaseBackendKeys(keys));
 	}
 }

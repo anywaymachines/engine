@@ -13,6 +13,9 @@ const _ = () => [
 	[ArrayMacros9, SetMacros9, MapMacros9],
 	[ArrayMacrosGroupBy, SetMacrosGroupBy, MapMacrosGroupBy],
 	[ArrayMacrosExcept, SetMacrosExcept, MapMacrosExcept],
+	[ArrayMacrosConvert, SetMacrosConvert, MapMacrosConvert],
+	[ArrayMacrosDistinct],
+	[SetMacrosWithAdded],
 	[ArrayMacrosSequenceEquals, SetMacrosSequenceEquals, MapMacrosSequenceEquals],
 ];
 
@@ -1024,10 +1027,10 @@ declare global {
 		exceptSet(this: ReadonlySet<defined>, items: ReadonlySet<T>): Set<T>;
 	}
 	interface ReadonlyMap<K, V> {
-		exceptKeys(this: ReadonlyArray<defined>, items: readonly K[]): Map<K, V>;
-		exceptValues(this: ReadonlyArray<defined>, items: readonly V[]): Map<K, V>;
-		exceptKeysSet(this: ReadonlyArray<defined>, items: ReadonlySet<K>): Map<K, V>;
-		exceptValuesSet(this: ReadonlyArray<defined>, items: ReadonlySet<V>): Map<K, V>;
+		exceptKeys(this: ReadonlyMap<defined, defined>, items: readonly K[]): Map<K, V>;
+		exceptValues(this: ReadonlyMap<defined, defined>, items: readonly V[]): Map<K, V>;
+		exceptKeysSet(this: ReadonlyMap<defined, defined>, items: ReadonlySet<K>): Map<K, V>;
+		exceptValuesSet(this: ReadonlyMap<defined, defined>, items: ReadonlySet<V>): Map<K, V>;
 	}
 }
 export const ArrayMacrosExcept: PropertyMacros<ReadonlyArray<defined>> = {
@@ -1117,7 +1120,73 @@ export const MapMacrosExcept: PropertyMacros<ReadonlyMap<defined, defined>> = {
 
 declare global {
 	interface ReadonlyArray<T> {
+		toSet(this: ReadonlyArray<defined>): Set<T>;
+		toMap<K extends defined>(this: ReadonlyArray<defined>, func: (value: T) => K): Map<K, T>;
+	}
+	interface ReadonlySet<T> {
+		toArray(this: ReadonlySet<defined>): T[];
+		toMap<K extends defined>(this: ReadonlySet<defined>, func: (value: T) => K): Map<K, T>;
+	}
+	interface ReadonlyMap<K, V> {
+		toArray(this: ReadonlyMap<defined, defined>): [key: K, value: V][];
+		toSet(this: ReadonlyMap<defined, defined>): Set<[key: K, value: V]>;
+	}
+}
+export const ArrayMacrosConvert: PropertyMacros<ReadonlyArray<defined>> = {
+	toSet: <T extends defined>(selv: ReadonlyArray<T>): Set<T> => new Set(selv),
+	toMap: <T extends defined, K extends defined>(selv: ReadonlyArray<T>, func: (value: T) => K): Map<K, T> =>
+		selv.mapToMap((v) => $tuple(func(v), v)),
+};
+export const SetMacrosConvert: PropertyMacros<ReadonlySet<defined>> = {
+	toArray: <T extends defined>(selv: ReadonlySet<T>): T[] => [...selv],
+	toMap: <T extends defined, K extends defined>(selv: ReadonlySet<T>, func: (value: T) => K): Map<K, T> =>
+		selv.mapToMap((v) => $tuple(func(v), v)),
+};
+export const MapMacrosConvert: PropertyMacros<ReadonlyMap<defined, defined>> = {
+	toArray: <K extends defined, V extends defined>(selv: ReadonlyMap<K, V>): [K, V][] => [...selv],
+	toSet: <K extends defined, V extends defined>(selv: ReadonlyMap<K, V>): Set<[K, V]> => new Set([...selv]),
+};
+
+declare global {
+	interface ReadonlyArray<T> {
+		distinct(this: ReadonlyArray<defined>): T[];
+	}
+}
+export const ArrayMacrosDistinct: PropertyMacros<ReadonlyArray<defined>> = {
+	distinct: <T extends defined>(selv: ReadonlyArray<T>): T[] => [...new Set(selv)],
+};
+
+declare global {
+	interface ReadonlySet<T> {
+		/** Returns a copy of the set with the provided items added */
+		withAdded(this: ReadonlySet<defined>, items: readonly T[]): Set<T>;
+		/** Returns a copy of the set with the provided items added */
+		withAddedSet(this: ReadonlySet<defined>, items: ReadonlySet<T>): Set<T>;
+	}
+}
+export const SetMacrosWithAdded: PropertyMacros<ReadonlySet<defined>> = {
+	withAdded: <T extends defined>(selv: ReadonlySet<T>, items: readonly T[]): Set<T> => {
+		const ret = selv.clone();
+		for (const item of items) {
+			ret.add(item);
+		}
+
+		return ret;
+	},
+	withAddedSet: <T extends defined>(selv: ReadonlySet<T>, items: ReadonlySet<T>): Set<T> => {
+		const ret = selv.clone();
+		for (const item of items) {
+			ret.add(item);
+		}
+
+		return ret;
+	},
+};
+
+declare global {
+	interface ReadonlyArray<T> {
 		sequenceEquals(this: ReadonlyArray<defined>, other: readonly T[]): boolean;
+		sequenceEqualsSet(this: ReadonlyArray<defined>, other: ReadonlySet<T>): boolean;
 	}
 	interface ReadonlySet<T> {
 		sequenceEquals(this: ReadonlySet<defined>, other: ReadonlySet<T>): boolean;
@@ -1139,6 +1208,9 @@ export const ArrayMacrosSequenceEquals: PropertyMacros<ReadonlyArray<defined>> =
 		}
 
 		return true;
+	},
+	sequenceEqualsSet: <T extends defined>(selv: ReadonlyArray<T>, other: ReadonlySet<T>): boolean => {
+		return selv.all((c) => other.has(c));
 	},
 };
 export const SetMacrosSequenceEquals: PropertyMacros<ReadonlySet<defined>> = {

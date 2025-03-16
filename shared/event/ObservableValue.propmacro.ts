@@ -1,61 +1,108 @@
-// function to force hoisting of the macros, because it does not but still tries to use them
-
 import { ObservableValue } from "engine/shared/event/ObservableValue";
+import { Signal } from "engine/shared/event/Signal";
+import type { ReadonlyObservableValue } from "engine/shared/event/ObservableValue";
 
+// function to force hoisting of the macros, because it does not but still tries to use them
 // do NOT remove and should ALWAYS be before any other code
-const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros];
+const _ = () => [ReadonlyObservableValueMacros, ObservableValueMacros, ObservableValueBoolMacros];
 
-declare global {
+declare module "engine/shared/event/ObservableValue" {
 	interface ReadonlyObservableValue<T> {
-		subscribe(func: (value: T, prev: T) => void): SignalConnection;
-		subscribe(func: (value: T, prev: T) => void, executeImmediately: boolean | undefined): SignalConnection;
+		subscribe(func: (value: T) => void, executeImmediately?: boolean): SignalConnection;
+		subscribePrev(func: (value: T, prev: T) => void, executeImmediately?: boolean): SignalConnection;
+		subscribeWithCustomEquality(
+			func: (value: T, prev: T) => void,
+			equalityCheck: (value: T, prev: T) => boolean,
+			executeImmediately?: boolean,
+		): SignalConnection;
 
+		/** @deprecated Use fCreateBased() instead */
 		createBased<TNew>(func: (value: T) => TNew): ReadonlyObservableValue<TNew>;
+
+		waitOnceFor<U extends T>(predicate: (value: T) => value is U, action: (value: U) => void): void;
+		waitOnceFor(predicate: (value: T) => boolean, action: (value: T) => void): void;
 	}
 }
 export const ReadonlyObservableValueMacros: PropertyMacros<ReadonlyObservableValue<unknown>> = {
-	createBased: <T, TNew>(
-		selv: ReadonlyObservableValue<T>,
-		func: (value: T) => TNew,
-	): ReadonlyObservableValue<TNew> => {
-		const observable = new ObservableValue<TNew>(func(selv.get()));
-		selv.subscribe((value) => observable.set(func(value)));
-
-		return observable;
-	},
-
 	subscribe: <T>(
 		selv: ReadonlyObservableValue<T>,
-		func: (value: T, prev: T) => void,
+		func: (value: T) => void,
 		executeImmediately: boolean = false,
 	): SignalConnection => {
 		const sub = selv.changed.Connect(func);
 
 		if (executeImmediately) {
-			func(selv.get(), selv.get());
+			func(selv.get());
 		}
 
 		return sub;
 	},
+	subscribePrev: <T>(
+		selv: ReadonlyObservableValue<T>,
+		func: (value: T, prev: T) => void,
+		executeImmediately: boolean = false,
+	): SignalConnection => {
+		let prev = selv.get();
+		return selv.subscribe((v) => {
+			func(v, prev);
+			prev = v;
+		}, executeImmediately);
+	},
+	subscribeWithCustomEquality: <T>(
+		selv: ReadonlyObservableValue<T>,
+		func: (value: T, prev: T) => void,
+		equalityCheck: (value: T, prev: T) => boolean,
+		executeImmediately?: boolean,
+	): SignalConnection => {
+		const sub = selv.subscribePrev((value, prev) => {
+			if (equalityCheck(value, prev)) return;
+			func(value, prev);
+		});
+
+		if (executeImmediately) {
+			const v = selv.get();
+			func(v, v);
+		}
+
+		return sub;
+	},
+
+	createBased: <T, U>(selv: ReadonlyObservableValue<T>, func: (value: T) => U): ReadonlyObservableValue<U> => {
+		const observable = new ObservableValue<U>(func(selv.get()));
+		selv.subscribe((value) => observable.set(func(value)), true);
+
+		return observable;
+	},
+
+	waitOnceFor: <T>(
+		selv: ReadonlyObservableValue<T>,
+		predicate: (value: T) => boolean,
+		action: (value: T) => void,
+	): void => {
+		const value = selv.get();
+		if (predicate(value)) {
+			action(value);
+			return;
+		}
+
+		const sub = selv.subscribe((value) => {
+			if (!predicate(value)) return;
+
+			sub.Disconnect();
+			action(value);
+		});
+	},
 };
 
-declare global {
+declare module "engine/shared/event/ObservableValue" {
 	interface ObservableValue<T> {
 		asReadonly(): ReadonlyObservableValue<T>;
+		createBothWayBased<U>(toOld: (value: U) => T, toNew: (value: T) => U): ObservableValue<U>;
 
-		/** Binds to the other ObservableValue, making their values to share their value and events. */
-		bindTo(observable: ObservableValue<T>): void;
+		toggle(this: ObservableValue<boolean>): boolean;
 
-		/** Automatically sets the provided ObservableValue value to the current one. */
-		autoSet(observable: ObservableValue<T>, funcProvider?: (value: T) => T): void;
-
-		withDefault(defval: T & defined): ObservableValue<T & defined>;
-		waitUntil<U extends T>(func: (value: T) => value is U): U;
-
-		createBothWayBased<TNew>(toOld: (value: TNew) => T, toNew: (value: T) => TNew): ObservableValue<TNew>;
-		createBackwardBased<TNew>(defaultValue: TNew, func: (value: TNew) => T): ObservableValue<TNew>;
-
-		withMiddleware(middleware: (value: T) => T): ObservableValue<T>;
+		/** Connect two observables to have the same value. Immediately sets the other observable value to this one */
+		connect(other: ObservableValue<T>): SignalConnection;
 	}
 }
 export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
@@ -63,71 +110,31 @@ export const ObservableValueMacros: PropertyMacros<ObservableValue<unknown>> = {
 		return selv;
 	},
 
-	bindTo: <T>(selv: ObservableValue<T>, observable: ObservableValue<T>): void => {
-		selv.subscribe((value) => observable.set(value));
-		observable.subscribe((value) => selv.set(value), true);
-	},
-
-	autoSet: <T>(selv: ObservableValue<T>, observable: ObservableValue<T>, funcProvider?: (value: T) => T): void => {
-		selv.subscribe((value) => observable.set(funcProvider === undefined ? value : funcProvider(value)), true);
-	},
-
-	withDefault: <T>(selv: ObservableValue<T>, defval: T & defined): ObservableValue<T & defined> => {
-		const observable = new ObservableValue<T & defined>(selv.get() ?? defval);
-		selv.subscribe((val) => observable.set(val ?? defval));
-		observable.subscribe((val) => selv.set(val));
-
-		return observable;
-	},
-
-	waitUntil: <T, U extends T>(selv: ObservableValue<T>, func: (value: T) => value is U): U => {
-		let ret: U;
-		let returned = false;
-		const connection = selv.subscribe((value) => {
-			if (!func(value)) return;
-
-			ret = value;
-			returned = true;
-			connection.Disconnect();
-		});
-
-		while (!returned) {
-			task.wait();
-		}
-
-		return ret!;
-	},
-
-	createBothWayBased: <T, TNew>(
+	createBothWayBased: <T, U>(
 		selv: ObservableValue<T>,
-		toOld: (value: TNew) => T,
-		toNew: (value: T) => TNew,
-	): ObservableValue<TNew> => {
-		const observable = new ObservableValue<TNew>(toNew(selv.get()));
-		observable.subscribe((value) => {
-			selv.set(toOld(value));
-			observable.set(toNew(selv.get()));
-		});
+		toOld: (value: U) => T,
+		toNew: (value: T) => U,
+	): ObservableValue<U> => {
+		const observable = new ObservableValue<U>(toNew(selv.get()));
+		observable.subscribe((value) => selv.set(toOld(value)));
 		selv.subscribe((value) => observable.set(toNew(value)));
 
 		return observable;
 	},
-	createBackwardBased: <T, TNew>(
-		selv: ObservableValue<T>,
-		defaultValue: TNew,
-		func: (value: TNew) => T,
-	): ObservableValue<TNew> => {
-		const observable = new ObservableValue<TNew>(defaultValue);
-		observable.subscribe((value) => selv.set(func(value)));
 
-		return observable;
+	connect: <T>(selv: ObservableValue<T>, other: ObservableValue<T>): SignalConnection => {
+		return Signal.multiConnection(
+			other.subscribe((value) => selv.set(value)),
+			selv.subscribe((value) => other.set(value), true),
+		);
 	},
+};
 
-	withMiddleware: <T>(selv: ObservableValue<T>, middleware: (value: T) => T): ObservableValue<T> => {
-		const observable = new ObservableValue<T>(middleware(selv.get()), middleware);
-		observable.subscribe((value) => selv.set(value));
-		selv.subscribe((value) => observable.set(value));
+export const ObservableValueBoolMacros: PropertyMacros<ObservableValue<boolean>> = {
+	toggle: (selv: ObservableValue<boolean>): boolean => {
+		const val = !selv.get();
+		selv.set(val);
 
-		return observable;
+		return val;
 	},
 };

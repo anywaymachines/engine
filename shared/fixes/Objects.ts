@@ -1,4 +1,6 @@
 export namespace Objects {
+	export const empty: readonly [] = [];
+
 	export function firstKey<T>(object: readonly T[]): number | undefined;
 	export function firstKey<T>(object: ReadonlyMap<T, defined>): T | undefined;
 	export function firstKey<T>(object: ReadonlySet<T>): T | undefined;
@@ -133,6 +135,23 @@ export namespace Objects {
 		return true;
 	}
 
+	/** Object deep equals check, but checks only propeties that exists on `properties` */
+	export function objectDeepEqualsExisting(object: object, properties: object): boolean {
+		for (const [k] of pairs(properties)) {
+			if (!(k in object)) {
+				return false;
+			}
+
+			if (!deepEquals(object[k], properties[k])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	export function deepCombine<T extends object>(o1: T, o2: PartialThrough<T>): T;
+	export function deepCombine<T extends object>(...objects: readonly T[]): T;
 	export function deepCombine<T extends object>(...objects: readonly T[]): T {
 		const result = {} as T;
 		for (const obj of objects) {
@@ -146,6 +165,67 @@ export namespace Objects {
 		}
 
 		return result;
+	}
+
+	// Returns full paths of the object T
+	export type PathsOf<T> = T extends object
+		? { [K in keyof T]: T[K] extends object ? [K, ...PathsOf<T[K]>] : [K] }[keyof T] & readonly string[]
+		: readonly [];
+
+	// Returns a value of the object T at the path TPath
+	export type ValueOf<T, TPath extends readonly (string | number)[]> = TPath extends readonly []
+		? T
+		: TPath extends readonly [infer First extends keyof T, ...infer Rest extends readonly (string | number)[]]
+			? ValueOf<T[First], Rest>
+			: never;
+
+	export function getValueByPathTyped<const TObj extends object, const TPath extends readonly string[]>(
+		obj: TObj,
+		path: TPath,
+	): ValueOf<TObj, TPath>;
+	export function getValueByPathTyped(obj: object, path: readonly string[]): unknown {
+		return getValueByPath(obj, path);
+	}
+
+	export function getValueByPath(obj: object, path: readonly (string | number)[]): unknown {
+		let v: unknown = obj;
+		for (const p of path) {
+			v = (v as { [k in string | number]: unknown })[p];
+		}
+
+		return v;
+	}
+	export function createObjectWithValueByPath<V>(value: V, path: readonly (string | number)[]): object {
+		const obj: { [k in string | number]: unknown } = {};
+		let part = obj;
+		for (const [i, p] of ipairs(path)) {
+			if (i === path.size()) {
+				part[p] = value;
+			} else {
+				part = part[p] = {};
+			}
+		}
+
+		return obj;
+	}
+
+	export function withValueByPath<T extends object>(obj: T, value: unknown, path: readonly (string | number)[]): T {
+		function withValueByPath<T extends object>(obj: T, value: unknown, path: (string | number)[]): T {
+			const pathPart = path.pop();
+			if (!pathPart) return obj;
+
+			const nextval = (obj as { [k in string | number]: unknown })[pathPart];
+			if (!typeIs(nextval, "table")) {
+				throw `Value at ${path.join("/")} is not an object`;
+			}
+
+			return {
+				...obj,
+				[pathPart]: withValueByPath(nextval, value, path),
+			};
+		}
+
+		return withValueByPath(obj, value, [...path]);
 	}
 
 	/** Executes the function and throws if it ever yields */

@@ -1,9 +1,10 @@
 # engine-awm
-This library was developed for internal use with **roblox-ts**, providing utilities and tools to streamline game development on Roblox. The library played a crucial role in the development of the game **Plane Engineers**.
+Our internal typescript library, mainly used to develop Roblox game **Plane Engineers**.
+It provides the backbone of the whole game, mainly with our Component system and a custom typescript transformer to simplify the development.
 
 ## Limitations
-- **⚠️ Not supported**: This project is not actively maintained or officially supported by Roblox or the roblox-ts community.
-- **⚠️ Experimental**: There may be bugs or missing features.
+- **⚠️ Not supported**: This is our **internal** library. We might and will break, change or remove anything from it at any time.
+- **⚠️ Experimental**: Still in active development, this library will have bugs or missing features.
 
 ## Using
-To use this library in your project use our framework https://github.com/anywaymachines/framework-awm
+If you still want to use this, you can use our project template at https://github.com/anywaymachines/framework-awm

@@ -669,12 +669,151 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 
 		return ts.visitEachChild(file, visit, context);
 	};
+	const transformDIConvertToResolveFunction = (file: ts.SourceFile): ts.SourceFile => {
+		const createArrowFunction = (func: ts.Expression, types: readonly ts.Type[]): ts.ArrowFunction => {
+			return factory.createArrowFunction(
+				undefined,
+				undefined,
+				[
+					factory.createParameterDeclaration(
+						undefined,
+						undefined,
+						factory.createIdentifier("di"),
+						undefined,
+						factory.createTypeReferenceNode(factory.createIdentifier("DIContainer"), undefined),
+						undefined,
+					),
+				],
+				undefined,
+				undefined,
+				factory.createBlock(
+					[
+						factory.createVariableStatement(
+							undefined,
+							factory.createVariableDeclarationList(
+								[
+									factory.createVariableDeclaration(
+										'_func',
+										undefined,
+										undefined,
+										func,
+									),
+								],
+								ts.NodeFlags.Const,
+							),
+						),
+						factory.createReturnStatement(
+							factory.createCallExpression(
+								factory.createIdentifier('_func'),
+								undefined,
+								types.map((type) => {
+									let resolve: ts.Expression = factory.createCallExpression(
+										factory.createPropertyAccessExpression(
+											factory.createIdentifier("di"),
+											factory.createIdentifier(/*a.nullable*/ false ? "tryResolve" : "resolve"),
+										),
+										undefined,
+										[factory.createStringLiteral(identifierByType(type)!)],
+									);
+
+									if (type.getCallSignatures().length !== 0) {
+										resolve = factory.createArrowFunction(
+											undefined,
+											undefined,
+											[],
+											undefined,
+											undefined,
+											resolve,
+										);
+									}
+
+									return resolve;
+								}),
+							),
+						),
+					],
+					true,
+				),
+			);
+		};
+
+		const fixCall = (call: ts.CallExpression): ts.Expression | undefined => {
+			if (!ts.isIdentifier(call.expression)) return;
+			if (call.expression.text !== "$autoResolve") return;
+
+			const methodType = typeChecker.getResolvedSignature(call);
+			if (!methodType) return;
+
+			const ret = methodType.getReturnType();
+			const param = ret.getProperty("___convertToResolveFunctionArgs");
+			if (!param) return;
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const w = (param as any)?.links?.mapper?.target as ts.Symbol;
+			if (!w?.members) return;
+
+			const types: ts.Type[] = [];
+			for (let i = 0; true; i++){
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const t = (w.members?.get(i.toString() as never) as any)?.links?.type as ts.Type | undefined;
+				if (!t) break;
+
+				types.push(t);
+			}
+
+			if (types.length === 0) return;
+			return createArrowFunction(call.arguments[0], types);
+		};
+		const fixProperty = (call: ts.CallExpression): ts.Expression | undefined => {
+			if (!ts.isPropertyAccessExpression(call.expression)) return;
+			if (!ts.isIdentifier(call.expression.name)) return;
+			if (call.expression.name.text !== "$onInjectAuto") return;
+			
+			const methodType = typeChecker.getResolvedSignature(call);
+			if (!methodType) return;
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const w = (methodType as any).mapper?.target as ts.Symbol;
+			if (!w?.members) return;
+
+			const types: ts.Type[] = [];
+			for (let i = 0; true; i++){
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const t = (w.members?.get(i.toString() as never) as any)?.links?.type as ts.Type | undefined;
+				if (!t) break;
+
+				types.push(t);
+			}
+
+			if (types.length === 0) return;
+
+			return factory.createCallExpression(
+				factory.createPropertyAccessExpression(
+					factory.createThis(),
+					"onInject",
+				),
+				undefined,
+				[ createArrowFunction(call.arguments[0], types) ],
+			)
+		};
+
+		const visit = (node: ts.Node): ts.Node => {
+			if (ts.isCallExpression(node)) {
+				node = fixCall(node) ?? fixProperty(node) ?? node;
+			}
+
+			return ts.visitEachChild(node, visit, context);
+		};
+
+		return ts.visitEachChild(file, visit, context);
+	};
 
 	return (file: ts.SourceFile): ts.SourceFile => {
 		file = transformNamespaces(file);
 		file = transformLogs(file);
 		file = transformDI(file);
 		file = transformDIDecoratorPathOf(file);
+		file = transformDIConvertToResolveFunction(file);
 
 		return file;
 	};

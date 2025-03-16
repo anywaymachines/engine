@@ -1,26 +1,32 @@
+import { Component } from "engine/shared/component/Component";
 import { Logger } from "engine/shared/Logger";
 import type { DIContainer } from "engine/shared/di/DIContainer";
+import type { HostedService } from "engine/shared/di/HostedService";
 
-export class GameHost {
-	private readonly hostedServices: IHostedService[] = [];
-
-	constructor(readonly services: DIContainer) {}
+export class GameHost extends Component {
+	constructor(readonly services: DIContainer) {
+		super();
+	}
 
 	run(): void {
 		Logger.beginScope("GameHost");
 		$log("Starting");
 
-		for (const service of this.hostedServices) {
-			$log(`Enabling service ${getmetatable(service) ?? service}`);
-			service.enable();
-		}
+		this.enable();
 
 		$log("Started");
 		Logger.endScope();
 	}
 
-	parent<T extends IHostedService>(service: T): T {
-		this.hostedServices.push(service);
-		return service;
+	/** @deprecated @hidden */
+	_customInject(di: DIContainer): void {
+		this.startInject(di);
+	}
+
+	override parent<T extends HostedService>(service: T): T {
+		service.onEnable(() => $log(`Enabling service ${getmetatable(service) ?? service}`));
+		service.onDisable(() => $log(`Disabling service ${getmetatable(service) ?? service}`));
+
+		return super.parent(service);
 	}
 }

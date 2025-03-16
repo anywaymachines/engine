@@ -1,64 +1,62 @@
-import { SlimSignal } from "engine/shared/event/SlimSignal";
+import { Component } from "engine/shared/component/Component";
+import { ComponentInstance } from "engine/shared/component/ComponentInstance";
+import { ObservableCollectionArr } from "engine/shared/event/ObservableCollection";
 
-type Constraint = IWriteonlyComponent & IReadonlyDestroyableComponent;
-
-export interface ReadonlyComponentChildren<T extends Constraint = Constraint> extends IDebuggableComponent {
+export interface ReadonlyComponentChildren<T extends Component = Component> extends Component {
 	getAll(): readonly T[];
 }
 
 /** Stores components. Handles its enabling, disabling and destroying. */
-export class ComponentChildren<T extends Constraint = Constraint> implements ReadonlyComponentChildren<T> {
-	private static readonly empty: [] = [];
-
-	readonly onAdded = new SlimSignal<(child: T) => void>();
-	readonly onRemoved = new SlimSignal<(child: T) => void>();
-	readonly onClear = new SlimSignal();
-
-	private children?: T[];
+export class ComponentChildren<T extends Component = Component>
+	extends Component
+	implements ReadonlyComponentChildren<T>
+{
+	private readonly _children = new ObservableCollectionArr<T>();
+	readonly children = this._children.asReadonly();
 	private clearing = false;
 
-	constructor(
-		private readonly state: (IReadonlyEnableableComponent & IReadonlyDestroyableComponent) | IReadonlyComponent,
-		clearOnDisable = false,
-	) {
-		state.onEnable(() => {
-			if (!this.children) return;
+	constructor(clearOnDisable = false) {
+		super();
 
-			for (const child of this.children) {
+		this.onEnable(() => {
+			for (const child of this._children.get()) {
 				child.enable();
 			}
 		});
-		state.onDestroy(() => this.clear());
+		this.onDestroy(() => this.clear());
 
-		if ("onDisable" in state) {
-			if (!clearOnDisable) {
-				state.onDisable(() => {
-					if (!this.children) return;
-
-					for (const child of this.children) {
-						child.disable();
-					}
-				});
-			} else {
-				state.onDisable(() => this.clear());
-			}
+		if (!clearOnDisable) {
+			this.onDisable(() => {
+				for (const child of this._children.get()) {
+					child.disable();
+				}
+			});
+		} else {
+			this.onDisable(() => this.clear());
 		}
 	}
 
-	getDebugChildren(): readonly T[] {
-		return this.getAll();
+	private parentInstance?: Instance;
+	withParentInstance(parentInstance: Instance): this {
+		if (this.parentInstance) {
+			throw "Instance already set";
+		}
+
+		this.parentInstance = parentInstance;
+		return this;
 	}
 
 	getAll(): readonly T[] {
-		return this.children ?? ComponentChildren.empty;
+		return this._children.get();
+	}
+	protected override getChildrenForInjecting(): readonly Component[] {
+		return [...super.getChildrenForInjecting(), ...this.getAll()];
 	}
 
 	add<TChild extends T>(child: TChild): TChild {
-		this.children ??= [];
-		this.children.push(child);
-		this.onAdded.Fire(child);
+		this._children.push(child);
 
-		if (this.state.isEnabled()) {
+		if (this.isEnabled()) {
 			child.enable();
 		}
 
@@ -67,31 +65,31 @@ export class ComponentChildren<T extends Constraint = Constraint> implements Rea
 			this.remove(child);
 		});
 
+		if (this.parentInstance && ComponentInstance.isInstanceComponent(child)) {
+			ComponentInstance.setParentIfNeeded(child.instance, this.parentInstance);
+			ComponentInstance.setLayoutOrderIfNeeded(child.instance, this.parentInstance);
+		}
+
+		this.tryProvideDIToChild(child);
 		return child;
 	}
 
 	remove(child: T) {
-		if (!this.children) return;
-
-		const index = this.children.indexOf(child);
-		if (index === -1) return;
-
-		this.children.remove(index);
-		this.onRemoved.Fire(child);
+		this._children.remove(child);
 		child.destroy();
 	}
 
 	clear() {
-		this.onClear.Fire();
-		if (!this.children) return;
-
 		this.clearing = true;
-		for (const child of this.children) {
-			this.onRemoved.Fire(child);
+		for (const child of this._children.get()) {
 			child.destroy();
 		}
 
-		this.children.clear();
+		this._children.clear();
 		this.clearing = false;
+	}
+
+	override getDebugChildren(): readonly T[] {
+		return this.getAll();
 	}
 }

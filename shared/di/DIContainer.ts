@@ -38,8 +38,11 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 
 	const isDeps = (clazz: unknown): clazz is DepsCreatable<InstanceOf<TCtor>, TArgs> =>
 		typeIs(clazz, "table") && "_depsCreate" in clazz;
-	const isInject = (instance: InstanceOf<TCtor>): instance is typeof instance & { _inject(di: DIContainer): void } =>
-		"_inject" in instance;
+	const isCustomInject = (
+		instance: InstanceOf<TCtor>,
+	): instance is typeof instance & { _customInject(di: DIContainer): void } => {
+		return "_customInject" in instance;
+	};
 
 	const instance = isDeps(clazz)
 		? (setmetatable({}, clazz as LuaMetatable<{}>) as InstanceOf<TCtor>)
@@ -52,8 +55,8 @@ const instantiateClass = <TCtor extends abstract new (...args: TArgs) => unknown
 		clazz._depsCreate(instance, container, ...(args ?? ([] as unknown as TArgs)));
 	}
 
-	if (isInject(instance)) {
-		instance._inject(container);
+	if (isCustomInject(instance)) {
+		instance._customInject(container);
 	}
 
 	return instance;
@@ -267,6 +270,14 @@ declare global {
 	function inject(...args: unknown[]): void;
 	function injectFunc(...args: unknown[]): void;
 	function tryInject(...args: unknown[]): void;
+
+	/** Replaces itself with a function that takes a {@link DIContainer} and calls the provided function, resolving all of its parameters. */
+	function $autoResolve<const TArgs extends unknown[]>(
+		func: (...args: TArgs) => void,
+	): ((di: DIContainer) => void) & {
+		/** @deprecated @hidden */
+		readonly ___convertToResolveFunctionArgs: TArgs;
+	};
 }
 
 type DC = DIContainer;

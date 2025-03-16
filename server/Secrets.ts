@@ -1,4 +1,4 @@
-import { HttpService, RunService } from "@rbxts/services";
+import { RunService } from "@rbxts/services";
 
 export namespace Secrets {
 	const developmentSecrets: Map<string, string> = new Map();
@@ -19,6 +19,11 @@ export namespace Secrets {
 			return data;
 		}
 
-		return HttpService.GetSecret(name) as unknown as string;
+		// return HttpService.GetSecret(name) as unknown as string;
+
+		// FIXME: No reason to store secrets (DMCA Problem)
+		const data = developmentSecrets.get(name);
+		assert(data, `development secret "${name}" is not set`);
+		return data;
 	}
 }

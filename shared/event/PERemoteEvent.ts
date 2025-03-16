@@ -1,8 +1,8 @@
 import { Players, ReplicatedStorage, RunService } from "@rbxts/services";
 import { ArgsSignal } from "engine/shared/event/Signal";
 
-type CreatableRemoteEvents = "UnreliableRemoteEvent" | "RemoteEvent";
-type CreatableRemoteFunctions = "RemoteFunction";
+export type CreatableRemoteEvents = "UnreliableRemoteEvent" | "RemoteEvent";
+export type CreatableRemoteFunctions = "RemoteFunction";
 
 type CustomRemoteEventBase<TArgToClient, TArgToServer> = Instance & {
 	/** @server */
@@ -312,6 +312,12 @@ export class C2S2CRemoteFunction<TArg = undefined, TResp extends Response = Resp
 	}
 
 	/** @server */
+	execute(player: Player, arg: TArg): TResp {
+		if (!this.invoked) throw "what";
+		return this.invoked(player, arg);
+	}
+
+	/** @server */
 	subscribe(func: typeof this.invoked & defined): SignalConnection {
 		if (this.invoked) throw "what";
 		this.invoked = func;
@@ -394,6 +400,36 @@ export class C2CRemoteEvent<TArg = undefined> extends PERemoteEvent<
 		} else if (RunService.IsClient()) {
 			this.invoked.Fire(arg!);
 			this.event.FireServer({ players, arg });
+		}
+	}
+}
+
+export class A2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemoteEventBase<TArg, TArg>> {
+	private readonly _senderInvoked = new ArgsSignal<[arg: TArg]>();
+	readonly senderInvoked = this._senderInvoked.asReadonly();
+
+	/** @server */
+	private readonly _invoked = new ArgsSignal<[player: Player | undefined, arg: TArg]>();
+	/** @server */
+	readonly invoked = this._invoked.asReadonly();
+
+	constructor(name: string, eventType: CreatableRemoteEvents = "UnreliableRemoteEvent") {
+		super(name, eventType);
+
+		if (RunService.IsServer()) {
+			this.event.OnServerEvent.Connect((player, arg) => {
+				this._invoked.Fire(player, arg);
+			});
+		}
+	}
+
+	send(arg: TArg): void {
+		this._senderInvoked.Fire(arg);
+
+		if (RunService.IsClient()) {
+			this.event.FireServer(arg);
+		} else if (RunService.IsServer()) {
+			this._invoked.Fire(undefined, arg);
 		}
 	}
 }

@@ -1,34 +1,27 @@
+import { ObservableCollectionSet } from "engine/shared/event/ObservableCollection";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
+import { ArgsSignal } from "engine/shared/event/Signal";
 
 export interface ReadonlyComponentDisabler<TItem extends defined> {
-	readonly enabled: ReadonlyObservableValue<readonly TItem[]>;
-	readonly disabled: ReadonlyObservableValue<readonly TItem[]>;
-
 	isEnabled(item: TItem): boolean;
 	isDisabled(item: TItem): boolean;
 }
 
 export class ComponentDisabler<TItem extends defined> implements ReadonlyComponentDisabler<TItem> {
-	private readonly _enabled = new ObservableValue<readonly TItem[]>([]);
-	private readonly _disabled = new ObservableValue<readonly TItem[]>([]);
-	readonly enabled = this._enabled.asReadonly();
-	readonly disabled = this._disabled.asReadonly();
+	private readonly _updated = new ArgsSignal();
+	readonly updated = this._updated.asReadonly();
 
-	private readonly allItems: readonly TItem[];
-
-	constructor(allItems: readonly TItem[]) {
-		this.allItems = allItems;
-
-		this._enabled.set(this.allItems);
-		this.enabled.subscribe((enabled) => this._disabled.set(this.allItems.except(enabled)));
-	}
+	// The base value for the enabled check
+	private readonly base = new ObservableValue(true);
+	// Overridden values for the enabled check; in this collection, any item's enabled status is the opposite of the base status
+	private readonly overridden = new ObservableCollectionSet<TItem>();
 
 	asReadonly(): ReadonlyComponentDisabler<TItem> {
 		return this;
 	}
 
 	isEnabled(item: TItem) {
-		return this.enabled.get().includes(item);
+		return this.base.get() ? !this.overridden.has(item) : this.overridden.has(item);
 	}
 	isDisabled(item: TItem) {
 		return !this.isEnabled(item);
@@ -41,30 +34,47 @@ export class ComponentDisabler<TItem extends defined> implements ReadonlyCompone
 	}
 
 	enableAll() {
-		this._enabled.set(this.allItems);
+		this.base.set(true);
+		this.overridden.clear();
+
+		this._updated.Fire();
 	}
 	disableAll() {
-		this._enabled.set([]);
+		this.base.set(false);
+		this.overridden.clear();
+
+		this._updated.Fire();
 	}
 
 	enable(...items: readonly TItem[]) {
-		this.setEnabled(...[...items, ...this.enabled.get()]);
+		if (this.base.get()) {
+			this.overridden.remove(...items);
+		} else {
+			this.overridden.add(...items);
+		}
+
+		this._updated.Fire();
 	}
 	disable(...items: readonly TItem[]) {
-		this.setEnabled(...this.enabled.get().except(items));
+		if (!this.base.get()) {
+			this.overridden.remove(...items);
+		} else {
+			this.overridden.add(...items);
+		}
+
+		this._updated.Fire();
 	}
 
 	enableOnly(...items: readonly TItem[]) {
-		this.setEnabled(...items);
+		this.base.set(false);
+		this.overridden.setRange(items);
+
+		this._updated.Fire();
 	}
 	disableOnly(...items: readonly TItem[]) {
-		this.setDisabled(...items);
-	}
+		this.base.set(true);
+		this.overridden.setRange(items);
 
-	private setEnabled(...items: readonly TItem[]) {
-		this._enabled.set([...new Set(items)]);
-	}
-	private setDisabled(...items: readonly TItem[]) {
-		this._enabled.set(this.allItems.filter((item) => !items.includes(item)));
+		this._updated.Fire();
 	}
 }

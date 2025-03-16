@@ -1,7 +1,6 @@
 import { Players, RunService } from "@rbxts/services";
 import { ComponentDisabler } from "engine/shared/component/ComponentDisabler";
 import { ObservableValue } from "engine/shared/event/ObservableValue";
-import { Objects } from "engine/shared/fixes/Objects";
 import type { Switches } from "engine/shared/Switches";
 
 declare global {
@@ -58,7 +57,7 @@ const lvls = {
 
 export namespace Logger {
 	export const levels = lvls;
-	export const enabledLevels = new ComponentDisabler(Objects.values(levels));
+	export const enabledLevels = new ComponentDisabler<LogLevel>();
 
 	const scopeStack: string[] = [];
 
@@ -68,7 +67,6 @@ export namespace Logger {
 		print(gameInfo.gameName);
 		print();
 
-		print(`ℹ Environment: ${gameInfo.environment} in ${RunService.IsStudio() ? "studio" : "player"}`);
 		print(`ℹ User: ${Players.LocalPlayer.UserId} @${Players.LocalPlayer.Name} ${Players.LocalPlayer.DisplayName}`);
 		print(`ℹ Build: ${RunService.IsStudio() ? "🔒 Studio" : game.PlaceVersion}`);
 		print(`ℹ Server: ${RunService.IsStudio() ? "🔒 Studio" : game.JobId}`);
