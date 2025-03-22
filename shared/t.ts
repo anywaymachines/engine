@@ -99,6 +99,9 @@ namespace RealT {
 		boolean: ofType("boolean"),
 		string: ofType("string"),
 		object: ofType("table"),
+
+		const: <const T>(val: T) => toType((value, result): value is T => value === val),
+
 		true: toType((v: unknown, result?: TypeCheckResult): v is true => {
 			if (!(v === true)) {
 				result?.setText(`${v} is not true`);
