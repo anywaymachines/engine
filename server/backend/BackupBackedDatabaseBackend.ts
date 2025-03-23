@@ -1,6 +1,7 @@
 import { DataStoreDatabaseBackend } from "engine/server/backend/DataStoreDatabaseBackend";
 import { Element } from "engine/shared/Element";
 import { JSON } from "engine/shared/fixes/Json";
+import { Strings } from "engine/shared/fixes/String.propmacro";
 import type { DatabaseBackend } from "engine/server/backend/DatabaseBackend";
 
 const getOptions = Element.create("DataStoreGetOptions", { UseCache: false });
@@ -23,8 +24,8 @@ export class BackupBackedDatabaseBackend<T, TKeys extends defined[]> implements 
 			while (true as boolean) {
 				try {
 					this.uploadBackup();
-				} catch {
-					// empty
+				} catch (err) {
+					$err(err);
 				}
 
 				task.wait(60 * 60);
@@ -45,15 +46,19 @@ export class BackupBackedDatabaseBackend<T, TKeys extends defined[]> implements 
 					continue;
 				}
 
-				$log(`Uploading ${this.backupDatastore.Name} ${dsKey} from backup...`);
-				const { keys, value } = JSON.deserialize<BackupValue<T, TKeys>>(bv as string);
-				if (value === undefined) {
-					this.main.RemoveAsync(keys);
-				} else {
-					this.main.SetAsync(value, keys);
-				}
+				try {
+					$log(`Uploading ${this.backupDatastore.Name} ${dsKey} from backup...`);
+					const { keys, value } = JSON.deserialize<BackupValue<T, TKeys>>(bv as string);
+					if (value === undefined) {
+						this.main.RemoveAsync(keys);
+					} else {
+						this.main.SetAsync(value, keys);
+					}
 
-				this.backupDatastore.RemoveAsync(dsKey);
+					this.backupDatastore.RemoveAsync(dsKey);
+				} catch (err) {
+					$err(`Error uploading backup to main key ${dsKey}:`, err);
+				}
 			}
 
 			pages.AdvanceToNextPageAsync();
@@ -80,7 +85,7 @@ export class BackupBackedDatabaseBackend<T, TKeys extends defined[]> implements 
 			this.mainUnavailable = false;
 		} catch (err) {
 			this.mainUnavailable = true;
-			$warn(`Error setting to main db backend: ${err}, setting to backup`);
+			$warn(`Error setting ${Strings.pretty(keys)} to main db backend: ${err}, setting to backup`);
 			this.backup.SetAsync({ value, keys }, keys);
 		}
 	}
@@ -90,7 +95,7 @@ export class BackupBackedDatabaseBackend<T, TKeys extends defined[]> implements 
 			this.mainUnavailable = false;
 		} catch (err) {
 			this.mainUnavailable = true;
-			$warn(`Error removing from main db backend: ${err}, removing from backup`);
+			$warn(`Error removing ${Strings.pretty(keys)} from main db backend: ${err}, removing from backup`);
 			this.backup.SetAsync({ value: undefined, keys }, keys);
 		}
 	}
