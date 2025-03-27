@@ -69,7 +69,7 @@ declare module "engine/shared/event/ObservableValue" {
 	interface ObservableValue<T> {
 		fCreateBased<U>(
 			funcTo: (value: T) => U,
-			funcFrom: (value: U) => T,
+			funcFrom: (value: U, existing: T) => T,
 			equalityFunc?: (oldv: T, newv: T) => boolean,
 		): FakeObservableValue<U>;
 		fWithDefault<U>(value: U): FakeObservableValue<(T & defined) | U>;
@@ -79,14 +79,14 @@ export const FakeObservableValueMacros: PropertyMacros<ObservableValue<unknown>>
 	fCreateBased: <T, U>(
 		selv: ObservableValue<T>,
 		funcTo: (value: T) => U,
-		funcFrom: (value: U) => T,
+		funcFrom: (value: U, existing: T) => T,
 		equalityFunc?: (oldv: T, newv: T) => boolean,
 	): FakeObservableValue<U> => {
 		const ov = new DestoyableOV<U>(funcTo(selv.get()));
 
 		const sub = selv.subscribe((v) => ov.set(funcTo(v)));
 		ov.subscribe((v) => {
-			const newv = funcFrom(v);
+			const newv = funcFrom(v, selv.get());
 			if (equalityFunc?.(selv.get(), newv)) return;
 
 			selv.set(newv);
