@@ -99,6 +99,13 @@ namespace RealT {
 		boolean: ofType("boolean"),
 		string: ofType("string"),
 		object: ofType("table"),
+		unknownArray: toType((value, result): value is unknown[] => {
+			if (!t.typeCheck(value, t.object, result)) {
+				return false;
+			}
+
+			return true;
+		}),
 
 		const: <const T>(val: T) => toType((value, result): value is T => value === val),
 
@@ -160,6 +167,21 @@ namespace RealT {
 				}
 
 				return _checkProperties(value, properties, result);
+			}),
+
+		array: <const T>(itemType: Type<T>): Type<T[]> =>
+			toType((value, result): value is T[] => {
+				if (!t.typeCheck(value, t.unknownArray, result)) {
+					return false;
+				}
+
+				for (const item of value) {
+					if (!t.typeCheck(item, itemType, result)) {
+						return false;
+					}
+				}
+
+				return true;
 			}),
 
 		intersection: <const T extends readonly Type<unknown>[]>(...items: T): Type<UnwrapArrayIntersection<T>> =>
