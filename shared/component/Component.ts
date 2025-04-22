@@ -88,7 +88,7 @@ export class Component extends ComponentState implements DebuggableComponent {
 	private injectFuncs?: Set<(di: DIContainer) => void>;
 
 	/** Register the provided value to be available to any child DI. */
-	protected cacheDI<T extends defined>(value: T, @pathOf("T") name?: string): void {
+	cacheDI<T extends defined>(value: T, @pathOf("T") name?: string): void {
 		if (!name) {
 			throw `Name is null when registering ${value}`;
 		}
