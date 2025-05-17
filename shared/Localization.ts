@@ -27,7 +27,7 @@ export namespace Localization {
 				}).timeout(1),
 			);
 		} catch (err) {
-			$err(`Disabling LocalizationService as it returned nothing for a second (${err})`);
+			$err("Disabling LocalizationService as it returned nothing for a second");
 			disabled = true;
 
 			return text.join("");
