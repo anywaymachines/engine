@@ -1,5 +1,6 @@
 import { Players, ReplicatedStorage, RunService } from "@rbxts/services";
 import { ArgsSignal } from "engine/shared/event/Signal";
+import { Strings } from "engine/shared/fixes/String.propmacro";
 
 export type CreatableRemoteEvents = "UnreliableRemoteEvent" | "RemoteEvent";
 export type CreatableRemoteFunctions = "RemoteFunction";
@@ -74,7 +75,7 @@ export class C2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemote
 				try {
 					this.invoked.Fire(player, arg);
 				} catch (err) {
-					throw `Error while calling a C2S event ${name} with argument '${arg}': ${err}`;
+					throw `Error while calling a C2S event ${name} with argument '${Strings.pretty(arg)}': ${err}`;
 				}
 			});
 		}
