@@ -46,7 +46,7 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 
 	private destroyed = false;
 	private subscribed?: defined[]; // defined instead of T to workaround the type system
-	private inSelf = 0;
+	private readonly inSelf = new Map<thread, number>();
 
 	Connect(callback: (...args: TArgs) => void): SignalConnection {
 		if (this.destroyed) return { Disconnect() {} };
@@ -63,12 +63,16 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 	}
 	Fire(...args: TArgs): void {
 		if (!this.subscribed) return;
-		if (this.inSelf > 10) {
+
+		const thread = coroutine.running();
+		const inSelf = this.inSelf.get(thread) ?? 0;
+
+		if (inSelf > 10) {
 			warn(`Signal self-calling overflow: ${debug.traceback()}`);
 			throw "Signal self-calling overflow.";
 		}
 
-		this.inSelf++;
+		this.inSelf.set(thread, inSelf + 1);
 		for (const sub of this.subscribed) {
 			const [success, result] = xpcall(
 				sub as (...args: TArgs) => void,
@@ -85,12 +89,12 @@ export class ArgsSignal<TArgs extends unknown[] = []> implements ReadonlyArgsSig
 			);
 
 			if (!success) {
-				this.inSelf = 0;
+				this.inSelf.delete(thread);
 				error(result, 2);
 			}
 		}
 
-		this.inSelf = 0;
+		this.inSelf.delete(thread);
 	}
 
 	destroy() {
