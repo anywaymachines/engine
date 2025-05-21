@@ -1,5 +1,6 @@
 import { DIContainerBuilder } from "engine/shared/di/DIContainer";
 import { pathOf } from "engine/shared/di/DIPathFunctions";
+import { ArgsSignal } from "engine/shared/event/Signal";
 import { GameHost } from "engine/shared/GameHost";
 import { Logger } from "engine/shared/Logger";
 import { Switches } from "engine/shared/Switches";
@@ -23,6 +24,8 @@ class GameHostDIContainerBuilder extends DIContainerBuilder {
 
 export class GameHostBuilder {
 	readonly services = new GameHostDIContainerBuilder();
+	private readonly _enabled = new ArgsSignal<[di: DIContainer]>();
+	readonly enabled = this._enabled.asReadonly();
 
 	constructor(gameInfo: GameInfo) {
 		Logger.printInfo(gameInfo);
@@ -46,6 +49,9 @@ export class GameHostBuilder {
 			const service = services.resolveByClassInstance(ctor);
 			host.parent(service);
 		}
+
+		this._enabled.Fire(services);
+		this._enabled.destroy();
 
 		$log(`Completed`);
 		Logger.endScope();
