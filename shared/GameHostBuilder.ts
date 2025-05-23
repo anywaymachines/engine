@@ -24,7 +24,7 @@ class GameHostDIContainerBuilder extends DIContainerBuilder {
 
 export class GameHostBuilder {
 	readonly services = new GameHostDIContainerBuilder();
-	private readonly _enabled = new ArgsSignal<[di: DIContainer]>();
+	private readonly _enabled = new ArgsSignal<[di: DIContainer, host: GameHost]>();
 	readonly enabled = this._enabled.asReadonly();
 
 	constructor(gameInfo: GameInfo) {
@@ -50,7 +50,7 @@ export class GameHostBuilder {
 			host.parent(service);
 		}
 
-		this._enabled.Fire(services);
+		this._enabled.Fire(services, host);
 		this._enabled.destroy();
 
 		$log(`Completed`);
