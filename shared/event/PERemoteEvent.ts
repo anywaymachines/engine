@@ -434,3 +434,41 @@ export class A2SRemoteEvent<TArg = undefined> extends PERemoteEvent<CustomRemote
 		}
 	}
 }
+
+/** Remote event which:
+ * On owner client, runs the callback
+ * On other client, sends the event to the owner
+ * On server, sends the event to the owner
+ */
+export class A2OCRemoteEvent<TArg = undefined> extends PERemoteEvent<
+	CustomRemoteEventBase<{ sender?: Player; arg: TArg }, { target: Player; arg: TArg }>
+> {
+	/** @client */
+	readonly invoked = new ArgsSignal<[arg: TArg, sender?: Player]>();
+
+	constructor(name: RemoteName, eventType: CreatableRemoteEvents) {
+		super(name, eventType);
+
+		if (RunService.IsServer()) {
+			this.event.OnServerEvent.Connect((sender, { arg, target }) => {
+				this.event.FireClient(target, { sender, arg });
+			});
+		} else if (RunService.IsClient()) {
+			this.event.OnClientEvent.Connect((arg) => {
+				this.invoked.Fire(arg.arg, arg.sender);
+			});
+		}
+	}
+
+	send(target: Player, arg: TArg): void {
+		if (RunService.IsServer()) {
+			this.event.FireClient(target, { arg });
+		} else if (RunService.IsClient()) {
+			if (target === Players.LocalPlayer) {
+				this.invoked.Fire(arg, target);
+			} else {
+				this.event.FireServer({ target, arg });
+			}
+		}
+	}
+}
