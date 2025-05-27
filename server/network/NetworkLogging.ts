@@ -1,4 +1,4 @@
-import { HttpService, Players, RunService } from "@rbxts/services";
+import { HttpService, LocalizationService, Players, RunService } from "@rbxts/services";
 import { Secrets } from "engine/server/Secrets";
 import { HostedService } from "engine/shared/di/HostedService";
 import { JSON } from "engine/shared/fixes/Json";
@@ -8,7 +8,14 @@ const endpoint = "https://logging.anywaymachines.com";
 const headers = { Authorization: `Bearer ${Secrets.getSecret("logging_token")}` };
 
 type LogAction = "join" | "leave" | "chat" | "server_start" | "server_stop";
-type LogSource = "server" | { readonly id: number; readonly name: string; readonly role: string | undefined };
+type LogSource =
+	| "server"
+	| {
+			readonly id: number;
+			readonly name: string;
+			readonly role: string | undefined;
+			readonly country: string | undefined;
+	  };
 type LogServer = {
 	readonly jobId: string;
 	readonly isPrivate?: boolean | undefined;
@@ -32,6 +39,7 @@ const getSourceFromPlayer = (plr: Player): LogSource => ({
 	id: plr.UserId,
 	name: plr.Name,
 	role: getRole(plr),
+	country: LocalizationService.GetCountryRegionForPlayerAsync(plr),
 });
 
 export class NetworkLogging extends HostedService {
