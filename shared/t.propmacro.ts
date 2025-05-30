@@ -12,29 +12,37 @@ const _ = () => [TMacros, TTypeMacros];
 declare module "engine/shared/t" {
 	/** @deprecated Internal use only */
 	interface t_propmacro {
-		numberWithBounds(min?: number, max?: number, step?: number): t.Type<number>;
+		numberWithBounds(min: number, max: number): t.Type<number, { min: number; max: number }>;
+		numberWithBounds(
+			min?: number,
+			max?: number,
+			step?: number,
+		): t.Type<number, { min?: number; max?: number; step?: number }>;
 	}
 }
 export const TMacros: PropertyMacros<t_propmacro, t> = {
-	numberWithBounds: (t, min, max, step): t.Type<number> =>
-		t.custom((value, result): value is number => {
-			if (!t.typeCheck(value, t.number, result)) return false;
+	numberWithBounds: (t, min, max, step): t.Type<number, { min?: number; max?: number; step?: number }> =>
+		t.custom(
+			(value, result): value is number => {
+				if (!t.typeCheck(value, t.number, result)) return false;
 
-			if (min && value < min) {
-				result?.setText(`Value ${value} is out of bounds of [${min}; ${max}]`);
-				return false;
-			}
-			if (max && value > max) {
-				result?.setText(`Value ${value} is out of bounds of [${min}; ${max}]`);
-				return false;
-			}
-			if (step && value % step !== 0) {
-				result?.setText(`Value ${value} is not rounded to ${step}`);
-				return false;
-			}
+				if (min && value < min) {
+					result?.setText(`Value ${value} is out of bounds of [${min}; ${max}]`);
+					return false;
+				}
+				if (max && value > max) {
+					result?.setText(`Value ${value} is out of bounds of [${min}; ${max}]`);
+					return false;
+				}
+				if (step && value % step !== 0) {
+					result?.setText(`Value ${value} is not rounded to ${step}`);
+					return false;
+				}
 
-			return true;
-		}),
+				return true;
+			},
+			{ min, max, step },
+		),
 };
 
 declare module "engine/shared/t" {

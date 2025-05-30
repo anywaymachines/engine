@@ -45,9 +45,11 @@ namespace RealT {
 		readonly [k in keyof T]: Infer<T[k]>;
 	}>;
 
-	const toType = <T>(t: Type<T>["func"]): Type<T> => ({ func: t }) as never;
-	export interface Type<T> extends t_type_propmacro<T> {
+	const toType = <T, TAdditional>(t: Type<T>["func"], additional?: TAdditional): Type<T, TAdditional> =>
+		({ func: t, props: additional }) as never;
+	export interface Type<T, TAdditional = unknown> extends t_type_propmacro<T> {
 		readonly func: (value: unknown, result?: TypeCheckResult) => value is T;
+		readonly props: TAdditional;
 	}
 
 	function ofType<K extends keyof CheckableTypes>(name: K): Type<CheckableTypes[K]> {
@@ -143,14 +145,16 @@ namespace RealT {
 
 				return true;
 			}),
-		interface: <const T extends { readonly [k in string]: Type<unknown> }>(properties: T): Type<UnwrapObject<T>> =>
+		interface: <const T extends { readonly [k in string]: Type<unknown> }>(
+			properties: T,
+		): Type<UnwrapObject<T>, T> =>
 			toType((value, result): value is UnwrapObject<T> => {
 				if (!t.typeCheck(value, t.object, result)) {
 					return false;
 				}
 
 				return _checkProperties(value, properties, result);
-			}),
+			}, properties),
 		strictInterface: <const T extends { readonly [k in string]: Type<unknown> }>(
 			properties: T,
 		): Type<UnwrapObject<T>> =>
@@ -213,6 +217,8 @@ namespace RealT {
 
 export namespace t {
 	export type Infer<T extends Type<unknown>> = RealT.Infer<T>;
-	export interface Type<T> extends RealT.Type<T> {}
+	export interface Type<T, TAdditional = unknown> extends RealT.Type<T, TAdditional> {}
+
+	export interface Interface<T> extends Type<T, T> {}
 }
 export const t: typeof RealT.t & t_propmacro = RealT.t as never;
