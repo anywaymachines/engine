@@ -212,7 +212,7 @@ export namespace Objects {
 	export function withValueByPath<T extends object>(obj: T, value: unknown, path: readonly (string | number)[]): T {
 		function withValueByPath<T extends object>(obj: T, value: unknown, path: (string | number)[]): T {
 			const pathPart = path.pop();
-			if (!pathPart) return obj;
+			if (!pathPart) return value as T;
 
 			const nextval = (obj as { [k in string | number]: unknown })[pathPart];
 			if (!typeIs(nextval, "table")) {
