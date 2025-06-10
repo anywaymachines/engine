@@ -98,6 +98,24 @@ namespace RealT {
 
 		return true;
 	}
+	function _checkPropertiesPartial(
+		value: object,
+		properties: { readonly [k in string]: Type<unknown> },
+		result: TypeCheckResult | undefined,
+	): boolean {
+		const childr = result?.next();
+		for (const [k, prop] of pairs(properties)) {
+			const val = value[k as keyof object];
+			if (val === undefined) continue;
+
+			if (!t.typeCheck(val, prop, childr)) {
+				result?.setText(`Property ${tostring(k)} of ${pretty(value)} has failed the check`);
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	//
 
@@ -179,6 +197,16 @@ namespace RealT {
 				}
 
 				return _checkProperties(value, properties, result);
+			}, properties),
+		partial: <const T extends { readonly [k in string]: Type<unknown> }>(
+			properties: T,
+		): Type<Partial<UnwrapObject<T>>, T> =>
+			toType((value, result): value is Partial<UnwrapObject<T>> => {
+				if (!t.typeCheck(value, t.object, result)) {
+					return false;
+				}
+
+				return _checkPropertiesPartial(value, properties, result);
 			}, properties),
 		mappedInterfaceKV: <const K extends t.Type<string | number>, const V extends t.Type<unknown>>(
 			tkey: K,
