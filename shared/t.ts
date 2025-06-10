@@ -63,6 +63,26 @@ namespace RealT {
 		});
 	}
 
+	function _checkPropertiesKV(
+		value: object,
+		tkey: t.Type<string | number>,
+		tvalue: t.Type<unknown>,
+		result: TypeCheckResult | undefined,
+	): boolean {
+		const childr = result?.next();
+		for (const [k, v] of pairs(value)) {
+			if (!t.typeCheck(tkey, k, childr)) {
+				result?.setText(`Key ${tostring(k)} of ${pretty(value)} has failed the check`);
+				return false;
+			}
+			if (!t.typeCheck(tvalue, v, childr)) {
+				result?.setText(`Value ${value} of ${pretty(value)} has failed the check`);
+				return false;
+			}
+		}
+
+		return true;
+	}
 	function _checkProperties(
 		value: object,
 		properties: { readonly [k in string]: Type<unknown> },
@@ -83,6 +103,11 @@ namespace RealT {
 
 	export const t = {
 		typeCheck<T>(value: unknown, vtype: Type<T>, result?: TypeCheckResult): value is T {
+			if (!vtype) {
+				result?.setText(`Unknown type`);
+				return false;
+			}
+
 			return vtype.func(value, result);
 		},
 		typeCheckWithThrow<T>(value: unknown, vtype: Type<T>): asserts value is T {
@@ -155,6 +180,17 @@ namespace RealT {
 
 				return _checkProperties(value, properties, result);
 			}, properties),
+		mappedInterfaceKV: <const K extends t.Type<string | number>, const V extends t.Type<unknown>>(
+			tkey: K,
+			tvalue: V,
+		): Type<{ [k in Infer<K>]: Infer<V> }> =>
+			toType((value, result): value is { [k in Infer<K>]: Infer<V> } => {
+				if (!t.typeCheck(value, t.object, result)) {
+					return false;
+				}
+
+				return _checkPropertiesKV(value, tkey, tvalue, result);
+			}),
 		strictInterface: <const T extends { readonly [k in string]: Type<unknown> }>(
 			properties: T,
 		): Type<UnwrapObject<T>> =>
