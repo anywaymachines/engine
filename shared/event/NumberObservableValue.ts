@@ -10,6 +10,8 @@ export class NumberObservableValue<T extends number | undefined = number> extend
 	constructor(value: T, min: number, max: number, step?: number) {
 		super(value, (value) => {
 			if (value === undefined) return value;
+			if (value !== value) return this.min as T;
+
 			return MathUtils.clamp(value, this.min, this.max, this.step) as T;
 		});
 
