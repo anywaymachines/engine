@@ -9,8 +9,8 @@ export namespace MathUtils {
 			return math.round(value);
 		}
 
-		const halfstep = step / 2;
-		return value - ((value + halfstep) % step) + halfstep;
+		const inverseStep = 1 / step;
+		return math.round(value * inverseStep) / inverseStep;
 	}
 	export function clamp(value: number, min: number | undefined, max: number | undefined, step?: number) {
 		value = round(value, step);
