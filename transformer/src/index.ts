@@ -789,7 +789,7 @@ const create = (program: ts.Program, context: ts.TransformationContext) => {
 
 			return factory.createCallExpression(
 				factory.createPropertyAccessExpression(
-					factory.createThis(),
+					call.expression.expression,
 					"onInject",
 				),
 				undefined,

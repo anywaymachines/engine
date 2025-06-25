@@ -104,12 +104,12 @@ export class Component extends ComponentState implements DebuggableComponent {
 	}
 
 	/** Subscribes a function to run when a DI container is available (so when parented to another component or resolved by DI); auto-resolving version. */
-	protected $onInjectAuto<TArgs extends unknown[]>(func: (...args: TArgs) => void): void {
+	$onInjectAuto<TArgs extends unknown[]>(func: (...args: TArgs) => void): void {
 		throw "$onInjectAuto cannot be indirectly called";
 	}
 
 	/** Subscribes a function to run when a DI container is available (so when parented to another component or resolved by DI). */
-	protected onInject(func: (di: DIContainer) => void): void {
+	onInject(func: (di: DIContainer) => void): void {
 		if (this.injectFuncs?.size() === 0) {
 			throw "Can't request injection after parenting";
 		}
