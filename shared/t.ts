@@ -173,6 +173,7 @@ namespace RealT {
 
 		vector2: ofType("Vector2"),
 		vector3: ofType("Vector3"),
+		cframe: ofType("CFrame"),
 		color: ofType("Color3"),
 
 		instance: <const T extends keyof Instances>(name: T): Type<Instances[T]> =>
