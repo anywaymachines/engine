@@ -35,15 +35,18 @@ const getRole = (player: Player): string | undefined => {
 
 	return undefined;
 };
-const getSourceFromPlayer = (plr: Player): LogSource => ({
-	id: plr.UserId,
-	name: plr.Name,
-	role: getRole(plr),
-	country: LocalizationService.GetCountryRegionForPlayerAsync(plr),
-});
 
 export class NetworkLogging extends HostedService {
 	private readonly storage: Log[] = [];
+
+	getSourceFromPlayer(plr: Player): LogSource {
+		return {
+			id: plr.UserId,
+			name: plr.Name,
+			role: getRole(plr),
+			country: LocalizationService.GetCountryRegionForPlayerAsync(plr),
+		};
+	}
 
 	getServer(): LogServer {
 		if (RunService.IsStudio()) {
@@ -62,24 +65,24 @@ export class NetworkLogging extends HostedService {
 		// Players
 		this.event.subscribe(Players.PlayerAdded, (plr) => {
 			this.log({
-				source: getSourceFromPlayer(plr),
+				source: this.getSourceFromPlayer(plr),
 				action: "join",
 			});
 
 			plr.Chatted.Connect((message, recipient) => {
 				this.log({
-					source: getSourceFromPlayer(plr),
+					source: this.getSourceFromPlayer(plr),
 					action: "chat",
 					data: {
 						message,
-						recipient: recipient ? getSourceFromPlayer(recipient) : undefined,
+						recipient: recipient ? this.getSourceFromPlayer(recipient) : undefined,
 					},
 				});
 			});
 		});
 		this.event.subscribe(Players.PlayerRemoving, (plr) => {
 			this.log({
-				source: getSourceFromPlayer(plr),
+				source: this.getSourceFromPlayer(plr),
 				action: "leave",
 			});
 		});
