@@ -135,15 +135,21 @@ export namespace Objects {
 		return true;
 	}
 
-	/** Object deep equals check, but checks only propeties that exists on `properties` */
+	/** Object deep equals check, but checks only propeties that exists on `properties`, recursive */
 	export function objectDeepEqualsExisting(object: object, properties: object): boolean {
 		for (const [k] of pairs(properties)) {
 			if (!(k in object)) {
 				return false;
 			}
 
-			if (!deepEquals(object[k], properties[k])) {
-				return false;
+			if (!typeIs(object[k], "table")) {
+				if (!deepEquals(object[k], properties[k])) {
+					return false;
+				}
+			} else {
+				if (!objectDeepEqualsExisting(object[k], properties[k])) {
+					return false;
+				}
 			}
 		}
 

@@ -1,6 +1,6 @@
 import { ArgsSignal, Signal } from "engine/shared/event/Signal";
 
-type MiddlewareResponse<TArg> = Response<{ readonly arg?: TArg }>;
+export type MiddlewareResponse<TArg> = Response<{ readonly arg?: TArg }>;
 export class Operation<TArg, TResult extends {} = {}> {
 	private readonly _executing = new ArgsSignal<[arg: TArg]>();
 	readonly executing = this._executing.asReadonly();
