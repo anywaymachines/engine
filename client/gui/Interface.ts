@@ -3,7 +3,7 @@ import { Players } from "@rbxts/services";
 export namespace Interface {
 	export const mouse = Players.LocalPlayer.GetMouse();
 
-	const playergui = Players.LocalPlayer.WaitForChild("PlayerGui") as PlayerGui;
+	const playergui = Players.LocalPlayer.FindFirstChildOfClass("PlayerGui")!;
 	const gameui = playergui.WaitForChild("Interface");
 	const popups = playergui.WaitForChild("Popups");
 	const templates = gameui.WaitForChild("Templates");

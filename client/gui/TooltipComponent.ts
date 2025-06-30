@@ -20,7 +20,7 @@ const screen = Element.create("ScreenGui", {
 	SafeAreaCompatibility: Enum.SafeAreaCompatibility.None,
 	ScreenInsets: Enum.ScreenInsets.None,
 	DisplayOrder: 99999,
-	Parent: Players.LocalPlayer.WaitForChild("PlayerGui"),
+	Parent: Players.LocalPlayer.FindFirstChildOfClass("PlayerGui")!,
 });
 
 type TooltipDefinition = GuiObject & {

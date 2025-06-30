@@ -49,7 +49,9 @@ export class PlayerInfo extends InstanceComponent<Player> {
 
 	/** Native `PlayerModule` library */
 	getPlayerModule(): PlayerModule {
-		const instance = this.instance.WaitForChild("PlayerScripts").WaitForChild("PlayerModule") as ModuleScript;
+		const instance = this.instance
+			.FindFirstChildOfClass("PlayerScripts")!
+			.WaitForChild("PlayerModule") as ModuleScript;
 		return require(instance) as PlayerModule;
 	}
 }

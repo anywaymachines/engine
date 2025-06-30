@@ -27,7 +27,7 @@ export namespace TestFramework {
 			visit(ServerScriptService);
 		} else if (RunService.IsClient()) {
 			visit(ReplicatedStorage);
-			visit(Players.LocalPlayer.WaitForChild("PlayerScripts"));
+			visit(Players.LocalPlayer.FindFirstChildOfClass("PlayerScripts")!);
 		}
 
 		return ret;
