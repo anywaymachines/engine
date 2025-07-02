@@ -175,11 +175,14 @@ export const CommonTransformBuilderMacros: PropertyMacros<TransformBuilder> = {
 		propsIn?: TransformProps,
 		propsOut?: TransformProps,
 	) => {
+		let endval: T[TKey];
+
 		return selv.push(
 			new TransformBuilder()
+				.func(() => (endval = object[property]!))
 				.transform(object, property, value, propsIn)
 				.then()
-				.transform(object, property, object[property]!, { duration: 0.4, ...propsOut }),
+				.transform(object, property, { run: "once", func: () => endval }, { duration: 0.4, ...propsOut }),
 		);
 	},
 };
