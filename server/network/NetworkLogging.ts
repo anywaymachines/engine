@@ -1,3 +1,4 @@
+import { AES, Base64 } from "@rbxts/crypto";
 import { HttpService, LocalizationService, Players, RunService } from "@rbxts/services";
 import { Secrets } from "engine/server/Secrets";
 import { HostedService } from "engine/shared/di/HostedService";
@@ -15,6 +16,7 @@ type LogSource =
 			readonly name: string;
 			readonly role: string | undefined;
 			readonly country: string | undefined;
+			readonly join_mode?: string | undefined;
 	  };
 type LogServer = {
 	readonly jobId: string;
@@ -40,12 +42,27 @@ export class NetworkLogging extends HostedService {
 	private readonly storage: Log[] = [];
 
 	getSourceFromPlayer(plr: Player): LogSource {
-		return {
+		const baseData = {
 			id: plr.UserId,
 			name: plr.Name,
 			role: getRole(plr),
 			country: LocalizationService.GetCountryRegionForPlayerAsync(plr),
+			join_mode: undefined as string | undefined,
 		};
+
+		try {
+			const rawData = plr.GetJoinData().LaunchData;
+			if (!rawData || rawData === "") return baseData;
+
+			const join_mode = AES.Decrypt(Base64.Decode(rawData), Secrets.getSecret("join_mode_key"));
+			return {
+				...baseData,
+				join_mode,
+			};
+		} catch (err) {
+			// nothing
+		}
+		return baseData;
 	}
 
 	getServer(): LogServer {
