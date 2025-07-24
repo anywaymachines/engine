@@ -86,13 +86,15 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 
 	set(keys: TKeys, value: T) {
 		const time = os.time();
-		this.cache[formatDatabaseBackendKeys(keys)] = {
+		const key = formatDatabaseBackendKeys(keys);
+		this.cache[key] = {
 			keys,
 			changed: true,
 			lastAccessedTime: time,
 			value,
 			lastSaveTime: time,
 		};
+		this.save(keys, key);
 	}
 	delete(keys: TKeys) {
 		this.datastore.RemoveAsync(keys);
