@@ -94,7 +94,8 @@ abstract class DbBase<T, TDb, TKeys extends defined[]> {
 			value,
 			lastSaveTime: time,
 		};
-		this.save(keys, key);
+
+		task.spawn(() => this.save(keys, key));
 	}
 	delete(keys: TKeys) {
 		this.datastore.RemoveAsync(keys);
